@@ -4,7 +4,7 @@ import { map, tap, catchError, shareReplay } from 'rxjs/operators';
 import { GoogleSheetsService } from './google-sheets-service';
 import { WedstrijdData, WedstrijdFilter, SeizoenData } from '../interfaces/IWedstrijd';
 import { parseWedstrijdDateTime } from '../utils/date-utils';
-import { WEDSTRIJD_COLUMNS } from '../constants/sheet-columns';
+import { WEDSTRIJD_COLUMNS, SHEET_NAMES } from '../constants/sheet-columns';
 
 @Injectable({
   providedIn: 'root'
@@ -100,6 +100,50 @@ export class WedstrijdenService {
         return wedstrijden.find(w => 
           w.seizoen === seizoen && w.id === wedstrijdNummer
         ) || null;
+      })
+    );
+  }
+
+  /**
+   * Update an existing wedstrijd in the sheet
+   */
+  updateWedstrijd(wedstrijd: WedstrijdData): Observable<any> {
+    if (!wedstrijd.absoluteRowNumber) {
+      throw new Error('Cannot update wedstrijd: absoluteRowNumber is missing');
+    }
+
+    // Format date as string for storage (DD-MM-YYYY HH:mm)
+    let datumString = '';
+    if (wedstrijd.datum) {
+      const day = String(wedstrijd.datum.getDate()).padStart(2, '0');
+      const month = String(wedstrijd.datum.getMonth() + 1).padStart(2, '0');
+      const year = wedstrijd.datum.getFullYear();
+      const hours = String(wedstrijd.datum.getHours()).padStart(2, '0');
+      const minutes = String(wedstrijd.datum.getMinutes()).padStart(2, '0');
+      datumString = `${day}-${month}-${year} ${hours}:${minutes}`;
+    }
+
+    const row = [
+      wedstrijd.id || '',
+      wedstrijd.seizoen || '',
+      datumString,
+      wedstrijd.teamWit || '',
+      wedstrijd.teamRood || '',
+      wedstrijd.teamGeneratie || '',
+      wedstrijd.scoreWit !== null ? wedstrijd.scoreWit : '',
+      wedstrijd.scoreRood !== null ? wedstrijd.scoreRood : '',
+      wedstrijd.zlatan || '',
+      wedstrijd.ventiel || ''
+    ];
+
+    return this.googleSheetsService.updateSheetRow(SHEET_NAMES.WEDSTRIJDEN, wedstrijd.absoluteRowNumber, row).pipe(
+      tap(() => {
+        this.wedstrijdenCache$.next(null);
+        this.cacheTimestamp = 0;
+      }),
+      catchError(error => {
+        console.error('Error updating wedstrijd:', error);
+        throw error;
       })
     );
   }

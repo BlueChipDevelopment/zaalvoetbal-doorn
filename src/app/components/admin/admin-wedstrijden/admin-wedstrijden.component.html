@@ -1,0 +1,61 @@
+<div class="wedstrijden-container">
+  <div class="header-actions">
+    <h2>Wedstrijdbeheer</h2>
+  </div>
+
+  <div class="table-container" *ngIf="!loading">
+    <table mat-table [dataSource]="dataSource" class="wedstrijden-table">
+      
+      <ng-container matColumnDef="seizoen">
+        <th mat-header-cell *matHeaderCellDef>Seizoen</th>
+        <td mat-cell *matCellDef="let wedstrijd">{{ wedstrijd.seizoen }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="datum">
+        <th mat-header-cell *matHeaderCellDef>Datum</th>
+        <td mat-cell *matCellDef="let wedstrijd">{{ formatDate(wedstrijd.datum) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="teamWit">
+        <th mat-header-cell *matHeaderCellDef>Team Wit</th>
+        <td mat-cell *matCellDef="let wedstrijd">{{ getTeamNames(wedstrijd.teamWit) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="teamRood">
+        <th mat-header-cell *matHeaderCellDef>Team Rood</th>
+        <td mat-cell *matCellDef="let wedstrijd">{{ getTeamNames(wedstrijd.teamRood) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="scoreWit">
+        <th mat-header-cell *matHeaderCellDef>Score Wit</th>
+        <td mat-cell *matCellDef="let wedstrijd">{{ formatScore(wedstrijd.scoreWit) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="scoreRood">
+        <th mat-header-cell *matHeaderCellDef>Score Rood</th>
+        <td mat-cell *matCellDef="let wedstrijd">{{ formatScore(wedstrijd.scoreRood) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="zlatan">
+        <th mat-header-cell *matHeaderCellDef>Zlatan</th>
+        <td mat-cell *matCellDef="let wedstrijd">{{ wedstrijd.zlatan || '-' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Acties</th>
+        <td mat-cell *matCellDef="let wedstrijd">
+          <button mat-icon-button color="primary" (click)="editWedstrijd(wedstrijd)" aria-label="Wijzig wedstrijd">
+            <mat-icon>edit</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  </div>
+
+  <div class="loading-container" *ngIf="loading">
+    <p>Wedstrijden laden...</p>
+  </div>
+</div>

@@ -208,6 +208,70 @@ export class PlayerService {
   }
 
   /**
+   * Add a new player to the sheet
+   */
+  addPlayer(player: PlayerSheetData): Observable<any> {
+    const row = [
+      player.name,
+      player.position,
+      player.actief ? 'Ja' : 'Nee',
+      player.pushPermission ? 'TRUE' : 'FALSE',
+      player.pushSubscription || ''
+    ];
+
+    return this.googleSheetsService.appendSheetRow(SHEET_NAMES.SPELERS, row).pipe(
+      tap(() => this.clearCache()),
+      catchError(error => {
+        console.error('❌ PlayerService error adding player:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Update an existing player in the sheet
+   */
+  updatePlayer(playerName: string, updatedPlayer: PlayerSheetData): Observable<any> {
+    return this.googleSheetsService.getSheetData(SHEET_NAMES.SPELERS).pipe(
+      map(rows => {
+        // Find the player by name in the actual sheet data
+        let foundRowIndex = -1;
+        
+        for (let i = 1; i < rows.length; i++) { // Skip header row (index 0)
+          const row = rows[i];
+          if (row && row[SPELER_COLUMNS.NAME] && row[SPELER_COLUMNS.NAME].toLowerCase().trim() === playerName.toLowerCase().trim()) {
+            foundRowIndex = i;
+            break;
+          }
+        }
+        
+        if (foundRowIndex === -1) {
+          throw new Error(`Player not found in sheet: ${playerName}`);
+        }
+        
+        const updatedRow = [
+          updatedPlayer.name,
+          updatedPlayer.position,
+          updatedPlayer.actief ? 'Ja' : 'Nee',
+          updatedPlayer.pushPermission ? 'TRUE' : 'FALSE',
+          updatedPlayer.pushSubscription || ''
+        ];
+        
+        const sheetRowNumber = foundRowIndex + 1; // Convert to 1-based indexing
+        return { row: updatedRow, sheetRowNumber };
+      }),
+      switchMap(({row, sheetRowNumber}) => {
+        return this.googleSheetsService.updateSheetRow(SHEET_NAMES.SPELERS, sheetRowNumber, row);
+      }),
+      catchError(error => {
+        console.error('❌ PlayerService error updating player:', error);
+        throw error;
+      }),
+      tap(() => this.clearCache())
+    );
+  }
+
+  /**
    * Clear the cache
    */
   private clearCache(): void {

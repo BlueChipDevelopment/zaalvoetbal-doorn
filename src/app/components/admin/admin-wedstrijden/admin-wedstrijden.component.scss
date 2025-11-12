@@ -1,0 +1,48 @@
+@import '../../../../styles_variables.scss';
+
+.wedstrijden-container {
+  .header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+
+    h2 {
+      margin: 0;
+      color: $primary-color;
+    }
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .wedstrijden-table {
+    width: 100%;
+    
+    th {
+      background-color: $primary-color;
+      color: white;
+      font-weight: bold;
+    }
+
+    td, th {
+      padding: 12px;
+      font-size: 14px;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f5f5f5;
+    }
+
+    tr:hover {
+      background-color: #e0e0e0;
+    }
+  }
+
+  .loading-container {
+    text-align: center;
+    padding: 40px;
+    color: $secondary-color;
+  }
+}

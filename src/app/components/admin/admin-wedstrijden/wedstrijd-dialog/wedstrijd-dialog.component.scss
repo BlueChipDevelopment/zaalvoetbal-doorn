@@ -1,0 +1,30 @@
+@import '../../../../../styles_variables.scss';
+
+.full-width {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.half-width {
+  width: 48%;
+  margin-bottom: 16px;
+}
+
+.form-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4%;
+}
+
+mat-dialog-content {
+  min-width: 600px;
+  padding: 20px;
+}
+
+mat-dialog-actions {
+  padding: 16px;
+}
+
+textarea {
+  resize: vertical;
+}

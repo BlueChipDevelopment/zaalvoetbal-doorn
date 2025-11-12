@@ -1,0 +1,83 @@
+<h2 mat-dialog-title>Wedstrijd Wijzigen</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="wedstrijdForm">
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="half-width">
+        <mat-label>Seizoen</mat-label>
+        <input matInput formControlName="seizoen" required>
+        <mat-error *ngIf="wedstrijdForm.get('seizoen')?.hasError('required')">
+          Seizoen is verplicht
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="half-width">
+        <mat-label>Datum</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="datum" required>
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+        <mat-error *ngIf="wedstrijdForm.get('datum')?.hasError('required')">
+          Datum is verplicht
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Team Wit</mat-label>
+      <textarea matInput formControlName="teamWit" rows="2" required></textarea>
+      <mat-error *ngIf="wedstrijdForm.get('teamWit')?.hasError('required')">
+        Team Wit is verplicht
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Team Rood</mat-label>
+      <textarea matInput formControlName="teamRood" rows="2" required></textarea>
+      <mat-error *ngIf="wedstrijdForm.get('teamRood')?.hasError('required')">
+        Team Rood is verplicht
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Team Generatie</mat-label>
+      <input matInput formControlName="teamGeneratie">
+    </mat-form-field>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="half-width">
+        <mat-label>Score Wit</mat-label>
+        <input matInput type="number" formControlName="scoreWit" min="0">
+        <mat-error *ngIf="wedstrijdForm.get('scoreWit')?.hasError('min')">
+          Score moet minimaal 0 zijn
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="half-width">
+        <mat-label>Score Rood</mat-label>
+        <input matInput type="number" formControlName="scoreRood" min="0">
+        <mat-error *ngIf="wedstrijdForm.get('scoreRood')?.hasError('min')">
+          Score moet minimaal 0 zijn
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="half-width">
+        <mat-label>Zlatan</mat-label>
+        <input matInput formControlName="zlatan">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="half-width">
+        <mat-label>Ventiel</mat-label>
+        <input matInput formControlName="ventiel">
+      </mat-form-field>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Annuleren</button>
+  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="!wedstrijdForm.valid">
+    Opslaan
+  </button>
+</mat-dialog-actions>
