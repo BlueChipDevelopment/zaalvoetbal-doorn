@@ -44,6 +44,27 @@ export class AdminWedstrijdenComponent implements OnInit {
     });
   }
 
+  addWedstrijd(): void {
+    const dialogRef = this.dialog.open(WedstrijdDialogComponent, {
+      width: '700px',
+      data: null
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.wedstrijdenService.addWedstrijd(result).subscribe({
+          next: () => {
+            this.loadWedstrijden();
+          },
+          error: (error) => {
+            console.error('Error adding wedstrijd:', error);
+            alert('Fout bij toevoegen wedstrijd: ' + error.message);
+          }
+        });
+      }
+    });
+  }
+
   editWedstrijd(wedstrijd: WedstrijdData): void {
     const dialogRef = this.dialog.open(WedstrijdDialogComponent, {
       width: '700px',

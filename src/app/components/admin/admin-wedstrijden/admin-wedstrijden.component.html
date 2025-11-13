@@ -1,6 +1,9 @@
 <div class="wedstrijden-container">
   <div class="header-actions">
     <h2>Wedstrijdbeheer</h2>
+    <button mat-fab color="primary" (click)="addWedstrijd()" aria-label="Voeg wedstrijd toe">
+      <mat-icon>add</mat-icon>
+    </button>
   </div>
 
   <div class="table-container" *ngIf="!loading">

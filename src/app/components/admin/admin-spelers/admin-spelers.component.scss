@@ -1,5 +1,7 @@
 @import '../../../../styles_variables.scss';
 
+$mobile-breakpoint: 767px;
+
 .spelers-container {
   .header-actions {
     display: flex;
@@ -19,15 +21,22 @@
 
   .spelers-table {
     width: 100%;
+    border-collapse: collapse;
     
     th {
-      background-color: $primary-color;
-      color: white;
-      font-weight: bold;
+      background-color: transparent;
+      color: rgba(0, 0, 0, 0.87);
+      font-weight: 500;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+    }
+
+    td {
+      border: 1px solid rgba(0, 0, 0, 0.12);
     }
 
     td, th {
-      padding: 12px;
+      padding: 8px;
+      text-align: left;
     }
 
     tr:nth-child(even) {
@@ -43,5 +52,25 @@
     text-align: center;
     padding: 40px;
     color: $secondary-color;
+  }
+
+  @media screen and (max-width: $mobile-breakpoint) {
+    .header-actions {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+
+      h2 {
+        font-size: 1.2em;
+      }
+    }
+
+    .spelers-table {
+      font-size: 13px;
+
+      td, th {
+        padding: 6px 4px;
+      }
+    }
   }
 }

@@ -14,18 +14,18 @@ export class WedstrijdDialogComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     public dialogRef: MatDialogRef<WedstrijdDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: WedstrijdData
+    @Inject(MAT_DIALOG_DATA) public data: WedstrijdData | null
   ) {
     this.wedstrijdForm = this.fb.group({
-      seizoen: [data.seizoen || '', Validators.required],
-      datum: [data.datum || null, Validators.required],
-      teamWit: [data.teamWit || '', Validators.required],
-      teamRood: [data.teamRood || '', Validators.required],
-      teamGeneratie: [data.teamGeneratie || ''],
-      scoreWit: [data.scoreWit, [Validators.min(0)]],
-      scoreRood: [data.scoreRood, [Validators.min(0)]],
-      zlatan: [data.zlatan || ''],
-      ventiel: [data.ventiel || '']
+      seizoen: [data?.seizoen || '', Validators.required],
+      datum: [data?.datum || null, Validators.required],
+      teamWit: [data?.teamWit || ''],
+      teamRood: [data?.teamRood || ''],
+      teamGeneratie: [data?.teamGeneratie || ''],
+      scoreWit: [data?.scoreWit, [Validators.min(0)]],
+      scoreRood: [data?.scoreRood, [Validators.min(0)]],
+      zlatan: [data?.zlatan || ''],
+      ventiel: [data?.ventiel || '']
     });
   }
 
@@ -43,16 +43,20 @@ export class WedstrijdDialogComponent implements OnInit {
         ...this.data,
         seizoen: formValue.seizoen,
         datum: formValue.datum,
-        teamWit: formValue.teamWit,
-        teamRood: formValue.teamRood,
-        teamGeneratie: formValue.teamGeneratie,
-        scoreWit: formValue.scoreWit !== '' ? Number(formValue.scoreWit) : null,
-        scoreRood: formValue.scoreRood !== '' ? Number(formValue.scoreRood) : null,
-        zlatan: formValue.zlatan,
-        ventiel: formValue.ventiel
+        teamWit: formValue.teamWit || '',
+        teamRood: formValue.teamRood || '',
+        teamGeneratie: formValue.teamGeneratie || '',
+        scoreWit: formValue.scoreWit !== '' && formValue.scoreWit !== null ? Number(formValue.scoreWit) : null,
+        scoreRood: formValue.scoreRood !== '' && formValue.scoreRood !== null ? Number(formValue.scoreRood) : null,
+        zlatan: formValue.zlatan || '',
+        ventiel: formValue.ventiel || ''
       };
 
       this.dialogRef.close(updatedWedstrijd);
     }
+  }
+
+  getDialogTitle(): string {
+    return this.data ? 'Wedstrijd Wijzigen' : 'Wedstrijd Toevoegen';
   }
 }
