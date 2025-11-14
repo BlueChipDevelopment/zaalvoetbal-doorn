@@ -3,6 +3,10 @@
 .full-width {
   width: 100%;
   margin-bottom: 16px;
+  
+  &:first-of-type {
+    margin-top: 8px;
+  }
 }
 
 .toggle-field {

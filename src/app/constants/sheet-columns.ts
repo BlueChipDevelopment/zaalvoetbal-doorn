@@ -61,18 +61,14 @@ export const WEDSTRIJD_RANGES = {
 export const SPELER_COLUMNS = {
   NAME: 0,                // Kolom A - Speler naam
   POSITION: 1,            // Kolom B - Positie  
-  ACTIEF: 2,             // Kolom C - Actief (boolean)
-  PUSH_PERMISSION: 3,     // Kolom D - Push notificatie toestemming
-  PUSH_SUBSCRIPTION: 4    // Kolom E - Push subscription data
+  ACTIEF: 2              // Kolom C - Actief (boolean)
 } as const;
 
 // Kolom letters voor spreadsheet ranges
 export const SPELER_COLUMN_LETTERS = {
   NAME: 'A',
   POSITION: 'B',
-  ACTIEF: 'C',
-  PUSH_PERMISSION: 'D',
-  PUSH_SUBSCRIPTION: 'E'
+  ACTIEF: 'C'
 } as const;
 
 // Helper functie om ranges te maken voor Spelers sheet
@@ -82,8 +78,7 @@ export function createSpelerRange(fromColumn: keyof typeof SPELER_COLUMN_LETTERS
 
 // Veelgebruikte ranges voor Spelers sheet
 export const SPELER_RANGES = {
-  PUSH_DATA: (row: number) => createSpelerRange('PUSH_PERMISSION', 'PUSH_SUBSCRIPTION', row),
-  ALL_PLAYER_DATA: (row: number) => createSpelerRange('NAME', 'PUSH_SUBSCRIPTION', row)
+  ALL_PLAYER_DATA: (row: number) => createSpelerRange('NAME', 'ACTIEF', row)
 } as const;
 
 // === AANWEZIGHEID SHEET ===

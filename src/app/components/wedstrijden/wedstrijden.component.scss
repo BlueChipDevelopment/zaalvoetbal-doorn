@@ -24,8 +24,8 @@ $score: #333;
 }
 
 .wedstrijd-header {
-  font-weight: bold;
-  font-size: 1.1rem;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-lg;
   color: $primary-color;
 }
 
@@ -33,7 +33,7 @@ $score: #333;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 1.2rem;
+  font-size: $font-size-xl;
 }
 
 .team {
@@ -56,8 +56,8 @@ $score: #333;
 }
 
 .wedstrijd-score {
-  font-size: 1.4rem;
-  font-weight: bold;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
   color: $score;
   white-space: nowrap;
   width: 60px;
@@ -67,7 +67,7 @@ $score: #333;
 }
 
 .wedstrijd-locatie {
-  font-size: 0.95rem;
+  font-size: $font-size-sm;
   color: $secondary-color;
 }
 
@@ -80,7 +80,7 @@ $score: #333;
     color: #2e7d32;
     .auto-icon {
       color: #2e7d32;
-      font-size: 1rem;
+      font-size: $font-size-base;
       width: 1rem;
       height: 1rem;
     }
@@ -90,7 +90,7 @@ $score: #333;
     color: #1976d2;
     .manual-icon {
       color: #1976d2;
-      font-size: 1rem;
+      font-size: $font-size-base;
       width: 1rem;
       height: 1rem;
     }

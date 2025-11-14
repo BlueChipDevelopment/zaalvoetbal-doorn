@@ -3,6 +3,7 @@
 <mat-dialog-content>
   <form [formGroup]="wedstrijdForm">
     <div class="form-row">
+      
       <mat-form-field appearance="outline" class="half-width">
         <mat-label>Seizoen *</mat-label>
         <input matInput formControlName="seizoen" required>
@@ -33,8 +34,13 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Team Generatie</mat-label>
-      <input matInput formControlName="teamGeneratie">
+      <mat-label>Team Generatie (optioneel)</mat-label>
+      <mat-select formControlName="teamGeneratie">
+        <mat-option value="">Geen selectie</mat-option>
+        <mat-option *ngFor="let optie of teamGeneratieOpties" [value]="optie">
+          {{ optie }}
+        </mat-option>
+      </mat-select>
     </mat-form-field>
 
     <div class="form-row">

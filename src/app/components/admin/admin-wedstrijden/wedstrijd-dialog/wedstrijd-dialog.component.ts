@@ -10,6 +10,7 @@ import { WedstrijdData } from '../../../../interfaces/IWedstrijd';
 })
 export class WedstrijdDialogComponent implements OnInit {
   wedstrijdForm: FormGroup;
+  teamGeneratieOpties: string[] = ['Automatisch', 'Handmatig'];
 
   constructor(
     private fb: FormBuilder,

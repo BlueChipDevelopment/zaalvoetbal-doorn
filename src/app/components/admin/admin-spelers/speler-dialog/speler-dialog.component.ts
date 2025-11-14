@@ -50,9 +50,7 @@ export class SpelerDialogComponent implements OnInit {
       const player: PlayerSheetData = {
         name: formValue.name,
         position: formValue.position,
-        actief: formValue.actief,
-        pushPermission: this.data.player?.pushPermission || false,
-        pushSubscription: this.data.player?.pushSubscription
+        actief: formValue.actief
       };
 
       if (this.isEditMode) {

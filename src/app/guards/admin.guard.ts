@@ -9,6 +9,12 @@ export class AdminGuard implements CanActivate {
   constructor(private router: Router) {}
 
   canActivate(): boolean {
+    // Skip authentication in development mode if configured
+    if (environment.skipAdminAuth) {
+      console.log('🔓 Admin authentication skipped (development mode)');
+      return true;
+    }
+
     const code = prompt('Voer de beheerderscode in:');
     
     if (code === environment.adminCode) {

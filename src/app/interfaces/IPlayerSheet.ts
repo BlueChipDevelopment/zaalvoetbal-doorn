@@ -8,10 +8,6 @@ export interface PlayerSheetData {
   position: string;
   /** Kolom C (2): Actief status ("Ja"/"Nee") */
   actief: boolean;
-  /** Kolom D (3): Notificatie toestemming (voor push notifications) */
-  pushPermission: boolean;
-  /** Kolom E (4): Push subscription data (JSON string) */
-  pushSubscription?: string;
 }
 
 /**
@@ -20,8 +16,6 @@ export interface PlayerSheetData {
 export interface PlayerFilter {
   /** Only active players */
   activeOnly?: boolean;
-  /** Only players with push permission */
-  pushPermissionOnly?: boolean;
   /** Specific positions to include */
   positions?: string[];
 }

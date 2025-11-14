@@ -159,15 +159,13 @@ export class WedstrijdenService {
       throw new Error('Cannot update wedstrijd: absoluteRowNumber is missing');
     }
 
-    // Format date as string for storage (DD-MM-YYYY HH:mm)
+    // Format date as string for storage (DD-MM-YYYY only, no time)
     let datumString = '';
     if (wedstrijd.datum) {
       const day = String(wedstrijd.datum.getDate()).padStart(2, '0');
       const month = String(wedstrijd.datum.getMonth() + 1).padStart(2, '0');
       const year = wedstrijd.datum.getFullYear();
-      const hours = String(wedstrijd.datum.getHours()).padStart(2, '0');
-      const minutes = String(wedstrijd.datum.getMinutes()).padStart(2, '0');
-      datumString = `${day}-${month}-${year} ${hours}:${minutes}`;
+      datumString = `${day}-${month}-${year}`;
     }
 
     const row = [
