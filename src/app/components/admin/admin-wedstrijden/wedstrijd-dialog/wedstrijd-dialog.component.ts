@@ -18,7 +18,7 @@ export class WedstrijdDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: WedstrijdData | null
   ) {
     this.wedstrijdForm = this.fb.group({
-      seizoen: [data?.seizoen || '', Validators.required],
+      seizoen: [data?.seizoen || this.getCurrentSeizoen(), Validators.required],
       datum: [data?.datum || null, Validators.required],
       teamWit: [data?.teamWit || ''],
       teamRood: [data?.teamRood || ''],
@@ -31,6 +31,20 @@ export class WedstrijdDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {}
+
+  getCurrentSeizoen(): string {
+    const now = new Date();
+    const month = now.getMonth(); // 0-11
+    const year = now.getFullYear();
+    
+    // Seizoen loopt van augustus (7) tot juli (6)
+    // Als maand < augustus (7), dan zijn we in het tweede jaar van het seizoen
+    if (month < 7) {
+      return `${year - 1}-${year}`;
+    } else {
+      return `${year}-${year + 1}`;
+    }
+  }
 
   onCancel(): void {
     this.dialogRef.close();
