@@ -108,15 +108,13 @@ export class WedstrijdenService {
    * Add a new wedstrijd to the sheet
    */
   addWedstrijd(wedstrijd: WedstrijdData): Observable<any> {
-    // Format date as string for storage (DD-MM-YYYY HH:mm)
+    // Format date as string for storage (DD-MM-YYYY only, no time)
     let datumString = '';
     if (wedstrijd.datum) {
       const day = String(wedstrijd.datum.getDate()).padStart(2, '0');
       const month = String(wedstrijd.datum.getMonth() + 1).padStart(2, '0');
       const year = wedstrijd.datum.getFullYear();
-      const hours = String(wedstrijd.datum.getHours()).padStart(2, '0');
-      const minutes = String(wedstrijd.datum.getMinutes()).padStart(2, '0');
-      datumString = `${day}-${month}-${year} ${hours}:${minutes}`;
+      datumString = `${day}-${month}-${year}`;
     }
 
     // Get next ID by fetching current wedstrijden
