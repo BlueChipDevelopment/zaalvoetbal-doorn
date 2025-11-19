@@ -11,6 +11,11 @@
       <a mat-list-item routerLink="/opstelling" (click)="sidenav.close()">Opstelling</a>
       <a mat-list-item routerLink="/beheer" (click)="sidenav.close()">Beheer</a>
       <a mat-list-item routerLink="/about" (click)="sidenav.close()">Over</a>
+      <mat-divider *ngIf="(authService.isAuthorizedAdmin$ | async)"></mat-divider>
+      <a mat-list-item (click)="logout(); sidenav.close()" *ngIf="(authService.isAuthorizedAdmin$ | async)">
+        <mat-icon>logout</mat-icon>
+        Uitloggen
+      </a>
     </mat-nav-list>
   </mat-sidenav>
 
@@ -47,6 +52,10 @@
         <button mat-button routerLink="/opstelling">Opstelling</button>
         <button mat-button routerLink="/beheer">Beheer</button>
         <button mat-button routerLink="/about">Over</button>
+        <button mat-button (click)="logout()" *ngIf="(authService.isAuthorizedAdmin$ | async)">
+          <mat-icon>logout</mat-icon>
+          Uitloggen
+        </button>
       </div>
     </mat-toolbar>    
       <router-outlet></router-outlet>

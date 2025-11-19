@@ -27,6 +27,8 @@ import localeNl from '@angular/common/locales/nl';
 import { LOCALE_ID } from '@angular/core';
 import { ServiceWorkerModule } from '@angular/service-worker';
 import { environment } from '../environments/environment';
+import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
+import { provideAuth, getAuth } from '@angular/fire/auth';
 
 registerLocaleData(localeNl);
 
@@ -34,10 +36,12 @@ import { AppRoutingModule } from './app-routing.module';
 
 import { AppComponent } from './app.component';
 import { AboutComponent } from './components/about/about.component';
+import { LoginComponent } from './components/login/login.component';
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    LoginComponent
   ],
   bootstrap: [AppComponent],
   imports: [
@@ -69,7 +73,13 @@ import { AboutComponent } from './components/about/about.component';
       registrationStrategy: 'registerImmediately'
     })
   ],
-  providers: [provideHttpClient(withInterceptorsFromDi()), TitleCasePipe, { provide: LOCALE_ID, useValue: 'nl' }]
+  providers: [
+    provideHttpClient(withInterceptorsFromDi()), 
+    TitleCasePipe, 
+    { provide: LOCALE_ID, useValue: 'nl' },
+    provideFirebaseApp(() => initializeApp(environment.firebase)),
+    provideAuth(() => getAuth())
+  ]
 })
 export class AppModule {}
 
