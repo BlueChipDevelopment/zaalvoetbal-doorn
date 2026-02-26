@@ -4,6 +4,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { PwaInstallService } from './services/pwa-install.service';
 import { PwaInstallGuideComponent } from './components/pwa-install-guide/pwa-install-guide.component';
 import { UpdateService } from './services/update.service';
+import { AuthService } from './services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-root',
@@ -19,7 +21,9 @@ export class AppComponent implements OnInit, OnDestroy {
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private pwaInstallService: PwaInstallService,
-    private updateService: UpdateService
+    private updateService: UpdateService,
+    public authService: AuthService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -161,5 +165,21 @@ export class AppComponent implements OnInit, OnDestroy {
 
   async installPWA() {
     this.showInstallGuide();
+  }
+
+  async logout() {
+    try {
+      await this.authService.signOut();
+      this.snackBar.open('Succesvol uitgelogd', 'OK', {
+        duration: 3000,
+        panelClass: ['futsal-notification', 'futsal-notification-success']
+      });
+      this.router.navigate(['/']);
+    } catch (error) {
+      this.snackBar.open('Fout bij uitloggen', 'OK', {
+        duration: 3000,
+        panelClass: ['futsal-notification', 'futsal-notification-error']
+      });
+    }
   }
 }

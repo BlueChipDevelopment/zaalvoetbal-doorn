@@ -147,7 +147,7 @@ form {
 }
 
 .error-message mat-error {
-  font-size: 14px;
+  font-size: $font-size-sm;
   line-height: 1.4;
 }
 
@@ -178,7 +178,7 @@ h1 {
   
   p {
     margin-top: 1rem;
-    font-weight: 500;
+    font-weight: $font-weight-medium;
   }
 }
 
@@ -192,7 +192,7 @@ h1 {
 }
 
 .score-explanation {
-  font-size: 0.9rem;
+  font-size: $font-size-sm;
   color: $secondary-color;
   margin: 0.5rem 0;
 }
@@ -225,6 +225,17 @@ app-next-match-info {
 
 .team-drop-list.cdk-drop-list-dragging {
   background: #e0e0e0;
+}
+
+.inline-spinner {
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.loading-text {
+  color: $secondary-color;
+  font-style: italic;
 }
 
 // Algorithm explanation using Angular Material Card

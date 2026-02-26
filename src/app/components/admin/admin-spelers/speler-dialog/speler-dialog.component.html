@@ -1,0 +1,37 @@
+<h2 mat-dialog-title>{{ getDialogTitle() }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="spelerForm">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Spelernaam</mat-label>
+      <input matInput formControlName="name" required>
+      <mat-error *ngIf="spelerForm.get('name')?.hasError('required')">
+        Spelernaam is verplicht
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Positie</mat-label>
+      <mat-select formControlName="position" required>
+        <mat-option *ngFor="let position of positions" [value]="position">
+          {{ position }}
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="spelerForm.get('position')?.hasError('required')">
+        Positie is verplicht
+      </mat-error>
+    </mat-form-field>
+
+    <div class="toggle-field">
+      <label>Actief</label>
+      <mat-slide-toggle formControlName="actief"></mat-slide-toggle>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Annuleren</button>
+  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="!spelerForm.valid">
+    Opslaan
+  </button>
+</mat-dialog-actions>

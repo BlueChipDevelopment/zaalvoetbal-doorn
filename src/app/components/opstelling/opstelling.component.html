@@ -13,7 +13,7 @@
     <p class="balance-description clickable" 
        (click)="showDetailedAnalysis = !showDetailedAnalysis"
        [title]="'Klik voor uitgebreide analyse'">
-      {{ getBalanceDescription() }}
+      {{ commentaryTeaser }}
       <mat-icon class="expand-icon">{{ showDetailedAnalysis ? 'expand_less' : 'expand_more' }}</mat-icon>
     </p>
   </div>
@@ -23,17 +23,15 @@
     <mat-card-header>
       <mat-card-title>
         <mat-icon>analytics</mat-icon>
-        Teamanalyse
+        Voorbeschouwing
+        <mat-progress-spinner *ngIf="isLoadingCommentary" diameter="18" mode="indeterminate" class="inline-spinner"></mat-progress-spinner>
       </mat-card-title>
     </mat-card-header>
     <mat-card-content>
       <div class="detailed-analysis">
-        <div class="analysis-summary" *ngIf="!algorithmExplanation">
-          <p><strong>⚖️ Score-verschil:</strong> {{ getTeamRatingDifference() }} punten</p>
-          <p>{{ getDetailedBalanceAnalysis() }}</p>
-        </div>
-        
-        <!-- Comprehensive analysis -->
+        <p *ngIf="isLoadingCommentary && !algorithmExplanation" class="loading-text">
+          Voorbeschouwing wordt geschreven...
+        </p>
         <div class="explanation-content" *ngIf="algorithmExplanation" [innerHTML]="algorithmExplanation"></div>
       </div>
     </mat-card-content>
@@ -42,8 +40,8 @@
         <mat-icon>expand_less</mat-icon>
         Verberg details
       </button>
-      <button mat-button color="primary" 
-              *ngIf="algorithmExplanation.length > 800"
+      <button mat-button color="primary"
+              *ngIf="algorithmExplanation.length > 800 && !isLoadingCommentary"
               (click)="showFullExplanation = !showFullExplanation">
         <mat-icon>{{ showFullExplanation ? 'expand_less' : 'expand_more' }}</mat-icon>
         {{ showFullExplanation ? 'Minder tonen' : 'Meer details' }}

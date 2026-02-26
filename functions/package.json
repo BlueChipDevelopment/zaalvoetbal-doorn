@@ -19,7 +19,8 @@
     "firebase-functions": "^6.5.0",
     "googleapis": "^133.0.0",
     "node-fetch": "^2.7.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "@anthropic-ai/sdk": "^0.39.0"
   },
   "devDependencies": {
     "@types/node-fetch": "^2.6.12",

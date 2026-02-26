@@ -16,6 +16,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { PlayerCardComponent } from '../player-card/player-card.component';
 import { GameStatisticsService } from '../../services/game.statistics.service';
+import { WedstrijdenService } from '../../services/wedstrijden.service';
 import { Player } from '../../interfaces/IPlayer';
 import { WEDSTRIJD_RANGES } from '../../constants/sheet-columns';
 
@@ -66,7 +67,8 @@ export class ScoreComponent implements OnInit {
     private _snackBar: MatSnackBar,
     private router: Router,
     private nextMatchService: NextMatchService,
-    private gameStatisticsService: GameStatisticsService 
+    private gameStatisticsService: GameStatisticsService,
+    private wedstrijdenService: WedstrijdenService
   ) {}
 
   ngOnInit(): void {
@@ -219,6 +221,8 @@ export class ScoreComponent implements OnInit {
     this.googleSheetsService.batchUpdateSheet(updateData).subscribe({
       next: () => {
         console.log(`✅ Scores succesvol opgeslagen voor ${seizoen || 'onbekend'} wedstrijd ${matchNumber}`);
+        // Reset cache zodat het klassement direct de nieuwe data toont
+        this.wedstrijdenService.refreshCache().subscribe();
         this._snackBar.open('Scores en Zlatan succesvol opgeslagen!', 'OK', {
           duration: 3000,
           panelClass: ['futsal-notification', 'futsal-notification-success']

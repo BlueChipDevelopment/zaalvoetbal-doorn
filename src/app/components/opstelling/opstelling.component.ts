@@ -13,6 +13,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { switchMap } from 'rxjs/operators';
 import { Player } from '../../interfaces/IPlayer';
 import { Team } from '../../interfaces/ITeam';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-opstelling',
@@ -40,6 +41,7 @@ export class OpstellingComponent implements OnInit {
   countdown: string | null = null;
   algorithmExplanation = '';
   showFullExplanation = false;
+  isLoadingCommentary = false;
 
   constructor(
     private nextMatchService: NextMatchService,
@@ -82,8 +84,12 @@ export class OpstellingComponent implements OnInit {
           { key: 'teamRed', value: teamRed }
         ];
         
-        // Generate comprehensive team analysis
-        this.generateComprehensiveAnalysis(teamWhite, teamRed);
+        // Gebruik opgeslagen voorbeschouwing, anders AI genereren
+        if (info.wedstrijd.voorbeschouwing) {
+          this.algorithmExplanation = info.wedstrijd.voorbeschouwing;
+        } else {
+          this.generateComprehensiveAnalysis(teamWhite, teamRed);
+        }
         
         this.loading = false;
       },
@@ -165,6 +171,17 @@ export class OpstellingComponent implements OnInit {
     return Math.abs(whiteRating - redRating).toFixed(1);
   }
 
+  get commentaryTeaser(): string {
+    if (this.algorithmExplanation) {
+      const match = this.algorithmExplanation.match(/<p[^>]*>(.*?)<\/p>/i);
+      if (match) {
+        // Strip HTML tags en trim
+        return match[1].replace(/<[^>]+>/g, '').trim();
+      }
+    }
+    return this.getBalanceDescription();
+  }
+
   getBalanceDescription(): string {
     const diff = parseFloat(this.getTeamRatingDifference());
     if (diff < 1.0) {
@@ -208,40 +225,143 @@ export class OpstellingComponent implements OnInit {
       this.algorithmExplanation = '';
       return;
     }
+    this.generateAICommentary(teamWhite, teamRed);
+  }
 
-    // Create mock Team objects for analysis
-    const mockTeamWhite: Team = {
-      name: 'Team Wit',
-      squad: teamWhite,
-      sumOfRatings: this.getTeamRating(teamWhite),
-      totalScore: this.getTeamRating(teamWhite),
-      shirtcolor: 'white',
-      attack: this.calculateTeamAttack(teamWhite),
-      defense: this.calculateTeamDefense(teamWhite),
-      condition: this.calculateTeamCondition(teamWhite),
-      chemistryScore: 0 // Chemistry not calculated for existing teams
+  private async generateAICommentary(teamWhite: Player[], teamRed: Player[]): Promise<void> {
+    this.isLoadingCommentary = true;
+    try {
+      const payload = this.buildCommentaryPayload(teamWhite, teamRed);
+      const response = await fetch(`${environment.firebaseBaseUrl}/generateTeamCommentary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const { commentary } = await response.json();
+      if (commentary) {
+        this.algorithmExplanation = commentary;
+      }
+    } catch (err) {
+      // Fallback naar template-versie
+      console.warn('AI commentary niet beschikbaar, template wordt gebruikt:', err);
+      const mockTeamWhite: Team = {
+        name: 'Team Wit', squad: teamWhite,
+        sumOfRatings: this.getTeamRating(teamWhite),
+        totalScore: this.getTeamRating(teamWhite),
+        shirtcolor: 'white', attack: 0, defense: 0, condition: 0, chemistryScore: 0
+      };
+      const mockTeamRed: Team = {
+        name: 'Team Rood', squad: teamRed,
+        sumOfRatings: this.getTeamRating(teamRed),
+        totalScore: this.getTeamRating(teamRed),
+        shirtcolor: 'red', attack: 0, defense: 0, condition: 0, chemistryScore: 0
+      };
+      const whiteAnalysis = this.analyzeTeam(mockTeamWhite);
+      const redAnalysis = this.analyzeTeam(mockTeamRed);
+      this.algorithmExplanation = this.generatePersonalizedExplanation(
+        mockTeamWhite, mockTeamRed, whiteAnalysis, redAnalysis,
+        this.determineMainFactors(whiteAnalysis, redAnalysis)
+      );
+    } finally {
+      this.isLoadingCommentary = false;
+    }
+  }
+
+  private buildCommentaryPayload(teamWhite: Player[], teamRed: Player[]) {
+    const whiteScore = this.getTeamRating(teamWhite);
+    const redScore = this.getTeamRating(teamRed);
+    const whiteDuo = this.findBestDuo(teamWhite);
+    const redDuo = this.findBestDuo(teamRed);
+
+    const toFormStats = (players: Player[]) => players
+      .filter(p => p.gameHistory && p.gameHistory.length >= 3)
+      .map(p => {
+        const recent = p.gameHistory.slice(-5);
+        return { name: p.name, winPct: recent.filter(g => g.result === 3).length / recent.length };
+      });
+
+    const whiteForm = toFormStats(teamWhite);
+    const redForm = toFormStats(teamRed);
+
+    return {
+      teamWhite: {
+        name: 'Team Wit', totalScore: whiteScore,
+        players: teamWhite.map(p => ({
+          name: p.name, position: p.position, rating: p.rating,
+          gamesPlayed: p.gamesPlayed || 0, winRatio: p.winRatio ?? null,
+          wins: p.wins || 0, losses: p.losses || 0, ties: p.ties || 0
+        }))
+      },
+      teamRed: {
+        name: 'Team Rood', totalScore: redScore,
+        players: teamRed.map(p => ({
+          name: p.name, position: p.position, rating: p.rating,
+          gamesPlayed: p.gamesPlayed || 0, winRatio: p.winRatio ?? null,
+          wins: p.wins || 0, losses: p.losses || 0, ties: p.ties || 0
+        }))
+      },
+      stats: {
+        scoreDiff: Math.abs(whiteScore - redScore),
+        playersInForm: [...whiteForm, ...redForm]
+          .filter(p => p.winPct > 0.7)
+          .map(p => ({ name: p.name, recentWins: Math.round(p.winPct * 5) })),
+        playersInPoorForm: [...whiteForm, ...redForm]
+          .filter(p => p.winPct < 0.3).map(p => p.name),
+        winStreaks: this.findWinStreaks([...teamWhite, ...teamRed])
+          .map(({ player, streak }) => ({ name: player.name, streak })),
+        duos: [whiteDuo, redDuo].filter(Boolean),
+        newPlayers: [...teamWhite, ...teamRed]
+          .filter(p => !p.gamesPlayed || p.gamesPlayed <= 3).map(p => p.name),
+        zlatanStars: [...teamWhite, ...teamRed]
+          .filter(p => (p.zlatanPoints || 0) >= 3)
+          .map(p => ({ name: p.name, points: p.zlatanPoints })),
+        ventielStars: [...teamWhite, ...teamRed]
+          .filter(p => (p.ventielPoints || 0) >= 3)
+          .map(p => ({ name: p.name, points: p.ventielPoints })),
+        experience: {
+          white: teamWhite.reduce((sum, p) => sum + (p.gamesPlayed || 0), 0),
+          red: teamRed.reduce((sum, p) => sum + (p.gamesPlayed || 0), 0)
+        },
+        historischeWedstrijden: []
+      }
     };
+  }
 
-    const mockTeamRed: Team = {
-      name: 'Team Rood', 
-      squad: teamRed,
-      sumOfRatings: this.getTeamRating(teamRed),
-      totalScore: this.getTeamRating(teamRed),
-      shirtcolor: 'red',
-      attack: this.calculateTeamAttack(teamRed),
-      defense: this.calculateTeamDefense(teamRed),
-      condition: this.calculateTeamCondition(teamRed),
-      chemistryScore: 0 // Chemistry not calculated for existing teams
-    };
+  private findBestDuo(squad: Player[]): { playerA: string; playerB: string; winRate: number; games: number } | null {
+    let best: { playerA: string; playerB: string; winRate: number; games: number } | null = null;
+    for (let i = 0; i < squad.length; i++) {
+      for (let j = i + 1; j < squad.length; j++) {
+        const a = squad[i]; const b = squad[j];
+        if (!a.gameHistory || !b.gameHistory) continue;
+        let together = 0; let wins = 0;
+        for (const game of a.gameHistory) {
+          if (game.teammates?.includes(b.name)) {
+            together++;
+            if (game.result === 3) wins++;
+          }
+        }
+        if (together >= 3) {
+          const winRate = wins / together;
+          if (!best || winRate > best.winRate || (winRate === best.winRate && together > best.games)) {
+            best = { playerA: a.name, playerB: b.name, winRate, games: together };
+          }
+        }
+      }
+    }
+    return best;
+  }
 
-    // Analyze teams and generate explanation
-    const whiteAnalysis = this.analyzeTeam(mockTeamWhite);
-    const redAnalysis = this.analyzeTeam(mockTeamRed);
-    const mainFactors = this.determineMainFactors(whiteAnalysis, redAnalysis);
-
-    this.algorithmExplanation = this.generatePersonalizedExplanation(
-      mockTeamWhite, mockTeamRed, whiteAnalysis, redAnalysis, mainFactors
-    );
+  private findWinStreaks(squad: Player[]): { player: Player; streak: number }[] {
+    return squad.map(player => {
+      if (!player.gameHistory || player.gameHistory.length < 3) return null;
+      let streak = 0;
+      for (let i = player.gameHistory.length - 1; i >= 0; i--) {
+        if (player.gameHistory[i].result === 3) streak++;
+        else break;
+      }
+      return streak >= 3 ? { player, streak } : null;
+    }).filter((x): x is { player: Player; streak: number } => x !== null);
   }
 
   private analyzeTeam(team: Team) {

@@ -25,18 +25,18 @@
 }
 
 .next-match-title {
-  font-size: 2rem;
-  font-weight: 500;
+  font-size: $font-size-4xl;
+  font-weight: $font-weight-medium;
   letter-spacing: 0.0125em;
   line-height: 2.5rem;
 }
 
 .next-match-details {
-  font-size: 1.1rem;
+  font-size: $font-size-lg;
 }
 
 .next-match-date {
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   margin-bottom: 4px;
 }
 
@@ -46,13 +46,13 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  font-size: 1rem;
+  font-size: $font-size-base;
   margin-bottom: 4px;
 }
 
 .next-match-number {
   color: $secondary-color;
-  font-size: 0.95rem;
+  font-size: $font-size-sm;
   margin-top: 2px;
 }
 

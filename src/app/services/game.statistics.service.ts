@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
-import { Player } from '../interfaces/IPlayer';
+import { GameHistoryEntry, Player } from '../interfaces/IPlayer';
 import { Observable, forkJoin } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 import { GoogleSheetsService } from './google-sheets-service';
 import { PlayerService } from './player.service';
+import { PlayerSheetData } from '../interfaces/IPlayerSheet';
 import { WedstrijdenService } from './wedstrijden.service';
 
 @Injectable({
@@ -46,12 +47,7 @@ export class GameStatisticsService {
     if (this.ratingsCache && this.cacheTimestamp && (now - this.cacheTimestamp < this.cacheDurationMs)) {
       return this.ratingsCache.find(p => p.name === playerName);
     }
-    // Geen cache: synchroniseer ophalen (let op: asynchroon is beter, maar voor compatibiliteit)
-    let found: Player | undefined = undefined;
-    this.getFullPlayerStats().subscribe(players => {
-      found = players.find(p => p.name === playerName);
-    });
-    return found;
+    return undefined;
   }
 
   /**
@@ -66,7 +62,7 @@ export class GameStatisticsService {
       map(({ spelers, wedstrijden }) => {
         // spelers is already typed and processed by PlayerService
         const actieveSpelers = spelers.filter(player => player.actief);
-        const actieveSpelersMap: { [naam: string]: any } = {};
+        const actieveSpelersMap: { [naam: string]: PlayerSheetData } = {};
         actieveSpelers.forEach((player) => {
           actieveSpelersMap[player.name.trim().toLowerCase()] = player;
         });
@@ -89,7 +85,7 @@ export class GameStatisticsService {
         });
         
         // Statistieken per speler
-        const playerStats: { [player: string]: { gamesPlayed: number; totalPoints: number; wins: number; losses: number; ties: number; gameHistory: any[]; zlatanPoints: number; ventielPoints: number } } = {};
+        const playerStats: { [player: string]: { gamesPlayed: number; totalPoints: number; wins: number; losses: number; ties: number; gameHistory: GameHistoryEntry[]; zlatanPoints: number; ventielPoints: number } } = {};
         geldigeWedstrijdenSorted.forEach(match => {
           const teamWhitePlayers = (match.teamWit || '').split(',').map((p: string) => p.trim().toLowerCase()).filter((p: string) => p && p !== 'team wit');
           const teamRedPlayers = (match.teamRood || '').split(',').map((p: string) => p.trim().toLowerCase()).filter((p: string) => p && p !== 'team rood');
@@ -158,10 +154,10 @@ export class GameStatisticsService {
           }
         });
         // Total points en max
-        Object.values(playerStats).forEach((stats: any) => {
+        Object.values(playerStats).forEach(stats => {
           stats.totalPoints = (stats.wins * 3) + (stats.ties * 2) + (stats.losses * 1) + (stats.zlatanPoints || 0);
         });
-        const maxTotalPoints = Math.max(...Object.values(playerStats).map((stats: any) => stats.totalPoints || 0), 1);
+        const maxTotalPoints = Math.max(...Object.values(playerStats).map(stats => stats.totalPoints || 0), 1);
         // Maak array met alle info
         return Object.entries(playerStats)
           .map(([player, stats]) => {
@@ -188,6 +184,10 @@ export class GameStatisticsService {
           // Filter: verwijder spelers die niet actief zijn EN geen wedstrijden hebben in dit seizoen
           .filter(player => player.actief || player.gamesPlayed > 0)
           .sort((a, b) => b.totalPoints - a.totalPoints);
+      }),
+      tap(players => {
+        this.ratingsCache = players;
+        this.cacheTimestamp = Date.now();
       })
     );
   }

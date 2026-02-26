@@ -1,0 +1,81 @@
+@import '../../../../styles_variables.scss';
+
+$mobile-breakpoint: 767px;
+
+.wedstrijden-container {
+  .header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+
+    h2 {
+      margin: 0;
+    }
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .wedstrijden-table {
+    width: 100%;
+    border-collapse: collapse;
+    
+    th {
+      background-color: transparent;
+      color: rgba(0, 0, 0, 0.87);
+      font-weight: 500;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+    }
+
+    td {
+      border: 1px solid rgba(0, 0, 0, 0.12);
+    }
+
+    td, th {
+      padding: 8px;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f5f5f5;
+    }
+
+    tr:hover {
+      background-color: #e0e0e0;
+    }
+  }
+
+  .loading-container {
+    text-align: center;
+    padding: 40px;
+    color: $secondary-color;
+  }
+
+  @media screen and (max-width: $mobile-breakpoint) {
+    .header-actions {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+
+      h2 {
+        font-size: 1.2em;
+      }
+    }
+
+    .wedstrijden-table {
+      font-size: 12px;
+
+      td, th {
+        padding: 6px 4px;
+      }
+
+      // Hide less important columns on mobile
+      .hide-mobile {
+        display: none;
+      }
+    }
+  }
+}

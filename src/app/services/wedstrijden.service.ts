@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, BehaviorSubject } from 'rxjs';
-import { map, tap, catchError, shareReplay } from 'rxjs/operators';
+import { map, tap, catchError, shareReplay, switchMap } from 'rxjs/operators';
 import { GoogleSheetsService } from './google-sheets-service';
 import { WedstrijdData, WedstrijdFilter, SeizoenData } from '../interfaces/IWedstrijd';
 import { parseWedstrijdDateTime } from '../utils/date-utils';
-import { WEDSTRIJD_COLUMNS } from '../constants/sheet-columns';
+import { WEDSTRIJD_COLUMNS, SHEET_NAMES } from '../constants/sheet-columns';
 
 @Injectable({
   providedIn: 'root'
@@ -104,6 +104,93 @@ export class WedstrijdenService {
     );
   }
 
+  /**
+   * Add a new wedstrijd to the sheet
+   */
+  addWedstrijd(wedstrijd: WedstrijdData): Observable<any> {
+    // Format date as string for storage (DD-MM-YYYY only, no time)
+    let datumString = '';
+    if (wedstrijd.datum) {
+      const day = String(wedstrijd.datum.getDate()).padStart(2, '0');
+      const month = String(wedstrijd.datum.getMonth() + 1).padStart(2, '0');
+      const year = wedstrijd.datum.getFullYear();
+      datumString = `${day}-${month}-${year}`;
+    }
+
+    // Get next ID by fetching current wedstrijden
+    return this.getCachedWedstrijden().pipe(
+      switchMap(wedstrijden => {
+        const maxId = wedstrijden.reduce((max, w) => Math.max(max, w.id || 0), 0);
+        const nextId = maxId + 1;
+
+        const row = [
+          nextId,
+          wedstrijd.seizoen || '',
+          datumString,
+          wedstrijd.teamWit || '',
+          wedstrijd.teamRood || '',
+          wedstrijd.teamGeneratie || '',
+          wedstrijd.scoreWit !== null ? wedstrijd.scoreWit : '',
+          wedstrijd.scoreRood !== null ? wedstrijd.scoreRood : '',
+          wedstrijd.zlatan || '',
+          wedstrijd.ventiel || ''
+        ];
+
+        return this.googleSheetsService.appendSheetRow(SHEET_NAMES.WEDSTRIJDEN, row);
+      }),
+      tap(() => {
+        this.wedstrijdenCache$.next(null);
+        this.cacheTimestamp = 0;
+      }),
+      catchError(error => {
+        console.error('Error adding wedstrijd:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Update an existing wedstrijd in the sheet
+   */
+  updateWedstrijd(wedstrijd: WedstrijdData): Observable<any> {
+    if (!wedstrijd.absoluteRowNumber) {
+      throw new Error('Cannot update wedstrijd: absoluteRowNumber is missing');
+    }
+
+    // Format date as string for storage (DD-MM-YYYY only, no time)
+    let datumString = '';
+    if (wedstrijd.datum) {
+      const day = String(wedstrijd.datum.getDate()).padStart(2, '0');
+      const month = String(wedstrijd.datum.getMonth() + 1).padStart(2, '0');
+      const year = wedstrijd.datum.getFullYear();
+      datumString = `${day}-${month}-${year}`;
+    }
+
+    const row = [
+      wedstrijd.id || '',
+      wedstrijd.seizoen || '',
+      datumString,
+      wedstrijd.teamWit || '',
+      wedstrijd.teamRood || '',
+      wedstrijd.teamGeneratie || '',
+      wedstrijd.scoreWit !== null ? wedstrijd.scoreWit : '',
+      wedstrijd.scoreRood !== null ? wedstrijd.scoreRood : '',
+      wedstrijd.zlatan || '',
+      wedstrijd.ventiel || ''
+    ];
+
+    return this.googleSheetsService.updateSheetRow(SHEET_NAMES.WEDSTRIJDEN, wedstrijd.absoluteRowNumber, row).pipe(
+      tap(() => {
+        this.wedstrijdenCache$.next(null);
+        this.cacheTimestamp = 0;
+      }),
+      catchError(error => {
+        console.error('Error updating wedstrijd:', error);
+        throw error;
+      })
+    );
+  }
+
   private getCachedWedstrijden(): Observable<WedstrijdData[]> {
     const now = Date.now();
     const cachedData = this.wedstrijdenCache$.value;
@@ -161,8 +248,9 @@ export class WedstrijdenService {
           teamGeneratie: row[WEDSTRIJD_COLUMNS.TEAM_GENERATIE] || '', // Kolom F - Handmatig/Automatisch
           scoreWit: this.parseScore(row[WEDSTRIJD_COLUMNS.SCORE_WIT]), // Kolom G (was F)
           scoreRood: this.parseScore(row[WEDSTRIJD_COLUMNS.SCORE_ROOD]), // Kolom H (was G)
-          zlatan: row[WEDSTRIJD_COLUMNS.ZLATAN] || '', // Kolom I (was H)
-          ventiel: row[WEDSTRIJD_COLUMNS.VENTIEL] || '', // Kolom J (was I)
+          zlatan: row[WEDSTRIJD_COLUMNS.ZLATAN] || '', // Kolom I
+          ventiel: row[WEDSTRIJD_COLUMNS.VENTIEL] || '', // Kolom J
+          voorbeschouwing: row[WEDSTRIJD_COLUMNS.VOORBESCHOUWING] || undefined, // Kolom K
           locatie: 'Sporthal Steinheim' // Default locatie
         };
       });

@@ -1,5 +1,13 @@
 @import '../../../styles_variables.scss';
 
+:host {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem 0;
+}
+
 .about {
   max-width: 700px;
   padding: 2rem;

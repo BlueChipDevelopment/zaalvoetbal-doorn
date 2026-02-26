@@ -1,5 +1,16 @@
 @import '../../../styles_variables';
 
+.inline-spinner {
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.loading-text {
+  color: $secondary-color;
+  font-style: italic;
+}
+
 // Main container for mobile margins
 .opstelling-container {
   padding: 0 16px;
@@ -19,8 +30,8 @@
   
   .balance-description {
     text-align: center;
-    font-size: 18px;
-    font-weight: 400;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-normal;
     font-style: italic;
     margin: 0;
     line-height: 1.5;
@@ -40,7 +51,7 @@
       }
       
       .expand-icon {
-        font-size: 18px;
+        font-size: $font-size-lg;
         width: 18px;
         height: 18px;
         color: $secondary-color;
@@ -98,7 +109,7 @@
     padding: 0 8px;
     
     .balance-description {
-      font-size: 15px;
+      font-size: $font-size-sm;
       padding: 12px 20px;
     }
   }
@@ -123,14 +134,14 @@
       margin-bottom: 8px;
       
       h4 {
-        font-size: 16px;
+        font-size: $font-size-base;
         margin: 0 0 4px 0;
         line-height: 1.1;
-        font-weight: 600;
+        font-weight: $font-weight-semibold;
       }
       
       .team-rating {
-        font-size: 12px;
+        font-size: $font-size-xs;
         margin: 0 0 4px 0;
         line-height: 1;
       }
@@ -157,12 +168,12 @@
       padding: 4px 8px !important;
       
       mat-card-title {
-        font-size: 12px !important;
+        font-size: $font-size-xs;
         line-height: 1.2;
       }
       
       mat-card-subtitle {
-        font-size: 10px !important;
+        font-size: 10px;
         line-height: 1.1;
       }
     }
@@ -216,8 +227,8 @@
 
 .team-header .team-rating {
   text-align: center;
-  font-size: 1.3rem;
-  font-weight: 600;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-semibold;
   color: #666;
 }
 
@@ -252,8 +263,8 @@
   }
 
   .countdown-timer {
-    font-size: 2.5rem;
-    font-weight: bold;
+    font-size: $font-size-5xl;
+    font-weight: $font-weight-bold;
     color: $primary-color;
     margin-bottom: 8px;
     letter-spacing: 2px;
@@ -262,7 +273,7 @@
   }
 
   .countdown-date {
-    font-size: 1.1rem;
+    font-size: $font-size-lg;
     color: $secondary-color;
     margin-bottom: 4px;
     text-align: center;
@@ -270,7 +281,7 @@
   }
 
   .countdown-note {
-    font-size: 0.95rem;
+    font-size: $font-size-sm;
     color: $secondary-color;
     text-align: center;
     word-break: break-word;
@@ -288,15 +299,15 @@
     }
 
     .countdown-timer {
-      font-size: 1.3rem;
+      font-size: $font-size-2xl;
     }
 
     .countdown-date {
-      font-size: 1rem;
+      font-size: $font-size-base;
     }
 
     .countdown-note {
-      font-size: 0.85rem;
+      font-size: $font-size-xs;
     }
   }
 }

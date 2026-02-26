@@ -12,6 +12,7 @@ export interface WedstrijdData {
   zlatan: string;
   ventiel: string;
   locatie?: string;
+  voorbeschouwing?: string; // AI-gegenereerde voorbeschouwing (kolom K)
   // Voor backwards compatibility
   absoluteRowNumber?: number; // De werkelijke rijnummer in de sheet
 }

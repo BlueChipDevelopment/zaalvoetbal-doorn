@@ -1,3 +1,5 @@
+@import '../../../styles_variables';
+
 .kalender-container {
   max-width: 800px;
   margin: 20px auto;
@@ -43,7 +45,7 @@
   h2 {
     text-align: center;
     margin-bottom: 24px;
-    color: #333;
+    color: $text-color;
   }
 }
 
@@ -77,14 +79,14 @@
   color: #666;
   
   mat-icon {
-    font-size: 32px;
+    font-size: $font-size-4xl;
     width: 32px;
     height: 32px;
   }
   
   p {
     margin: 0;
-    font-size: 16px;
+    font-size: $font-size-base;
   }
 }
 
@@ -136,9 +138,9 @@
   
   .match-date {
     margin: 0 0 8px 0;
-    font-size: 18px;
-    font-weight: 500;
-    color: #333;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-medium;
+    color: $text-color;
     text-transform: capitalize;
   }
   
@@ -147,17 +149,17 @@
     align-items: center;
     gap: 16px;
     color: #666;
-    font-size: 14px;
+    font-size: $font-size-sm;
     margin-bottom: 8px;
     
     @media (max-width: 768px) {
       gap: 12px;
-      font-size: 13px;
+      font-size: $font-size-xs;
       flex-wrap: wrap;
     }
     
     .match-time {
-      font-weight: 500;
+      font-weight: $font-weight-medium;
     }
     
     .match-location {
@@ -191,8 +193,8 @@
     min-width: auto;
     height: 32px;
     font-family: 'Roboto', sans-serif;
-    font-size: 13px;
-    font-weight: 400;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-normal;
     letter-spacing: 0.01em;
     text-transform: none;
     transition: all 0.2s ease;
@@ -211,7 +213,7 @@
     }
     
     mat-icon {
-      font-size: 16px;
+      font-size: $font-size-base;
       width: 16px;
       height: 16px;
     }
@@ -283,13 +285,13 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      font-weight: 400;
-      font-size: 14px;
+      font-weight: $font-weight-normal;
+      font-size: $font-size-sm;
       margin-bottom: 4px;
       padding: 2px 0;
       
       mat-icon {
-        font-size: 20px;
+        font-size: $font-size-xl;
         width: 20px;
         height: 20px;
       }
@@ -352,9 +354,9 @@
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
-            font-weight: 600;
+            font-weight: $font-weight-semibold;
             font-size: 10px;
-            color: #333;
+            color: $text-color;
             text-shadow: 0 0 3px rgba(255, 255, 255, 0.9);
             position: relative;
             filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
@@ -380,7 +382,7 @@
             gap: 2px;
             
             .player-name {
-              font-weight: 400;
+              font-weight: $font-weight-normal;
               line-height: 1.2;
             }
             
@@ -432,7 +434,7 @@
   align-items: center;
   gap: 8px;
   color: #666;
-  font-size: 14px;
+  font-size: $font-size-sm;
 }
 
 .attendance-toggle {
@@ -484,7 +486,7 @@
     border-radius: 50%;
     
     mat-icon {
-      font-size: 20px;
+      font-size: $font-size-xl;
       width: 20px;
       height: 20px;
     }
@@ -523,7 +525,7 @@
   
   .kalender-card {
     h2 {
-      font-size: 20px;
+      font-size: $font-size-xl;
     }
   }
   
@@ -532,7 +534,7 @@
   }
   
   .match-info .match-date {
-    font-size: 16px;
+    font-size: $font-size-base;
   }
   
   .presence-counts {
@@ -573,7 +575,7 @@
   
   .attendance-toggle {
     .mat-button-toggle {
-      font-size: 12px;
+      font-size: $font-size-xs;
       
       span {
         display: none;

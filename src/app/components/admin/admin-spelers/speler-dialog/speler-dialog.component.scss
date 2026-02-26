@@ -1,0 +1,32 @@
+@import '../../../../../styles_variables.scss';
+
+.full-width {
+  width: 100%;
+  margin-bottom: 16px;
+  
+  &:first-of-type {
+    margin-top: 8px;
+  }
+}
+
+.toggle-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 12px 0;
+
+  label {
+    font-size: 16px;
+    color: $secondary-color;
+  }
+}
+
+mat-dialog-content {
+  min-width: 400px;
+  padding: 20px;
+}
+
+mat-dialog-actions {
+  padding: 16px;
+}

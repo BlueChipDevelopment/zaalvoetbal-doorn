@@ -1,0 +1,95 @@
+@import '../../../styles_variables.scss';
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: $light-bg;
+}
+
+.login-card {
+  max-width: 400px;
+  width: 100%;
+  
+  mat-card-header {
+    margin-bottom: 1.5rem;
+    
+    mat-card-title {
+      font-size: $font-size-2xl;
+      color: $text-color;
+      margin-bottom: 0.5rem;
+    }
+    
+    mat-card-subtitle {
+      font-size: $font-size-sm;
+      color: $secondary-color;
+    }
+  }
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #f44336;
+  background: #ffebee;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: $font-size-sm;
+  
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.google-button {
+  width: 100%;
+  height: 56px;
+  font-size: $font-size-base;
+  margin-bottom: 1rem;
+  background: white !important;
+  color: #757575 !important;
+  
+  &:hover:not([disabled]) {
+    background: #f8f8f8 !important;
+  }
+  
+  mat-spinner {
+    margin: 0 auto;
+  }
+}
+
+.google-button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.google-icon {
+  flex-shrink: 0;
+}
+
+.back-button {
+  width: 100%;
+  color: $secondary-color;
+}
+
+@media (max-width: 600px) {
+  .login-container {
+    padding: 1rem;
+  }
+  
+  .login-card {
+    mat-card-header {
+      mat-card-title {
+        font-size: $font-size-xl;
+      }
+    }
+  }
+}
