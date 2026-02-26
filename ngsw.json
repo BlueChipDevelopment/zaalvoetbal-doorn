@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1763548654912,
+  "timestamp": 1772114068439,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -11,14 +11,14 @@
         "ignoreVary": true
       },
       "urls": [
-        "/664.09e905bbc3a5cb09.js",
+        "/664.7140ccb007fd9f2b.js",
         "/favicon.ico",
         "/index.html",
-        "/main.fac27c17476a53d2.js",
+        "/main.39081f0e762cd17e.js",
         "/manifest.webmanifest",
         "/polyfills.99185e01a8611993.js",
         "/push-handler-sw.js",
-        "/runtime.7b923db437960afe.js",
+        "/runtime.6678efccb61a3bc6.js",
         "/styles.266a513157d43049.css"
       ],
       "patterns": []
@@ -50,7 +50,7 @@
   ],
   "dataGroups": [],
   "hashTable": {
-    "/664.09e905bbc3a5cb09.js": "572a8f8a4a16a745211ce3f25aa5f1e8204c9d4e",
+    "/664.7140ccb007fd9f2b.js": "2da603d9aa495e4a36ddaec6e6858fd90f5d5301",
     "/assets/icons/icon-128x128.png": "9229dd4ba94aada5d4f6b3c548172ea95369f499",
     "/assets/icons/icon-144x144.png": "b825660f4844720c113f3fb2822b3fbdcdb752b5",
     "/assets/icons/icon-152x152.png": "efb497d1eee470c7369bb073350a16b89ebe7e5c",
@@ -65,12 +65,12 @@
     "/favicon.ico": "43528d083572386b5f788141a0a2d6619d1409cd",
     "/football-shirt-red.2fabd340d484d4cb.png": "0df1723bfe98a67e423479be18fee4e7cde55834",
     "/football-shirt-white.dfa9a8ea30f39956.png": "b18ac6d8f00e6f5e00cb440b80a2a72b0e1658f3",
-    "/index.html": "e52b2d1cd7e80aeb69a3335729643157a073fa03",
-    "/main.fac27c17476a53d2.js": "982c47b019031241ab71b15f752b388294807ae0",
+    "/index.html": "fa8d71a36df883356cd67b3425c3646d3c358bb1",
+    "/main.39081f0e762cd17e.js": "fcc22a15f742554ba327c2a418ed9d25ec2532fb",
     "/manifest.webmanifest": "f55078249defc81f0f13e2d5bb6e9e899577ec1c",
     "/polyfills.99185e01a8611993.js": "f11a301410e8f7479935b4934ce08e4623529fd4",
     "/push-handler-sw.js": "c97a81a2612bf487d455ef1f9ba7636900d358e1",
-    "/runtime.7b923db437960afe.js": "8f83fd537b353db41a74c9ae58785733936fa858",
+    "/runtime.6678efccb61a3bc6.js": "a899e258bd143a1270414c339a2786e81ae7f315",
     "/styles.266a513157d43049.css": "1da82e260519f93774589aaa75be6185cf918547"
   },
   "navigationUrls": [
