@@ -1,3 +1,11 @@
+export interface GameHistoryEntry {
+  result: number; // 3=win, 2=tie, 1=loss
+  date: Date | null;
+  playerIds: string[];
+  teammates: string[];
+  opponents: string[];
+}
+
 export interface Player {
   name: string;
   position: string;
@@ -8,7 +16,7 @@ export interface Player {
   losses: number;
   ties: number;
   winRatio: number;
-  gameHistory: any[];
+  gameHistory: GameHistoryEntry[];
   zlatanPoints: number;
   ventielPoints: number;
   actief: boolean;

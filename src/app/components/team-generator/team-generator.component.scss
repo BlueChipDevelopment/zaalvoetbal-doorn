@@ -227,6 +227,17 @@ app-next-match-info {
   background: #e0e0e0;
 }
 
+.inline-spinner {
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.loading-text {
+  color: $secondary-color;
+  font-style: italic;
+}
+
 // Algorithm explanation using Angular Material Card
 .algorithm-explanation-card {
   max-width: 800px;

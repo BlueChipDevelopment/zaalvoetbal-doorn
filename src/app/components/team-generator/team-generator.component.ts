@@ -3,7 +3,7 @@ import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import { Player } from '../../interfaces/IPlayer';
 import { Positions } from '../../enums/positions.enum';
 import { Team, Teams } from '../../interfaces/ITeam';
-import { TeamGenerateService } from '../../services/team-generate.service';
+import { TeamGenerateService, TeamGenerationResult } from '../../services/team-generate.service';
 import { GoogleSheetsService } from '../../services/google-sheets-service';
 import { AttendanceService } from '../../services/attendance.service';
 import { PlayerService } from '../../services/player.service';
@@ -11,6 +11,8 @@ import { PlayerSheetData } from '../../interfaces/IPlayerSheet';
 import { finalize } from 'rxjs/operators';
 import { ReplaySubject } from 'rxjs';
 import { NextMatchService, NextMatchInfo } from '../../services/next-match.service';
+import { WedstrijdenService } from '../../services/wedstrijden.service';
+import { WedstrijdData } from '../../interfaces/IWedstrijd';
 import { NextMatchInfoComponent } from '../next-match-info/next-match-info.component';
 import { AsyncPipe, CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -54,6 +56,8 @@ import { CdkDragDrop, transferArrayItem } from '@angular/cdk/drag-drop';
 })
 export class TeamGeneratorComponent implements OnInit {
   private activePlayersList: Player[] = new Array<Player>();
+  private fullPlayerStats: Player[] = [];
+  private historischeWedstrijden: WedstrijdData[] = [];
   private loadingSubject = new ReplaySubject<boolean>(1);
   loading$ = this.loadingSubject.asObservable();
 
@@ -65,6 +69,8 @@ export class TeamGeneratorComponent implements OnInit {
 
   public algorithmExplanation = '';
   public showFullExplanation = false;
+  public isLoadingCommentary = false;
+  private lastGenerationResult: TeamGenerationResult | null = null;
   
   protected positions: string[] = Object.values(Positions);
   protected ratings: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -82,6 +88,7 @@ export class TeamGeneratorComponent implements OnInit {
   constructor(
     private teamGenerateService: TeamGenerateService,
     private nextMatchService: NextMatchService,
+    private wedstrijdenService: WedstrijdenService,
     private googleSheetsService: GoogleSheetsService,
     private attendanceService: AttendanceService,
     private playerService: PlayerService,
@@ -94,6 +101,9 @@ export class TeamGeneratorComponent implements OnInit {
     this.nextMatchService.getNextMatchInfo().subscribe(info => {
       this.nextMatchInfo = info;
       this.loadingSubject.next(false);
+    });
+    this.wedstrijdenService.getGespeeldeWedstrijden().subscribe(wedstrijden => {
+      this.historischeWedstrijden = wedstrijden;
     });
   }
 
@@ -126,7 +136,7 @@ export class TeamGeneratorComponent implements OnInit {
       console.log('Selected players for team generation:', selectedPlayers);
 
       // Generate teams with only selected players
-      this.teamGenerateService.generateTeams(selectedPlayers);
+      this.lastGenerationResult = this.teamGenerateService.generateTeams(selectedPlayers);
       const generatedTeams = this.teamGenerateService.getGeneratedTeams();
 
       // Initialize teams object
@@ -152,26 +162,28 @@ export class TeamGeneratorComponent implements OnInit {
   private createAlgorithmExplanation() {
     const teams = this.teamGenerateService.getGeneratedTeams();
     if (!teams || teams.length < 2) return;
-    
+
     const teamWhite = teams[0];
     const teamRed = teams[1];
-    
+
     // Analyze team characteristics
     const whiteAnalysis = this.analyzeTeam(teamWhite);
     const redAnalysis = this.analyzeTeam(teamRed);
-    
-    // Determine main balancing factors
-    const mainFactors = this.determineMainFactors(whiteAnalysis, redAnalysis);
-    
-    // Generate personalized explanation
-    this.algorithmExplanation = this.generatePersonalizedExplanation(
-      teamWhite, teamRed, whiteAnalysis, redAnalysis, mainFactors
-    );
+
+    // Start AI-versie (bij falen valt terug op template)
+    this.generateAICommentary(teamWhite, teamRed, whiteAnalysis, redAnalysis);
+  }
+
+  private enrichSquad(squad: Player[]): Player[] {
+    return squad.map(player => {
+      const full = this.fullPlayerStats.find(p => p.name === player.name);
+      return full ? { ...player, ...full, rating: player.rating, position: player.position } : player;
+    });
   }
 
   private analyzeTeam(team: Team) {
-    const squad = team.squad;
-    
+    const squad = this.enrichSquad(team.squad);
+
     // Find players with exceptional form (last 5 games > 70% win rate)
     const playersInForm = squad.filter(player => {
       if (!player.gameHistory || player.gameHistory.length < 3) return false;
@@ -179,7 +191,7 @@ export class TeamGeneratorComponent implements OnInit {
       const wins = recentGames.filter(game => game.result === 3).length;
       return (wins / recentGames.length) > 0.7;
     });
-    
+
     // Find players with poor form (last 5 games < 30% win rate)
     const playersInPoorForm = squad.filter(player => {
       if (!player.gameHistory || player.gameHistory.length < 3) return false;
@@ -187,160 +199,349 @@ export class TeamGeneratorComponent implements OnInit {
       const wins = recentGames.filter(game => game.result === 3).length;
       return (wins / recentGames.length) < 0.3;
     });
-    
-    // Find experienced players (>10 games played)
-    const experiencedPlayers = squad.filter(player => 
-      player.gamesPlayed && player.gamesPlayed > 10
-    );
-    
+
+    // Find players on a win streak (3+ consecutive wins from the end)
+    const playersOnWinStreak = squad
+      .map(player => {
+        if (!player.gameHistory || player.gameHistory.length < 3) return null;
+        let streak = 0;
+        for (let i = player.gameHistory.length - 1; i >= 0; i--) {
+          if (player.gameHistory[i].result === 3) streak++;
+          else break;
+        }
+        return streak >= 3 ? { player, streak } : null;
+      })
+      .filter((x): x is { player: Player; streak: number } => x !== null);
+
+    // Total experience (sum of gamesPlayed)
+    const totalExperience = squad.reduce((sum, p) => sum + (p.gamesPlayed || 0), 0);
+
     // Find new players (<=3 games played)
-    const newPlayers = squad.filter(player => 
+    const newPlayers = squad.filter(player =>
       !player.gamesPlayed || player.gamesPlayed <= 3
     );
-    
-    // Find keepers
-    const keepers = squad.filter(player => 
-      player.position === 'Keeper' || player.position === 'GOAL_KEEPER'
-    );
-    
-    // Find top rated player
-    const topPlayer = squad.reduce((top, player) => 
-      (player.rating || 0) > (top.rating || 0) ? player : top
-    );
-    
-    // Calculate average rating
-    const avgRating = squad.length > 0 
-      ? squad.reduce((sum, p) => sum + (p.rating || 0), 0) / squad.length 
-      : 0;
-    
+
+    // Find players with notable zlatan or ventiel points
+    const zlatanStars = squad.filter(p => (p.zlatanPoints || 0) >= 3);
+    const ventielStars = squad.filter(p => (p.ventielPoints || 0) >= 3);
+
     return {
       playersInForm,
       playersInPoorForm,
-      experiencedPlayers,
+      playersOnWinStreak,
       newPlayers,
-      keepers,
-      topPlayer,
-      avgRating,
+      totalExperience,
+      zlatanStars,
+      ventielStars,
       totalScore: team.totalScore || 0
     };
   }
 
-  private determineMainFactors(whiteAnalysis: any, redAnalysis: any) {
-    const factors = [];
-    
-    // Check if form is a major factor
-    if (whiteAnalysis.playersInForm.length > 0 || redAnalysis.playersInForm.length > 0) {
-      factors.push('form');
+  private setIntersectionSize(a: Set<string>, b: Set<string>): number {
+    let count = 0;
+    a.forEach(v => { if (b.has(v)) count++; });
+    return count;
+  }
+
+  private findSimilarTeamCompositions(): { wedstrijd: WedstrijdData; score: number; isFlipped: boolean }[] {
+    if (!this.teams.teamWhite?.squad || !this.teams.teamRed?.squad) return [];
+
+    const curWhite = new Set(this.teams.teamWhite.squad.map(p => p.name.toLowerCase().trim()));
+    const curRed   = new Set(this.teams.teamRed.squad.map(p => p.name.toLowerCase().trim()));
+
+    const results: { wedstrijd: WedstrijdData; score: number; isFlipped: boolean }[] = [];
+
+    for (const w of this.historischeWedstrijden) {
+      if (!w.teamWit || !w.teamRood || !w.datum) continue;
+      const histWhite = new Set(w.teamWit.split(',').map(n => n.toLowerCase().trim()).filter(n => n));
+      const histRed   = new Set(w.teamRood.split(',').map(n => n.toLowerCase().trim()).filter(n => n));
+      if (histWhite.size === 0 && histRed.size === 0) continue;
+
+      // Normaal: wit vs wit + rood vs rood
+      const normalScore = (
+        this.setIntersectionSize(curWhite, histWhite) / Math.max(curWhite.size, histWhite.size) +
+        this.setIntersectionSize(curRed,   histRed)   / Math.max(curRed.size,   histRed.size)
+      ) / 2;
+
+      // Omgedraaid: wit vs rood + rood vs wit
+      const flippedScore = (
+        this.setIntersectionSize(curWhite, histRed)   / Math.max(curWhite.size, histRed.size) +
+        this.setIntersectionSize(curRed,   histWhite) / Math.max(curRed.size,   histWhite.size)
+      ) / 2;
+
+      const best = Math.max(normalScore, flippedScore);
+      if (best >= 0.6) {
+        results.push({ wedstrijd: w, score: best, isFlipped: flippedScore > normalScore });
+      }
     }
-    
-    // Check if experience balancing is important
-    const expDiff = Math.abs(whiteAnalysis.experiencedPlayers.length - redAnalysis.experiencedPlayers.length);
-    if (expDiff <= 1 && (whiteAnalysis.experiencedPlayers.length > 0 || redAnalysis.experiencedPlayers.length > 0)) {
-      factors.push('experience');
+
+    return results.sort((a, b) => b.score - a.score).slice(0, 2);
+  }
+
+  private findBestDuo(squad: Player[]): { playerA: string; playerB: string; winRate: number; games: number } | null {
+    let bestDuo: { playerA: string; playerB: string; winRate: number; games: number } | null = null;
+
+    for (let i = 0; i < squad.length; i++) {
+      for (let j = i + 1; j < squad.length; j++) {
+        const a = squad[i];
+        const b = squad[j];
+        if (!a.gameHistory || !b.gameHistory) continue;
+
+        // Find games where both were teammates
+        let together = 0;
+        let wins = 0;
+        for (const game of a.gameHistory) {
+          if (game.teammates && game.teammates.includes(b.name)) {
+            together++;
+            if (game.result === 3) wins++;
+          }
+        }
+
+        if (together >= 3) {
+          const winRate = wins / together;
+          if (!bestDuo || winRate > bestDuo.winRate || (winRate === bestDuo.winRate && together > bestDuo.games)) {
+            bestDuo = { playerA: a.name, playerB: b.name, winRate, games: together };
+          }
+        }
+      }
     }
-    
-    // Check if new player integration is happening
-    if (whiteAnalysis.newPlayers.length > 0 || redAnalysis.newPlayers.length > 0) {
-      factors.push('development');
-    }
-    
-    // Check keeper situation
-    if (whiteAnalysis.keepers.length > 0 && redAnalysis.keepers.length > 0) {
-      factors.push('keepers');
-    }
-    
-    // Always include balance as base factor
-    factors.push('balance');
-    
-    return factors;
+    return bestDuo;
   }
 
   private generatePersonalizedExplanation(
-    teamWhite: Team, 
-    teamRed: Team, 
-    whiteAnalysis: any, 
-    redAnalysis: any, 
-    factors: string[]
+    teamWhite: Team,
+    teamRed: Team,
+    whiteAnalysis: any,
+    redAnalysis: any,
+    _factors: string[]
   ): string {
-    let explanation = '';
-    const scoreDiff = Math.abs(whiteAnalysis.totalScore - redAnalysis.totalScore).toFixed(1);
-    
-    // Team composition overview  
-    explanation += `<p><strong>🏆 ${teamWhite.name}</strong>: ${teamWhite.squad.map(p => p.name).join(', ')}</p>`;
-    explanation += `<p><strong>🔴 ${teamRed.name}</strong>: ${teamRed.squad.map(p => p.name).join(', ')}</p><br>`;
-    
-    // Form analysis
-    if (factors.includes('form')) {
-      if (whiteAnalysis.playersInForm.length > 0) {
-        const formPlayers = whiteAnalysis.playersInForm.map((p: Player) => p.name).join(' en ');
-        explanation += `<p>🔥 <strong>Team Wit</strong> heeft een voordeel door de uitstekende vorm van ${formPlayers}.</p>`;
-      }
-      if (redAnalysis.playersInForm.length > 0) {
-        const formPlayers = redAnalysis.playersInForm.map((p: Player) => p.name).join(' en ');
-        explanation += `<p>🔥 <strong>Team Rood</strong> heeft een voordeel door de uitstekende vorm van ${formPlayers}.</p>`;
-      }
-      
-      // Mention players in poor form
-      const allPoorForm = [...whiteAnalysis.playersInPoorForm, ...redAnalysis.playersInPoorForm];
-      if (allPoorForm.length > 0) {
-        const poorFormNames = allPoorForm.map((p: Player) => p.name).join(', ');
-        explanation += `<p>⚠️ ${poorFormNames} ${allPoorForm.length === 1 ? 'heeft' : 'hebben'} recent mindere vorm - kans op comeback!</p>`;
-      }
-    }
-    
-    // Keeper analysis
-    if (factors.includes('keepers')) {
-      const whiteKeeper = whiteAnalysis.keepers[0];
-      const redKeeper = redAnalysis.keepers[0];
-      
-      if (whiteKeeper && redKeeper) {
-        explanation += `<p>🥅 Keeper-duel: <strong>${whiteKeeper.name}</strong> vs <strong>${redKeeper.name}</strong> - beide teams hebben sterke laatste verdediging.</p>`;
-      } else if (whiteKeeper) {
-        explanation += `<p>🥅 <strong>Team Wit</strong> heeft voordeel met keeper ${whiteKeeper.name}, Team Rood moet creatief verdedigen.</p>`;
-      } else if (redKeeper) {
-        explanation += `<p>🥅 <strong>Team Rood</strong> heeft voordeel met keeper ${redKeeper.name}, Team Wit moet creatief verdedigen.</p>`;
-      }
-    }
-    
-    // Experience vs Development
-    if (factors.includes('development')) {
-      const allNewPlayers = [...whiteAnalysis.newPlayers, ...redAnalysis.newPlayers];
-      if (allNewPlayers.length > 0) {
-        const newNames = allNewPlayers.map((p: Player) => p.name).join(', ');
-        explanation += `<p>🌟 <strong>Ontwikkeling</strong>: ${newNames} ${allNewPlayers.length === 1 ? 'speelt' : 'spelen'} tussen ervaren spelers voor optimale groei.</p>`;
-      }
-    }
-    
-    if (factors.includes('experience')) {
-      const whiteExp = whiteAnalysis.experiencedPlayers;
-      const redExp = redAnalysis.experiencedPlayers;
-      
-      if (whiteExp.length > redExp.length) {
-        explanation += `<p>🏆 <strong>Team Wit</strong> heeft meer ervaring met ${whiteExp.map((p: Player) => p.name).join(', ')}.</p>`;
-      } else if (redExp.length > whiteExp.length) {
-        explanation += `<p>🏆 <strong>Team Rood</strong> heeft meer ervaring met ${redExp.map((p: Player) => p.name).join(', ')}.</p>`;
-      } else if (whiteExp.length > 0 && redExp.length > 0) {
-        explanation += `<p>🏆 Ervaring is gelijk verdeeld: ${whiteExp.map((p: Player) => p.name).join(', ')} vs ${redExp.map((p: Player) => p.name).join(', ')}.</p>`;
-      }
-    }
-    
-    // Key player matchups
-    if (whiteAnalysis.topPlayer && redAnalysis.topPlayer) {
-      explanation += `<p>⭐ <strong>Sleutel-duel</strong>: ${whiteAnalysis.topPlayer.name} (${whiteAnalysis.topPlayer.rating}) vs ${redAnalysis.topPlayer.name} (${redAnalysis.topPlayer.rating}) - deze strijd kan de wedstrijd bepalen!</p>`;
-    }
-    
-    // Final balance assessment
-    explanation += `<p><strong>⚖️ Score-verschil</strong>: ${scoreDiff} punten - `;
-    if (parseFloat(scoreDiff) < 1.0) {
-      explanation += 'extreem spannende wedstrijd verwacht!';
-    } else if (parseFloat(scoreDiff) < 2.0) {
-      explanation += 'evenwichtige wedstrijd met kleine voordelen.';
+    const parts: string[] = [];
+    const scoreDiff = Math.abs(whiteAnalysis.totalScore - redAnalysis.totalScore);
+    const genResult = this.lastGenerationResult;
+
+    // --- A. Opening — Balansoordeel ---
+    if (scoreDiff < 0.5) {
+      parts.push('<p><strong>Dit wordt een absolute thriller!</strong> Het algoritme kon nauwelijks verschil vinden tussen deze teams — op papier zijn ze vrijwel identiek.</p>');
+    } else if (scoreDiff < 2) {
+      parts.push('<p><strong>Op papier zijn deze teams uitzonderlijk goed gebalanceerd.</strong> Het verschil is minimaal, dus dit belooft een spannende pot te worden.</p>');
     } else {
-      explanation += 'één team heeft voordeel, maar vorm kan alles veranderen!';
+      const favoriet = whiteAnalysis.totalScore > redAnalysis.totalScore ? teamWhite.name : teamRed.name;
+      parts.push(`<p><strong>${favoriet} start met een klein voordeel</strong>, maar juist dat maakt het spannend — de underdog heeft alles te winnen.</p>`);
     }
-    explanation += '</p>';
-    
-    return explanation;
+
+    // --- B. Vorm-verhaal ---
+    const formParts: string[] = [];
+    const allInForm = [
+      ...whiteAnalysis.playersInForm.map((p: Player) => ({ player: p, team: teamWhite.name })),
+      ...redAnalysis.playersInForm.map((p: Player) => ({ player: p, team: teamRed.name }))
+    ];
+    for (const { player, team } of allInForm) {
+      const recentGames = player.gameHistory.slice(-5);
+      const wins = recentGames.filter((g: any) => g.result === 3).length;
+      if (genResult) {
+        const adj = genResult.formAdjustments.find((a: any) => a.playerName === player.name);
+        if (adj) {
+          formParts.push(`<p>Let op <strong>${player.name}</strong> (${team}) — met ${wins} overwinningen in de laatste ${recentGames.length} wedstrijden is hij in topvorm. Zijn effectieve rating steeg van ${adj.originalRating} naar ${adj.adjustedRating}.</p>`);
+        } else {
+          formParts.push(`<p>Let op <strong>${player.name}</strong> (${team}) — met ${wins} overwinningen in de laatste ${recentGames.length} wedstrijden is hij momenteel niet te stoppen.</p>`);
+        }
+      } else {
+        formParts.push(`<p>Let op <strong>${player.name}</strong> (${team}) — met ${wins} overwinningen in de laatste ${recentGames.length} wedstrijden is hij momenteel niet te stoppen.</p>`);
+      }
+    }
+
+    const allPoorForm = [
+      ...whiteAnalysis.playersInPoorForm.map((p: Player) => ({ player: p, team: teamWhite.name })),
+      ...redAnalysis.playersInPoorForm.map((p: Player) => ({ player: p, team: teamRed.name }))
+    ];
+    for (const { player } of allPoorForm) {
+      if (genResult) {
+        const adj = genResult.formAdjustments.find((a: any) => a.playerName === player.name);
+        if (adj) {
+          formParts.push(`<p><strong>${player.name}</strong> zoekt naar zijn beste niveau na een lastige reeks (rating aangepast van ${adj.originalRating} naar ${adj.adjustedRating}). Een comeback zou het verschil kunnen maken.</p>`);
+        } else {
+          formParts.push(`<p><strong>${player.name}</strong> zoekt naar zijn beste niveau na een lastige reeks. Een comeback zou het verschil kunnen maken.</p>`);
+        }
+      } else {
+        formParts.push(`<p><strong>${player.name}</strong> zoekt naar zijn beste niveau na een lastige reeks. Een comeback zou het verschil kunnen maken.</p>`);
+      }
+    }
+
+    if (formParts.length > 0) {
+      parts.push(...formParts);
+    }
+
+    // --- C. Fun facts pool ---
+    const funFacts: string[] = [];
+
+    // Duo-chemistry
+    const whiteDuo = this.findBestDuo(this.enrichSquad(teamWhite.squad));
+    const redDuo = this.findBestDuo(this.enrichSquad(teamRed.squad));
+    if (whiteDuo) {
+      const pct = Math.round(whiteDuo.winRate * 100);
+      funFacts.push(`<p>Wist je dat <strong>${whiteDuo.playerA}</strong> en <strong>${whiteDuo.playerB}</strong> samen een winrate van ${pct}% hebben in ${whiteDuo.games} gezamenlijke wedstrijden? ${teamWhite.name} kan daarvan profiteren!</p>`);
+    }
+    if (redDuo) {
+      const pct = Math.round(redDuo.winRate * 100);
+      funFacts.push(`<p>Wist je dat <strong>${redDuo.playerA}</strong> en <strong>${redDuo.playerB}</strong> samen een winrate van ${pct}% hebben in ${redDuo.games} gezamenlijke wedstrijden? ${teamRed.name} kan daarvan profiteren!</p>`);
+    }
+
+    // Experience comparison
+    const whiteExp = whiteAnalysis.totalExperience;
+    const redExp = redAnalysis.totalExperience;
+    if (whiteExp > 0 || redExp > 0) {
+      funFacts.push(`<p>${teamWhite.name} brengt samen <strong>${whiteExp} wedstrijden</strong> ervaring mee dit seizoen, ${teamRed.name} <strong>${redExp}</strong>. ${whiteExp > redExp ? 'Het ervaringsvoordeel ligt bij Wit.' : redExp > whiteExp ? 'Het ervaringsvoordeel ligt bij Rood.' : 'Ervaring is precies gelijk verdeeld!'}</p>`);
+    }
+
+    // Newcomer spotlight
+    const allNewPlayers = [...whiteAnalysis.newPlayers, ...redAnalysis.newPlayers];
+    for (const player of allNewPlayers) {
+      const n = player.gamesPlayed || 0;
+      funFacts.push(`<p>Voor <strong>${player.name}</strong> wordt dit pas wedstrijd nummer ${n + 1} — spannend debuut tussen ervaren spelers!</p>`);
+    }
+
+    // Win streaks
+    const allStreaks = [...whiteAnalysis.playersOnWinStreak, ...redAnalysis.playersOnWinStreak];
+    for (const { player, streak } of allStreaks) {
+      funFacts.push(`<p>Let op: <strong>${player.name}</strong> is al ${streak} wedstrijden ongeslagen! Wie stopt deze reeks?</p>`);
+    }
+
+    // Zlatan highlights
+    const allZlatan = [...whiteAnalysis.zlatanStars, ...redAnalysis.zlatanStars];
+    for (const player of allZlatan) {
+      funFacts.push(`<p><strong>${player.name}</strong> staat bekend om zijn zlatanpunten (${player.zlatanPoints}) — verwacht spectaculaire acties!</p>`);
+    }
+
+    // Ventiel highlights
+    const allVentiel = [...whiteAnalysis.ventielStars, ...redAnalysis.ventielStars];
+    for (const player of allVentiel) {
+      funFacts.push(`<p><strong>${player.name}</strong> heeft ${player.ventielPoints} ventielpoints — de onbetwiste ventielheld van de groep.</p>`);
+    }
+
+    // Select random 2-3 fun facts from pool
+    if (funFacts.length > 0) {
+      const shuffled = funFacts.sort(() => Math.random() - 0.5);
+      const selected = shuffled.slice(0, Math.min(3, Math.max(2, shuffled.length)));
+      parts.push(...selected);
+    }
+
+    // Historical team compositions — altijd tonen als gevonden
+    const vergelijkbaar = this.findSimilarTeamCompositions();
+    const maandNamen = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+    for (const { wedstrijd: w, score, isFlipped } of vergelijkbaar) {
+      const dag   = w.datum!.getDate();
+      const maand = maandNamen[w.datum!.getMonth()];
+      const jaar  = w.datum!.getFullYear();
+      const pct   = Math.round(score * 100);
+      const uitslag = (w.scoreWit !== null && w.scoreRood !== null)
+        ? `Wit ${w.scoreWit} – ${w.scoreRood} Rood`
+        : null;
+
+      let tekst: string;
+      if (pct === 100 && !isFlipped) {
+        tekst = `Exact dezelfde teams als op <strong>${dag} ${maand} ${jaar}</strong>!${uitslag ? ` Toen werd het <strong>${uitslag}</strong>.` : ''} Wordt de geschiedenis herhaald?`;
+      } else if (pct === 100 && isFlipped) {
+        tekst = `Op <strong>${dag} ${maand} ${jaar}</strong> stonden dezelfde spelers tegenover elkaar, maar dan omgekeerd.${uitslag ? ` Uitslag: <strong>${uitslag}</strong>.` : ''} Revanche time?`;
+      } else if (isFlipped) {
+        tekst = `<strong>${pct}%</strong> overlap met de wedstrijd van <strong>${dag} ${maand} ${jaar}</strong> — maar Wit en Rood waren toen omgedraaid.${uitslag ? ` Uitslag: <strong>${uitslag}</strong>.` : ''}`;
+      } else {
+        tekst = `<strong>${pct}%</strong> van de huidige opstelling speelde ook op <strong>${dag} ${maand} ${jaar}</strong>.${uitslag ? ` Toen eindigde het <strong>${uitslag}</strong>.` : ''}`;
+      }
+      parts.push(`<p>${tekst}</p>`);
+    }
+
+    // --- E. Afsluiter — Voorspelling ---
+    if (scoreDiff < 1) {
+      parts.push('<p><strong>Verdict:</strong> dit wordt een wedstrijd die tot de laatste seconde spannend blijft. Zet je schrap!</p>');
+    } else if (scoreDiff < 2) {
+      const favoriet = whiteAnalysis.totalScore > redAnalysis.totalScore ? teamWhite.name : teamRed.name;
+      parts.push(`<p><strong>Verdict:</strong> ${favoriet} begint als lichte favoriet, maar de marges zijn flinterdun. Alles is mogelijk!</p>`);
+    } else {
+      const favoriet = whiteAnalysis.totalScore > redAnalysis.totalScore ? teamWhite.name : teamRed.name;
+      const underdog = whiteAnalysis.totalScore > redAnalysis.totalScore ? teamRed.name : teamWhite.name;
+      parts.push(`<p><strong>Verdict:</strong> ${favoriet} start als favoriet, maar onderschat nooit de underdog. ${underdog} heeft niets te verliezen!</p>`);
+    }
+
+    return parts.join('');
+  }
+
+  private async generateAICommentary(
+    teamWhite: Team, teamRed: Team,
+    whiteAnalysis: any, redAnalysis: any
+  ): Promise<void> {
+    this.isLoadingCommentary = true;
+    try {
+      const payload = this.buildCommentaryPayload(teamWhite, teamRed, whiteAnalysis, redAnalysis);
+      const response = await fetch(`${environment.firebaseBaseUrl}/generateTeamCommentary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const { commentary } = await response.json();
+      if (commentary) {
+        this.algorithmExplanation = commentary;
+      }
+    } catch (err) {
+      // Fallback naar template-versie
+      console.warn('AI commentary niet beschikbaar, template wordt gebruikt:', err);
+      this.algorithmExplanation = this.generatePersonalizedExplanation(
+        teamWhite, teamRed, whiteAnalysis, redAnalysis, []
+      );
+    } finally {
+      this.isLoadingCommentary = false;
+    }
+  }
+
+  private buildCommentaryPayload(teamWhite: Team, teamRed: Team, whiteAnalysis: any, redAnalysis: any) {
+    const whiteDuo = this.findBestDuo(this.enrichSquad(teamWhite.squad));
+    const redDuo = this.findBestDuo(this.enrichSquad(teamRed.squad));
+    const vergelijkbaar = this.findSimilarTeamCompositions();
+
+    return {
+      teamWhite: {
+        name: teamWhite.name,
+        totalScore: whiteAnalysis.totalScore,
+        players: this.enrichSquad(teamWhite.squad).map(p => ({
+          name: p.name, position: p.position, rating: p.rating,
+          gamesPlayed: p.gamesPlayed || 0,
+          winRatio: p.winRatio ?? null,
+          wins: p.wins || 0, losses: p.losses || 0, ties: p.ties || 0
+        }))
+      },
+      teamRed: {
+        name: teamRed.name,
+        totalScore: redAnalysis.totalScore,
+        players: this.enrichSquad(teamRed.squad).map(p => ({
+          name: p.name, position: p.position, rating: p.rating,
+          gamesPlayed: p.gamesPlayed || 0,
+          winRatio: p.winRatio ?? null,
+          wins: p.wins || 0, losses: p.losses || 0, ties: p.ties || 0
+        }))
+      },
+      stats: {
+        scoreDiff: Math.abs(whiteAnalysis.totalScore - redAnalysis.totalScore),
+        playersInForm: [...whiteAnalysis.playersInForm, ...redAnalysis.playersInForm]
+          .map((p: Player) => ({ name: p.name, recentWins: p.gameHistory?.slice(-5).filter((g: any) => g.result === 3).length })),
+        playersInPoorForm: [...whiteAnalysis.playersInPoorForm, ...redAnalysis.playersInPoorForm]
+          .map((p: Player) => p.name),
+        winStreaks: [...whiteAnalysis.playersOnWinStreak, ...redAnalysis.playersOnWinStreak]
+          .map(({ player, streak }: any) => ({ name: player.name, streak })),
+        duos: [whiteDuo, redDuo].filter(Boolean),
+        newPlayers: [...whiteAnalysis.newPlayers, ...redAnalysis.newPlayers].map((p: Player) => p.name),
+        zlatanStars: [...whiteAnalysis.zlatanStars, ...redAnalysis.zlatanStars]
+          .map((p: Player) => ({ name: p.name, points: p.zlatanPoints })),
+        ventielStars: [...whiteAnalysis.ventielStars, ...redAnalysis.ventielStars]
+          .map((p: Player) => ({ name: p.name, points: p.ventielPoints })),
+        experience: { white: whiteAnalysis.totalExperience, red: redAnalysis.totalExperience },
+        historischeWedstrijden: vergelijkbaar.map(v => ({
+          datum: v.wedstrijd.datum?.toLocaleDateString('nl-NL'),
+          score: Math.round(v.score * 100),
+          isFlipped: v.isFlipped,
+          uitslag: v.wedstrijd.scoreWit !== null ? `${v.wedstrijd.scoreWit}-${v.wedstrijd.scoreRood}` : null
+        }))
+      }
+    };
   }
 
   protected clean(): void {
@@ -408,6 +609,7 @@ export class TeamGeneratorComponent implements OnInit {
       finalize(() => this.loadingSubject.next(false))
     ).subscribe({
       next: (playerStats: any[]) => {
+        this.fullPlayerStats = playerStats as Player[];
         this.nextMatchService.getNextMatchInfo().subscribe({
           next: (matchInfo) => {
             if (!matchInfo) {
@@ -472,6 +674,7 @@ export class TeamGeneratorComponent implements OnInit {
       )
       .subscribe({
         next: (players: any[]) => {
+          this.fullPlayerStats = players as Player[];
           // Filter alleen actieve spelers (statistics already include actief status from PlayerService)
           this.activePlayersList = players.filter(p => p.actief);
           if (this.activePlayersList.length > 0) {
@@ -551,12 +754,19 @@ export class TeamGeneratorComponent implements OnInit {
     
     console.log(`💾 Teams opslaan - Seizoen: ${seizoen || 'onbekend'}, Wedstrijd: ${matchNumber}, Rij: ${sheetRowIndex}`);
 
-    const updateData = [
+    const updateData: { range: string; values: any[][] }[] = [
       {
         range: WEDSTRIJD_RANGES.TEAMS_WITH_GENERATIE(sheetRowIndex),
         values: [[teamWhiteNames, teamRedNames, 'Handmatig']]
       }
     ];
+
+    if (this.algorithmExplanation) {
+      updateData.push({
+        range: WEDSTRIJD_RANGES.VOORBESCHOUWING(sheetRowIndex),
+        values: [[this.algorithmExplanation]]
+      });
+    }
 
     this.googleSheetsService.batchUpdateSheet(updateData)
       .subscribe({
@@ -599,10 +809,10 @@ export class TeamGeneratorComponent implements OnInit {
         event.currentIndex
       );
     }
-    // Optioneel: herbereken scores
-    targetTeam.sumOfRatings = targetTeam.squad.reduce((sum, p) => sum + (p.rating || 0), 0);
+    // Herbereken alle scores (sumOfRatings, totalScore, chemistryScore)
+    this.teamGenerateService.recalculateTeamScores(targetTeam);
     if (sourceTeamKey && sourceTeamKey !== targetTeamKey) {
-      sourceTeam.sumOfRatings = sourceTeam.squad.reduce((sum, p) => sum + (p.rating || 0), 0);
+      this.teamGenerateService.recalculateTeamScores(sourceTeam);
     }
   }
 

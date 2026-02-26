@@ -22,10 +22,11 @@ export const WEDSTRIJD_COLUMNS = {
   TEAM_WIT: 3,     // Kolom D
   TEAM_ROOD: 4,    // Kolom E
   TEAM_GENERATIE: 5, // Kolom F - Handmatig/Automatisch
-  SCORE_WIT: 6,    // Kolom G (was F)
-  SCORE_ROOD: 7,   // Kolom H (was G)
-  ZLATAN: 8,       // Kolom I (was H)
-  VENTIEL: 9       // Kolom J (was I)
+  SCORE_WIT: 6,    // Kolom G
+  SCORE_ROOD: 7,   // Kolom H
+  ZLATAN: 8,       // Kolom I
+  VENTIEL: 9,      // Kolom J
+  VOORBESCHOUWING: 10 // Kolom K
 } as const;
 
 // Kolom letters voor spreadsheet ranges
@@ -39,7 +40,8 @@ export const WEDSTRIJD_COLUMN_LETTERS = {
   SCORE_WIT: 'G',
   SCORE_ROOD: 'H',
   ZLATAN: 'I',
-  VENTIEL: 'J'
+  VENTIEL: 'J',
+  VOORBESCHOUWING: 'K'
 } as const;
 
 // Helper functie om ranges te maken
@@ -52,7 +54,8 @@ export const WEDSTRIJD_RANGES = {
   TEAMS: (row: number) => createWedstrijdRange('TEAM_WIT', 'TEAM_ROOD', row),
   TEAMS_WITH_GENERATIE: (row: number) => createWedstrijdRange('TEAM_WIT', 'TEAM_GENERATIE', row),
   SCORES_AND_ZLATAN: (row: number) => createWedstrijdRange('SCORE_WIT', 'ZLATAN', row),
-  ALL_MATCH_DATA: (row: number) => createWedstrijdRange('ID', 'VENTIEL', row)
+  ALL_MATCH_DATA: (row: number) => createWedstrijdRange('ID', 'VENTIEL', row),
+  VOORBESCHOUWING: (row: number) => `Wedstrijden!K${row}`
 } as const;
 
 // === SPELERS SHEET ===

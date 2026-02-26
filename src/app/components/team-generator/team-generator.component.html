@@ -104,18 +104,25 @@
       <hr class="solid" />
       
       <!-- Algorithm explanation using Angular Material -->
-      @if(algorithmExplanation) {
+      @if(algorithmExplanation || isLoadingCommentary) {
         <mat-card class="algorithm-explanation-card">
           <mat-card-header>
             <mat-card-title>
               <mat-icon>analytics</mat-icon>
-              Teamanalyse
+              Voorbeschouwing
+              @if(isLoadingCommentary) {
+                <mat-spinner diameter="18" class="inline-spinner"></mat-spinner>
+              }
             </mat-card-title>
           </mat-card-header>
           <mat-card-content>
-            <div class="explanation-content" [innerHTML]="algorithmExplanation"></div>
+            @if(isLoadingCommentary && !algorithmExplanation) {
+              <p class="loading-text">Voorbeschouwing wordt geschreven...</p>
+            } @else {
+              <div class="explanation-content" [innerHTML]="algorithmExplanation"></div>
+            }
           </mat-card-content>
-          @if(algorithmExplanation.length > 800) {
+          @if(algorithmExplanation.length > 800 && !isLoadingCommentary) {
             <mat-card-actions align="end">
               <button mat-button color="primary" (click)="showFullExplanation = !showFullExplanation">
                 <mat-icon>{{ showFullExplanation ? 'expand_less' : 'expand_more' }}</mat-icon>

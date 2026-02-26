@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { GoogleSheetsService } from './google-sheets-service';
 import { NOTIFICATIES_COLUMNS, SHEET_NAMES } from '../constants/sheet-columns';
@@ -185,7 +185,7 @@ export class NotificationService {
         subscriptionData.playerName
       ];
 
-      const result = await this.googleSheetsService.appendSheetRow(SHEET_NAMES.NOTIFICATIES, row).toPromise();
+      const result = await firstValueFrom(this.googleSheetsService.appendSheetRow(SHEET_NAMES.NOTIFICATIES, row));
       console.log('✅ Subscription saved to Google Sheets successfully:', result);
       
     } catch (error) {
@@ -202,8 +202,8 @@ export class NotificationService {
       console.log('🗑️ Removing subscription from server:', subscription.endpoint);
       
       // 1. First find the row with this endpoint
-      const rows = await this.googleSheetsService.getSheetData(SHEET_NAMES.NOTIFICATIES).toPromise();
-      
+      const rows = await firstValueFrom(this.googleSheetsService.getSheetData(SHEET_NAMES.NOTIFICATIES));
+
       if (!rows || rows.length === 0) {
         console.warn('No notifications data found to remove');
         return;
@@ -233,7 +233,7 @@ export class NotificationService {
         SHEET_NAMES.NOTIFICATIES, 
         targetRowIndex, 
         updatedRow
-      ).toPromise();
+      );
 
       console.log('✅ Subscription marked as inactive on server');
       
@@ -302,8 +302,8 @@ export class NotificationService {
       }
 
       // 2. Check Google Sheets Notificaties for this player
-      const rows = await this.googleSheetsService.getSheetData(SHEET_NAMES.NOTIFICATIES).toPromise();
-      
+      const rows = await firstValueFrom(this.googleSheetsService.getSheetData(SHEET_NAMES.NOTIFICATIES));
+
       if (!rows || rows.length === 0) {
         console.log(`❌ No notification data found in Google Sheets for ${playerName}`);
         return false;

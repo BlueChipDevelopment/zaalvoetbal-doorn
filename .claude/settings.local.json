@@ -12,7 +12,13 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(npm run ng:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(dir:*)",
+      "Bash(npx ng build:*)",
+      "Bash(npx ng serve:*)",
+      "Bash(head:*)",
+      "Bash(cd /c/github/Zaalvoetbal-Doorn && npx tsc --noEmit --project tsconfig.app.json 2>&1)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

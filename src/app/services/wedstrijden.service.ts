@@ -248,8 +248,9 @@ export class WedstrijdenService {
           teamGeneratie: row[WEDSTRIJD_COLUMNS.TEAM_GENERATIE] || '', // Kolom F - Handmatig/Automatisch
           scoreWit: this.parseScore(row[WEDSTRIJD_COLUMNS.SCORE_WIT]), // Kolom G (was F)
           scoreRood: this.parseScore(row[WEDSTRIJD_COLUMNS.SCORE_ROOD]), // Kolom H (was G)
-          zlatan: row[WEDSTRIJD_COLUMNS.ZLATAN] || '', // Kolom I (was H)
-          ventiel: row[WEDSTRIJD_COLUMNS.VENTIEL] || '', // Kolom J (was I)
+          zlatan: row[WEDSTRIJD_COLUMNS.ZLATAN] || '', // Kolom I
+          ventiel: row[WEDSTRIJD_COLUMNS.VENTIEL] || '', // Kolom J
+          voorbeschouwing: row[WEDSTRIJD_COLUMNS.VOORBESCHOUWING] || undefined, // Kolom K
           locatie: 'Sporthal Steinheim' // Default locatie
         };
       });
