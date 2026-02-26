@@ -18,7 +18,8 @@
       "Bash(npx ng serve:*)",
       "Bash(head:*)",
       "Bash(cd /c/github/Zaalvoetbal-Doorn && npx tsc --noEmit --project tsconfig.app.json 2>&1)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(tail:*)"
     ],
     "deny": [],
     "ask": []
