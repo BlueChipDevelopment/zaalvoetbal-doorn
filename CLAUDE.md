@@ -63,6 +63,14 @@ All TypeScript interfaces are centralized in `src/app/interfaces/`:
 - `ITeam.ts` - Team composition structure
 - `IAttendance.ts` - Attendance tracking structure
 
+### Design Principles
+
+- **Follow Angular Material UX guidelines as closely as possible** — use Material Design patterns, components, and conventions
+- Prefer Angular Material components over custom implementations
+- Navigation drawer (sidenav) headers should show app branding (logo + name), not generic labels like "Menu"
+- Toolbar layout follows Material Design: hamburger left, title/logo centered on mobile, actions right
+- Refer to [Material Design guidelines](https://m2.material.io/) for UX decisions when in doubt
+
 ### Styling
 
 - Uses Angular Material with custom color scheme (not standard theme)
