@@ -3,15 +3,11 @@
 $mobile-breakpoint: 767px;
 
 .wedstrijden-container {
-  .header-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-
-    h2 {
-      margin: 0;
-    }
+  .fab-add {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 100;
   }
 
   .table-container {
@@ -55,16 +51,6 @@ $mobile-breakpoint: 767px;
   }
 
   @media screen and (max-width: $mobile-breakpoint) {
-    .header-actions {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-
-      h2 {
-        font-size: 1.2em;
-      }
-    }
-
     .wedstrijden-table {
       font-size: 12px;
 

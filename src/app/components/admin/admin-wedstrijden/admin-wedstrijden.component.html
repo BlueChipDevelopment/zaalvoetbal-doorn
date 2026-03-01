@@ -1,10 +1,9 @@
 <div class="wedstrijden-container">
-  <div class="header-actions">
-    <h3>Wedstrijdbeheer</h3>
-    <button mat-fab color="primary" (click)="addWedstrijd()" aria-label="Voeg wedstrijd toe">
-      <mat-icon>add</mat-icon>
-    </button>
-  </div>
+
+  <button mat-fab color="primary" class="fab-add" (click)="addWedstrijd()" aria-label="Voeg wedstrijd toe">
+    <mat-icon>add</mat-icon>
+  </button>
+
 
   <div class="table-container" *ngIf="!loading">
     <table mat-table [dataSource]="dataSource" class="wedstrijden-table">

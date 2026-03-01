@@ -1,10 +1,9 @@
 <div class="spelers-container">
-  <div class="header-actions">
-    <h3>Spelerbeheer</h3>
-    <button mat-fab color="primary" (click)="addPlayer()" aria-label="Voeg speler toe">
-      <mat-icon>add</mat-icon>
-    </button>
-  </div>
+
+  <button mat-fab color="primary" class="fab-add" (click)="addPlayer()" aria-label="Voeg speler toe">
+    <mat-icon>add</mat-icon>
+  </button>
+
 
   <div class="table-container" *ngIf="!loading">
     <table mat-table [dataSource]="dataSource" class="spelers-table">

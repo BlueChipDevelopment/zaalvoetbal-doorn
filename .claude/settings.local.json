@@ -19,7 +19,8 @@
       "Bash(head:*)",
       "Bash(cd /c/github/Zaalvoetbal-Doorn && npx tsc --noEmit --project tsconfig.app.json 2>&1)",
       "Bash(ls:*)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(xargs grep:*)"
     ],
     "deny": [],
     "ask": []
