@@ -25,6 +25,14 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
+      # environment.ts en environment.prod.ts staan in .gitignore (bevatten
+      # sleutels in productie). Voor typecheck + build in CI gebruiken we de
+      # voorbeeld-bestanden; die hebben dezelfde shape met placeholder-waarden.
+      - name: Stub environment files
+        run: |
+          cp src/environments/environment.example.ts src/environments/environment.ts
+          cp src/environments/environment.prod.example.ts src/environments/environment.prod.ts
+
       - name: Type-check
         run: npx tsc --noEmit -p tsconfig.app.json
 
