@@ -14,7 +14,7 @@
   </div>
 
   <ng-container *ngIf="!isLoading && !errorMessage">
-    <div *ngFor="let wedstrijd of wedstrijden" class="wedstrijd-card">
+    <div *ngFor="let wedstrijd of wedstrijden; trackBy: trackByWedstrijd" class="wedstrijd-card">
       <div class="wedstrijd-header">{{ wedstrijd.datum | date:'dd-MM-yyyy' }}</div>
       <div class="wedstrijd-teams">
         <span class="team team-wit">

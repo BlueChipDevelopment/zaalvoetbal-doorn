@@ -17,4 +17,8 @@ import { CommonModule } from '@angular/common';
 })
 export class ChemistryModalComponent {
   constructor(@Inject(MAT_DIALOG_DATA) public data: any) {}
+
+  trackByTeammate(_index: number, teammate: { name: string }): string {
+    return teammate.name;
+  }
 }

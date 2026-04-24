@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WedstrijdenService } from '../../services/wedstrijden.service';
 import { WedstrijdData } from '../../interfaces/IWedstrijd';
 import { CommonModule } from '@angular/common';
@@ -18,10 +19,14 @@ export class WedstrijdenComponent implements OnInit {
   isLoading = true;
   errorMessage: string | null = null;
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(private wedstrijdenService: WedstrijdenService) {}
 
   ngOnInit(): void {
-    this.wedstrijdenService.getGespeeldeWedstrijden().subscribe({
+    this.wedstrijdenService.getGespeeldeWedstrijden()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (wedstrijden: WedstrijdData[]) => {
         // Sort by date, most recent first
         this.wedstrijden = wedstrijden.sort((a, b) => {
@@ -36,5 +41,9 @@ export class WedstrijdenComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  trackByWedstrijd(_index: number, w: WedstrijdData): string {
+    return w.datum ? w.datum.toISOString() : `${w.seizoen ?? ''}-${w.id ?? _index}`;
   }
 }

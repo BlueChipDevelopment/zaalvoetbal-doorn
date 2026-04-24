@@ -12,38 +12,49 @@ import { parseMatchDate } from "../shared/date-utils";
 export const sendPushToAll = onRequest(
   { region: FIREBASE_CONFIG.region },
   async (req, res) => {
-    setCorsHeaders(res);
+    setCorsHeaders(res, req);
     if (req.method === 'OPTIONS') {
       res.status(204).send('');
       return;
     }
     try {
-      logger.info('📧 Starting push notification request...');
-
-      // Log request body for debugging
-      logger.info('Request body:', JSON.stringify(req.body));
+      const isReminder = req.body.type === 'attendance-reminder';
+      const isTestMessage = req.body.type === 'test' || !req.body.type;
+      logger.info(`📧 Push request: type=${req.body.type ?? '(broadcast)'}, title=${req.body.title}`);
 
       const spreadsheetId = SPREADSHEET_ID;
-      const sheetName = SHEET_NAMES.SPELERS;
       const sheets = await getSheetsClient();
-      logger.info('✅ Google Sheets client created');
-      const result = await sheets.spreadsheets.values.get({
+
+      // Alle sheets parallel ophalen — scheelt 200-500ms per call.
+      const spelersRangePromise = sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: `${sheetName}!${SHEET_RANGES.FIRST_COLUMNS}`,
+        range: `${SHEET_NAMES.SPELERS}!${SHEET_RANGES.FIRST_COLUMNS}`,
       });
-      const rows = result.data.values || [];
-      const actiefCol = COLUMN_INDICES.ACTIEF; // C (actief)
-      const nameCol = COLUMN_INDICES.NAME; // A (naam)
+      const notificatiesRangePromise = sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${SHEET_NAMES.NOTIFICATIES}!${SHEET_RANGES.FIRST_COLUMNS}`,
+      });
+      const aanwezigheidRangePromise = isReminder
+        ? sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: `${SHEET_NAMES.AANWEZIGHEID}!${SHEET_RANGES.FIRST_COLUMNS}`,
+          })
+        : Promise.resolve(null);
+
+      const [spelersResult, notificatiesResult, aanwezigheidResult] = await Promise.all([
+        spelersRangePromise,
+        notificatiesRangePromise,
+        aanwezigheidRangePromise,
+      ]);
+
+      const rows = spelersResult.data.values || [];
+      const notificatiesRows = notificatiesResult.data.values || [];
+      const actiefCol = COLUMN_INDICES.ACTIEF;
+      const nameCol = COLUMN_INDICES.NAME;
+
       let targetRows = rows;
-      // Filter voor reminders: alleen actieve spelers zonder aanwezigheid
-      if (req.body.type === 'attendance-reminder') {
-        // Haal aanwezigheid op
-        const aanwezigheidResult = await sheets.spreadsheets.values.get({
-          spreadsheetId,
-          range: `${SHEET_NAMES.AANWEZIGHEID}!${SHEET_RANGES.FIRST_COLUMNS}`,
-        });
+      if (isReminder && aanwezigheidResult) {
         const aanwezigheidRows = aanwezigheidResult.data.values || [];
-        // Bepaal de datum van de eerstvolgende wedstrijd (uit Aanwezigheid header)
         const today = new Date();
         let nextDate: string | null = null;
         for (let i = 1; i < aanwezigheidRows.length; i++) {
@@ -57,51 +68,69 @@ export const sendPushToAll = onRequest(
             }
           }
         }
-        // Verzamel namen die al gereageerd hebben voor deze datum
         const respondedNames = new Set(
           aanwezigheidRows.filter(r => r[COLUMN_INDICES.AANWEZIGHEID_DATUM] === nextDate).map(r => r[COLUMN_INDICES.AANWEZIGHEID_NAAM])
         );
-        // Filter alleen actieve spelers zonder reactie
         targetRows = rows.filter((row, i) =>
           i > 0 &&
           (row[actiefCol] === 'TRUE' || row[actiefCol] === 'Ja') &&
           !respondedNames.has(row[nameCol])
         );
       } else {
-        // Standaard: alle actieve spelers
         targetRows = rows.filter((row, i) =>
           i > 0 && (row[actiefCol] === 'TRUE' || row[actiefCol] === 'Ja')
         );
       }
-      // Nu notifications versturen vanuit Notificaties sheet
-      // Haal notificatie subscriptions op
-      const notificatiesResult = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: `${SHEET_NAMES.NOTIFICATIES}!${SHEET_RANGES.FIRST_COLUMNS}`,
-      });
-      const notificatiesRows = notificatiesResult.data.values || [];
 
-      // Create map van target spelers
       const targetPlayerNames = new Set(targetRows.map(row => row[nameCol]));
+      logger.info(`📧 Target players: ${targetPlayerNames.size}, notification rows: ${notificatiesRows.length - 1}`);
 
       const notifications: Promise<any>[] = [];
+      // Houd per notification-promise de bijbehorende sheet-rij bij voor cleanup
+      const notificationRowIndices: number[] = [];
+      let skippedMissingData = 0;
+      let skippedInactive = 0;
+      let skippedNotTargeted = 0;
+
       for (let i = 1; i < notificatiesRows.length; i++) {
         const row = notificatiesRows[i];
-        if (row.length < 7) continue; // Skip incomplete rows
 
+        // Valideer alleen de essentiële subscription-velden i.p.v. row-lengte.
+        // Google Sheets API strikt trailing lege cellen, dus row.length < 7 sloot stil rijen uit
+        // waar playerName leeg was.
         const endpoint = row[COLUMN_INDICES.NOTIFICATIES_ENDPOINT];
         const p256dh = row[COLUMN_INDICES.NOTIFICATIES_P256DH];
         const auth = row[COLUMN_INDICES.NOTIFICATIES_AUTH];
-        const active = row[COLUMN_INDICES.NOTIFICATIES_ACTIVE] === 'true' || row[COLUMN_INDICES.NOTIFICATIES_ACTIVE] === true || row[COLUMN_INDICES.NOTIFICATIES_ACTIVE] === 'TRUE';
+        if (!endpoint || !p256dh || !auth) {
+          skippedMissingData++;
+          continue;
+        }
+
+        const rawActive = row[COLUMN_INDICES.NOTIFICATIES_ACTIVE];
+        const active = rawActive === true
+          || rawActive === 'TRUE'
+          || rawActive === 'true'
+          || (typeof rawActive === 'string' && rawActive.toLowerCase() === 'true');
+        if (!active) {
+          skippedInactive++;
+          continue;
+        }
+
         const playerName = row[COLUMN_INDICES.NOTIFICATIES_PLAYER_NAME];
 
-        // Voor test berichten: verstuur naar alle actieve subscriptions
-        // Voor andere berichten: alleen naar target spelers
-        const isTestMessage = req.body.type === 'test' || !req.body.type;
-        const shouldSend = active && playerName && (isTestMessage || targetPlayerNames.has(playerName));
-
-        // Debug logging
-        logger.info(`📧 Processing notification row ${i}: player=${playerName}, active=${row[COLUMN_INDICES.NOTIFICATIES_ACTIVE]} (${active}), isTest=${isTestMessage}, shouldSend=${shouldSend}`);
+        // Reminder: player-name is verplicht én moet in de target-set zitten.
+        // Broadcast/test: stuur naar alle actieve subscriptions ook zonder bekende playerName,
+        //   omdat oudere subscripties soms geen naam hebben.
+        let shouldSend: boolean;
+        if (isReminder) {
+          shouldSend = !!playerName && targetPlayerNames.has(playerName);
+          if (!shouldSend) skippedNotTargeted++;
+        } else if (isTestMessage) {
+          shouldSend = true;
+        } else {
+          shouldSend = !playerName || targetPlayerNames.has(playerName);
+          if (!shouldSend) skippedNotTargeted++;
+        }
 
         if (shouldSend) {
           try {
@@ -112,31 +141,54 @@ export const sendPushToAll = onRequest(
               url: req.body.url || undefined
             });
             notifications.push(webpush.sendNotification(subscription, payload));
+            notificationRowIndices.push(i); // sheet-rij = i + 1 (1-based)
           } catch (err) {
-            logger.error('Invalid subscription for player', playerName, err);
+            logger.error(`Invalid subscription (row ${i + 1}, player=${playerName || '(none)'})`, err);
           }
         }
       }
 
+      logger.info(`📧 Sending ${notifications.length} — skipped: ${skippedMissingData} missing data, ${skippedInactive} inactive, ${skippedNotTargeted} not targeted`);
+
       const results = await Promise.allSettled(notifications);
       const succeeded = results.filter(r => r.status === 'fulfilled').length;
       const failed = results.filter(r => r.status === 'rejected').length;
-      
-      // Log failures for debugging
-      if (failed > 0) {
-        logger.warn(`⚠️ ${failed} notification(s) failed to send`);
-        results.forEach((result, index) => {
-          if (result.status === 'rejected') {
-            logger.error(`Failed notification ${index}:`, result.reason);
+
+      // Verzamel expired subscriptions (HTTP 404/410) en deactiveer ze in de sheet
+      const expiredRowIndices: number[] = [];
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const reason = result.reason as { statusCode?: number } | undefined;
+          const statusCode = reason?.statusCode;
+          if (statusCode === 404 || statusCode === 410) {
+            expiredRowIndices.push(notificationRowIndices[index]);
+          } else {
+            logger.error(`Push failed (row ${notificationRowIndices[index] + 1}, status ${statusCode ?? 'unknown'})`);
           }
-        });
+        }
+      });
+
+      if (expiredRowIndices.length > 0) {
+        const batchData = expiredRowIndices.map(rowIndex => ({
+          range: `${SHEET_NAMES.NOTIFICATIES}!F${rowIndex + 1}`, // 1-based
+          values: [[false]]
+        }));
+        try {
+          await sheets.spreadsheets.values.batchUpdate({
+            spreadsheetId,
+            requestBody: { data: batchData, valueInputOption: 'RAW' }
+          });
+          logger.info(`🧹 Deactivated ${expiredRowIndices.length} expired push subscription(s)`);
+        } catch (cleanupErr) {
+          logger.error('Failed to deactivate expired subscriptions', cleanupErr);
+        }
       }
-      
-      logger.info(`📧 Sent ${succeeded}/${notifications.length} push notifications (${failed} failed)`);
-      res.json({ success: true, sent: succeeded, failed: failed, total: notifications.length });
+
+      logger.info(`📧 Sent ${succeeded}/${notifications.length} push notifications (${failed} failed, ${expiredRowIndices.length} deactivated)`);
+      res.json({ success: true, sent: succeeded, failed: failed, deactivated: expiredRowIndices.length, total: notifications.length });
     } catch (error) {
-      logger.error(error);
-      res.status(500).send('Error sending push notifications');
+      logger.error('sendPushToAll failed', error);
+      res.status(500).json({ success: false, message: 'Error sending push notifications' });
     }
   }
 );

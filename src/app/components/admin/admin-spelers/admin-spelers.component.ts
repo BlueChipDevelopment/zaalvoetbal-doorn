@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { PlayerService } from '../../../services/player.service';
@@ -15,6 +16,8 @@ export class AdminSpelersComponent implements OnInit {
   dataSource = new MatTableDataSource<PlayerSheetData>();
   loading = true;
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private playerService: PlayerService,
     private dialog: MatDialog
@@ -26,7 +29,9 @@ export class AdminSpelersComponent implements OnInit {
 
   loadPlayers(): void {
     this.loading = true;
-    this.playerService.refreshPlayers().subscribe({
+    this.playerService.refreshPlayers()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (players) => {
         this.dataSource.data = players;
         this.loading = false;
@@ -44,9 +49,13 @@ export class AdminSpelersComponent implements OnInit {
       data: { player: null, mode: 'add' }
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(result => {
       if (result) {
-        this.playerService.addPlayer(result).subscribe({
+        // Mutation: geen takeUntilDestroyed zodat de write doorgaat bij navigatie.
+        this.playerService.addPlayer(result)
+          .subscribe({
           next: () => {
             this.loadPlayers();
           },
@@ -65,9 +74,13 @@ export class AdminSpelersComponent implements OnInit {
       data: { player: { ...player }, mode: 'edit', originalName: player.name }
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(result => {
       if (result) {
-        this.playerService.updatePlayer(result.originalName, result.player).subscribe({
+        // Mutation: geen takeUntilDestroyed zodat de write doorgaat bij navigatie.
+        this.playerService.updatePlayer(result.originalName, result.player)
+          .subscribe({
           next: () => {
             this.loadPlayers();
           },

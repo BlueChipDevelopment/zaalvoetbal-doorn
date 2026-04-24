@@ -34,6 +34,16 @@ export class PwaInstallService {
     return this.isIOS || this.isAndroid;
   }
 
+  /** Live check — true wanneer de app draait als geïnstalleerde PWA (standalone display). */
+  get isStandalone(): boolean {
+    const standaloneMatch = typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia('(display-mode: standalone)').matches;
+    const iosStandalone = typeof window !== 'undefined'
+      && (window.navigator as any).standalone === true;
+    return standaloneMatch || iosStandalone;
+  }
+
   private checkInstallation(): void {
     // Check if already installed as PWA
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;

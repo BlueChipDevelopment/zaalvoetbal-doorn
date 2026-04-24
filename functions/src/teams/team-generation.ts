@@ -11,7 +11,7 @@ import { toISODateString } from "../shared/date-utils";
 export const teamGeneration = onRequest(
   { region: FIREBASE_CONFIG.region },
   async (req, res) => {
-    setCorsHeaders(res);
+    setCorsHeaders(res, req);
     if (req.method === 'OPTIONS') {
       res.status(204).send('');
       return;
@@ -31,7 +31,7 @@ export const teamGeneration = onRequest(
       logger.error('💥 Team generation failed:', error);
       res.status(500).json({
         success: false,
-        message: `Error: ${error}`
+        message: 'Team generation failed'
       });
     }
   }

@@ -2,6 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { getSheetsClient } from "../shared/sheets-client";
 import { setCorsHeaders } from "../shared/cors";
+import { validateSheetRequest } from "../shared/validate-sheet-request";
 import { FIREBASE_CONFIG } from "../config/constants";
 
 /**
@@ -10,13 +11,27 @@ import { FIREBASE_CONFIG } from "../config/constants";
 export const updateSheetRow = onRequest(
   { region: FIREBASE_CONFIG.region },
   async (req, res) => {
-    setCorsHeaders(res);
+    setCorsHeaders(res, req);
     if (req.method === 'OPTIONS') {
       res.status(204).send('');
       return;
     }
     try {
-      const { spreadsheetId, sheetName, rowIndex, row } = req.body;
+      const validation = validateSheetRequest(req.body?.spreadsheetId, req.body?.sheetName);
+      if (!validation.ok) {
+        res.status(validation.status).json({ error: validation.message });
+        return;
+      }
+      const { spreadsheetId, sheetName } = validation;
+      const { rowIndex, row } = req.body;
+      if (typeof rowIndex !== "number" || !Number.isInteger(rowIndex) || rowIndex < 1) {
+        res.status(400).json({ error: "rowIndex must be a positive integer" });
+        return;
+      }
+      if (!Array.isArray(row)) {
+        res.status(400).json({ error: "row must be an array" });
+        return;
+      }
       const sheets = await getSheetsClient();
       const range = `${sheetName}!A${rowIndex}:Z${rowIndex}`;
       const result = await sheets.spreadsheets.values.update({

@@ -141,7 +141,7 @@
                       </div>
                       <div class="player-chips">
                         <mat-chip-set>
-                          <mat-chip *ngFor="let player of details.aanwezig" class="player-chip present-chip">
+                          <mat-chip *ngFor="let player of details.aanwezig; trackBy: trackByPlayerName" class="player-chip present-chip">
                             <div class="chip-content">
                               <span class="player-avatar"></span>
                               <div class="player-info">
@@ -162,7 +162,7 @@
                       </div>
                       <div class="player-chips">
                         <mat-chip-set>
-                          <mat-chip *ngFor="let player of details.afwezig" class="player-chip absent-chip">
+                          <mat-chip *ngFor="let player of details.afwezig; trackBy: trackByPlayerName" class="player-chip absent-chip">
                             <div class="chip-content">
                               <span class="player-avatar"></span>
                               <div class="player-info">
@@ -183,7 +183,7 @@
                       </div>
                       <div class="player-chips">
                         <mat-chip-set>
-                          <mat-chip *ngFor="let player of details.geenReactie" class="player-chip no-response-chip">
+                          <mat-chip *ngFor="let player of details.geenReactie; trackBy: trackByPlayerName" class="player-chip no-response-chip">
                             <div class="chip-content">
                               <span class="player-avatar"></span>
                               <div class="player-info">

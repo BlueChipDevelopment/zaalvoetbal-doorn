@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, DestroyRef, OnInit, OnDestroy, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { PwaInstallService } from './services/pwa-install.service';
@@ -16,6 +17,8 @@ export class AppComponent implements OnInit, OnDestroy {
   title = 'Zaalvoetbal-Doorn';
   showInstallButton = false;
   isInstalled = false;
+
+  private destroyRef = inject(DestroyRef);
 
   constructor(
     private snackBar: MatSnackBar,
@@ -45,14 +48,18 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     // Setup PWA install functionality
-    this.pwaInstallService.canInstall.subscribe(canInstall => {
-      this.showInstallButton = canInstall && !this.isInstalled;
-    });
+    this.pwaInstallService.canInstall
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(canInstall => {
+        this.showInstallButton = canInstall && !this.isInstalled;
+      });
 
-    this.pwaInstallService.isInstalled.subscribe(installed => {
-      this.isInstalled = installed;
-      this.showInstallButton = !installed;
-    });
+    this.pwaInstallService.isInstalled
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(installed => {
+        this.isInstalled = installed;
+        this.showInstallButton = !installed;
+      });
   }
 
   ngOnDestroy() {

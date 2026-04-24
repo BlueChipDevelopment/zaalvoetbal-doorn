@@ -180,7 +180,8 @@ export class PlayerService {
         
         for (let i = 1; i < rows.length; i++) { // Skip header row (index 0)
           const row = rows[i];
-          if (row && row[SPELER_COLUMNS.NAME] && row[SPELER_COLUMNS.NAME].toLowerCase().trim() === playerName.toLowerCase().trim()) {
+          const cell = row?.[SPELER_COLUMNS.NAME];
+          if (typeof cell === 'string' && cell.toLowerCase().trim() === playerName.toLowerCase().trim()) {
             foundRowIndex = i;
             break;
           }

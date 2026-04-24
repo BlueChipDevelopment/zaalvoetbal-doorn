@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { formatDateISO, formatDateForDisplay } from '../../utils/date-utils';
@@ -114,6 +115,8 @@ export class KalenderComponent implements OnInit {
     return this.isLoadingPlayers || this.isLoadingMatches || this.isLoadingCounts;
   }
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private googleSheetsService: GoogleSheetsService,
     private attendanceService: AttendanceService,
@@ -130,7 +133,10 @@ export class KalenderComponent implements OnInit {
   loadPlayers(): void {
     this.isLoadingPlayers = true;
     this.playerService.getPlayers()
-      .pipe(finalize(() => this.isLoadingPlayers = false))
+      .pipe(
+        finalize(() => this.isLoadingPlayers = false),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (players) => {
           this.players = players;
@@ -147,7 +153,10 @@ export class KalenderComponent implements OnInit {
   loadFutureMatches(): void {
     this.isLoadingMatches = true;
     this.nextMatchService.getFutureMatches()
-      .pipe(finalize(() => this.isLoadingMatches = false))
+      .pipe(
+        finalize(() => this.isLoadingMatches = false),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (matches) => {
           this.futureMatches = matches.map(match => ({
@@ -202,7 +211,10 @@ export class KalenderComponent implements OnInit {
 
     // Get all attendance records once and store them for reuse
     this.attendanceService.getAttendanceRecords({ futureOnly: false })
-      .pipe(finalize(() => this.isLoadingCounts = false))
+      .pipe(
+        finalize(() => this.isLoadingCounts = false),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (allRecords) => {
           // Store for reuse
@@ -274,7 +286,9 @@ export class KalenderComponent implements OnInit {
     );
 
     // Use forkJoin to get all match details in parallel, but from cached data
-    forkJoin(detailRequests).subscribe({
+    forkJoin(detailRequests)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
         next: (allDetails) => {
           this.matchAttendanceDetails = allDetails.map(details => ({
             date: details.date,
@@ -313,7 +327,10 @@ export class KalenderComponent implements OnInit {
 
     // Use attendance service to get player attendance for all future dates
     this.attendanceService.getAttendanceForPlayer(currentPlayer)
-      .pipe(finalize(() => this.isLoadingStatus = false))
+      .pipe(
+        finalize(() => this.isLoadingStatus = false),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (attendanceRecords) => {
           if (this.selectedPlayer === currentPlayer) {
@@ -348,7 +365,10 @@ export class KalenderComponent implements OnInit {
     
     // Use attendance service to get updated counts for specific match
     this.attendanceService.getMatchAttendanceOverviews({ date: matchDate })
-      .pipe(finalize(() => this.updatingCounts[matchDate] = false))
+      .pipe(
+        finalize(() => this.updatingCounts[matchDate] = false),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (overviews) => {
           if (overviews.length > 0) {
@@ -380,6 +400,7 @@ export class KalenderComponent implements OnInit {
 
   updateMatchAttendanceDetails(matchDate: string): void {
     this.attendanceService.getMatchAttendanceDetails(matchDate)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (details) => {
           // Update only the specific match in the array
@@ -429,6 +450,7 @@ export class KalenderComponent implements OnInit {
     const currentPlayer = this.selectedPlayer;
 
     // Use attendance service to set attendance
+    // Mutation: geen takeUntilDestroyed zodat de write doorgaat bij navigatie.
     this.attendanceService.setAttendance({
       date: matchDate,
       playerName: currentPlayer,
@@ -521,5 +543,9 @@ export class KalenderComponent implements OnInit {
 
   trackByMatchDate(index: number, match: ExtendedFutureMatchInfo): string {
     return match.formattedDate || match.date;
+  }
+
+  trackByPlayerName(_index: number, item: { name: string }): string {
+    return item.name;
   }
 }

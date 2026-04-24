@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GoogleSheetsService } from '../../services/google-sheets-service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
@@ -62,6 +63,8 @@ export class ScoreComponent implements OnInit {
   isLoading: boolean = true;
   errorMessage: string | null = null;
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private googleSheetsService: GoogleSheetsService,
     private _snackBar: MatSnackBar,
@@ -85,9 +88,13 @@ export class ScoreComponent implements OnInit {
     this.participatingPlayers = [];
 
     // Haal eerst alle spelersstats op via gameStatisticsService
-    this.gameStatisticsService.getFullPlayerStats().subscribe({
+    this.gameStatisticsService.getFullPlayerStats()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (playerStats: Player[]) => {
-        this.nextMatchService.getNextMatchInfo().subscribe({
+        this.nextMatchService.getNextMatchInfo()
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
           next: (info) => {
             this.nextMatchInfo = info;
             if (info && info.wedstrijd) {
@@ -172,7 +179,9 @@ export class ScoreComponent implements OnInit {
       
       if (seizoen && absoluteId) {
         // Dubbele controle via wedstrijdenService
-        this.nextMatchService.getNextMatchInfo().subscribe({
+        this.nextMatchService.getNextMatchInfo()
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
           next: (currentMatchInfo) => {
             // Vergelijk op seizoen + absolute ID (stabiel)
             if (currentMatchInfo?.wedstrijd?.seizoen === seizoen && 
@@ -218,7 +227,10 @@ export class ScoreComponent implements OnInit {
       }
     ];
 
-    this.googleSheetsService.batchUpdateSheet(updateData).subscribe({
+    // Mutation: geen takeUntilDestroyed — als de gebruiker direct na opslaan wegnavigeert
+    // mag de save-request niet worden afgebroken. Observable completeert na één emission.
+    this.googleSheetsService.batchUpdateSheet(updateData)
+      .subscribe({
       next: () => {
         console.log(`✅ Scores succesvol opgeslagen voor ${seizoen || 'onbekend'} wedstrijd ${matchNumber}`);
         // Reset cache zodat het klassement direct de nieuwe data toont

@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import { Player } from '../../interfaces/IPlayer';
 import { Positions } from '../../enums/positions.enum';
@@ -85,6 +86,8 @@ export class TeamGeneratorComponent implements OnInit {
 
   nextMatchInfo: NextMatchInfo | null = null;
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private teamGenerateService: TeamGenerateService,
     private nextMatchService: NextMatchService,
@@ -98,13 +101,17 @@ export class TeamGeneratorComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadingSubject.next(true);
-    this.nextMatchService.getNextMatchInfo().subscribe(info => {
-      this.nextMatchInfo = info;
-      this.loadingSubject.next(false);
-    });
-    this.wedstrijdenService.getGespeeldeWedstrijden().subscribe(wedstrijden => {
-      this.historischeWedstrijden = wedstrijden;
-    });
+    this.nextMatchService.getNextMatchInfo()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(info => {
+        this.nextMatchInfo = info;
+        this.loadingSubject.next(false);
+      });
+    this.wedstrijdenService.getGespeeldeWedstrijden()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(wedstrijden => {
+        this.historischeWedstrijden = wedstrijden;
+      });
   }
 
   protected getAsFormArray(formArray: any): FormArray {
@@ -606,23 +613,28 @@ export class TeamGeneratorComponent implements OnInit {
     
     // Eerst alle ratings ophalen (huidige seizoen)
     this.teamGenerateService.getCurrentSeasonPlayerStats().pipe(
-      finalize(() => this.loadingSubject.next(false))
+      finalize(() => this.loadingSubject.next(false)),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (playerStats: any[]) => {
         this.fullPlayerStats = playerStats as Player[];
-        this.nextMatchService.getNextMatchInfo().subscribe({
+        this.nextMatchService.getNextMatchInfo()
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
           next: (matchInfo) => {
             if (!matchInfo) {
               this.snackBar.open('Geen aankomende wedstrijd gevonden.', 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
               return;
             }
-            
-            const dateString = matchInfo.parsedDate 
+
+            const dateString = matchInfo.parsedDate
               ? this.attendanceService.formatDate(matchInfo.parsedDate)
               : matchInfo.date;
-            
+
             // Gebruik AttendanceService in plaats van direct Google Sheets
-            this.attendanceService.getPresentPlayers(dateString).subscribe({
+            this.attendanceService.getPresentPlayers(dateString)
+              .pipe(takeUntilDestroyed(this.destroyRef))
+              .subscribe({
               next: (presentPlayers) => {
                 if (presentPlayers.length === 0) {
                   this.snackBar.open('Geen aanwezige spelers gevonden voor de volgende wedstrijd.', 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
@@ -670,7 +682,8 @@ export class TeamGeneratorComponent implements OnInit {
     // Get statistics data to merge with player data (huidige seizoen)
     this.teamGenerateService.getCurrentSeasonPlayerStats()
       .pipe(
-        finalize(() => this.loadingSubject.next(false))
+        finalize(() => this.loadingSubject.next(false)),
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
         next: (players: any[]) => {
@@ -768,10 +781,15 @@ export class TeamGeneratorComponent implements OnInit {
       });
     }
 
+    // Mutation: bewust GEEN takeUntilDestroyed zodat de save doorgaat ook als de
+    // gebruiker wegnavigeert voor de response binnen is. De observable completeert
+    // na één emission dus een memory leak is er niet.
     this.googleSheetsService.batchUpdateSheet(updateData)
       .subscribe({
         next: () => {
           console.log(`✅ Teams succesvol opgeslagen voor ${seizoen || 'onbekend'} wedstrijd ${matchNumber}`);
+          // Wedstrijden cache verversen zodat de nieuwe opstelling direct zichtbaar is
+          this.wedstrijdenService.refreshCache().subscribe();
           this.isTeamsSaved = true;
           this.isSavingTeams = false;
           this.loadingSubject.next(false);
@@ -831,11 +849,24 @@ export class TeamGeneratorComponent implements OnInit {
       body: JSON.stringify({ title, body, url })
     })
       .then(async res => {
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) {
+          const text = await res.text();
+          // Backend stuurt tegenwoordig een JSON-body met een `message`-veld;
+          // ouder formaat was plain tekst. Beide afhandelen.
+          let message = text;
+          try {
+            const parsed = JSON.parse(text);
+            if (parsed && typeof parsed.message === 'string') message = parsed.message;
+          } catch {
+            // geen JSON — houd tekst zoals hij is
+          }
+          throw new Error(message || `HTTP ${res.status}`);
+        }
         this.snackBar.open('Push notificatie verstuurd!', 'Sluiten', { duration: 3000, panelClass: ['futsal-notification', 'futsal-notification-success'] });
       })
       .catch(err => {
-        this.snackBar.open('Fout bij versturen push notificatie: ' + err, 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
+        const message = err instanceof Error ? err.message : String(err);
+        this.snackBar.open('Fout bij versturen push notificatie: ' + message, 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
       });
   }
 

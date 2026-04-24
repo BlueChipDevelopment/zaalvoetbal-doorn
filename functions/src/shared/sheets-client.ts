@@ -1,9 +1,15 @@
 import * as logger from "firebase-functions/logger";
 
 /**
- * Helper: Authorize Google Sheets API
+ * Helper: Authorize Google Sheets API.
+ * Cached op module-niveau — Firebase Functions hergebruikt een warm instance
+ * meerdere invocations lang, dus de auth hoeft niet per request opnieuw.
  */
-export async function getSheetsClient() {
+type SheetsClient = Awaited<ReturnType<typeof createSheetsClient>>;
+let cachedClient: SheetsClient | null = null;
+let cachedClientPromise: Promise<SheetsClient> | null = null;
+
+async function createSheetsClient() {
   const { google } = await import("googleapis");
   const authOptions: any = {
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
@@ -17,28 +23,40 @@ export async function getSheetsClient() {
   const auth = new google.auth.GoogleAuth(authOptions);
   const authClient = await auth.getClient();
   const projectId = await auth.getProjectId();
-  let clientEmail = undefined;
+  let clientEmail: string | undefined;
 
-  // Probeer eerst direct uit authClient
   if (authClient && typeof authClient === 'object' && 'email' in authClient) {
     clientEmail = (authClient as any).email;
   }
 
-  // Als niet aanwezig: probeer metadata server (productie)
   if (!clientEmail) {
     try {
-      const res = await (await import('node-fetch')).default(
+      const res = await fetch(
         'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email',
         { headers: { 'Metadata-Flavor': 'Google' } }
       );
       if (res.ok) {
         clientEmail = await res.text();
       }
-    } catch (e) {
-      // negeer, log alleen als het lukt
+    } catch {
+      // negeer — metadata niet bereikbaar (bijv. lokaal)
     }
   }
 
-  logger.info(`Google Sheets authenticatie: projectId=${projectId}, clientEmail=${clientEmail}`);
+  logger.info(`Google Sheets client initialized: projectId=${projectId}, clientEmail=${clientEmail}`);
   return google.sheets({ version: "v4", auth: authClient as any });
+}
+
+export async function getSheetsClient(): Promise<SheetsClient> {
+  if (cachedClient) return cachedClient;
+  // Zorg dat meerdere gelijktijdige calls tijdens cold start dezelfde init-belofte krijgen
+  // i.p.v. de (dure) initialisatie parallel te draaien.
+  if (!cachedClientPromise) {
+    cachedClientPromise = createSheetsClient().catch(err => {
+      cachedClientPromise = null; // laat een volgende call opnieuw proberen
+      throw err;
+    });
+  }
+  cachedClient = await cachedClientPromise;
+  return cachedClient;
 }

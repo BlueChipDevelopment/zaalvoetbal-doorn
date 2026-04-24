@@ -10,7 +10,7 @@ const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 export const generateTeamCommentary = onRequest(
   {region: FIREBASE_CONFIG.region, secrets: [anthropicApiKey]},
   async (req, res) => {
-    setCorsHeaders(res);
+    setCorsHeaders(res, req);
     if (req.method === "OPTIONS") {
       res.status(204).send("");
       return;

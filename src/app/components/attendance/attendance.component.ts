@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AttendanceService } from '../../services/attendance.service';
 import { PlayerService } from '../../services/player.service';
 import { NotificationService } from '../../services/notification.service';
@@ -14,8 +15,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { finalize, Observable, switchMap, of } from 'rxjs';
+import { finalize, forkJoin, Observable, switchMap, of } from 'rxjs';
 import { NextMatchService, NextMatchInfo } from '../../services/next-match.service';
+import { PwaInstallService } from '../../services/pwa-install.service';
 import { NextMatchInfoComponent } from '../next-match-info/next-match-info.component';
 import { PlayerCardComponent } from '../player-card/player-card.component';
 import { PwaInstallGuideComponent } from '../pwa-install-guide/pwa-install-guide.component';
@@ -75,105 +77,130 @@ export class AttendanceComponent implements OnInit {
   showPwaInstallGuide = false;
 
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private attendanceService: AttendanceService,
     private playerService: PlayerService,
     private snackBar: MatSnackBar,
     private nextMatchService: NextMatchService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private pwaInstallService: PwaInstallService
   ) {}
 
   ngOnInit(): void {
     this.isLoadingPlayers = true;
-    this.nextMatchService.getNextMatchInfo().subscribe({
-      next: (info) => {
-        this.nextMatchInfo = info;
-        this.nextGameDate = info?.parsedDate || null;
-        this.nextGameDateRaw = info?.date || null;
-        this.errorMessage = null;
-        
-        // Eerst laden we de players, dan pas de attendance list
-        this.loadPlayersAndThenAttendance();
-      },
-      error: (err) => {
-        this.nextMatchInfo = null;
-        this.nextGameDate = null;
-        this.nextGameDateRaw = null;
-        this.isLoadingPlayers = false;
-        this.errorMessage = 'Fout bij het laden van wedstrijden.';
-      }
-    });
 
-    // Setup notification status
+    // Haal nextMatch en spelers parallel op i.p.v. gekettind.
+    // De aanwezigheids-details worden pas opgehaald zodra we de datum kennen.
+    forkJoin({
+      info: this.nextMatchService.getNextMatchInfo(),
+      players: this.playerService.getPlayers(),
+    })
+      .pipe(
+        switchMap(({ info, players }) => {
+          this.nextMatchInfo = info;
+          this.nextGameDate = info?.parsedDate || null;
+          this.nextGameDateRaw = info?.date || null;
+          this.players = players;
+          this.errorMessage = null;
+          this.loadLastSelectedPlayer();
+
+          if (!this.nextGameDate) {
+            return of(null);
+          }
+          const formattedDate = this.formatDate(this.nextGameDate);
+          return this.attendanceService.getMatchAttendanceDetailsWithPlayerStatus(
+            formattedDate,
+            this.selectedPlayer || undefined
+          );
+        }),
+        finalize(() => (this.isLoadingPlayers = false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: (details: MatchAttendanceDetailsWithPlayerStatus | null) => {
+          if (!details) {
+            this.attendanceList = [];
+            this.presentCount = 0;
+            this.absentCount = 0;
+            return;
+          }
+          this.applyAttendanceDetails(details);
+        },
+        error: (err) => {
+          console.error('Error loading initial attendance data:', err);
+          this.errorMessage = 'Fout bij het laden van gegevens.';
+          this.attendanceList = [];
+          this.presentCount = 0;
+          this.absentCount = 0;
+        },
+      });
+
+    // Setup notification status (onafhankelijk van data-loading)
     this.setupNotifications();
   }
 
   loadPlayersAndThenAttendance(): void {
+    // Behouden voor eventuele externe callers; delegeert naar de nieuwe flow.
     this.isLoadingPlayers = true;
-    this.playerService.getPlayers()
+    forkJoin({
+      info: this.nextMatchService.getNextMatchInfo(),
+      players: this.playerService.getPlayers(),
+    })
       .pipe(
-        finalize(() => this.isLoadingPlayers = false),
-        switchMap(players => {
-          // Zet de players data
+        switchMap(({ info, players }) => {
+          this.nextMatchInfo = info;
+          this.nextGameDate = info?.parsedDate || null;
+          this.nextGameDateRaw = info?.date || null;
           this.players = players;
           this.errorMessage = null;
-          
-          // Laad de laatst geselecteerde speler
           this.loadLastSelectedPlayer();
-          
-          // Nu laden we de attendance list met de juiste selectedPlayer
-          if (!this.nextGameDate) {
-            this.attendanceList = [];
-            this.presentCount = 0;
-            this.absentCount = 0;
-            // Return empty observable dat direct completes
-            return of(null);
-          }
-          
+          if (!this.nextGameDate) return of(null);
           const formattedDate = this.formatDate(this.nextGameDate);
-          return this.attendanceService.getMatchAttendanceDetailsWithPlayerStatus(formattedDate, this.selectedPlayer || undefined);
-        })
+          return this.attendanceService.getMatchAttendanceDetailsWithPlayerStatus(
+            formattedDate,
+            this.selectedPlayer || undefined
+          );
+        }),
+        finalize(() => (this.isLoadingPlayers = false)),
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-        next: (details: MatchAttendanceDetailsWithPlayerStatus | null) => {
-          if (!details) return; // Voor het geval er geen nextGameDate was
-          
-          // Combineer present en absent spelers voor de lijst
-          this.attendanceList = [
-            ...details.present.map((player: any) => ({
-              speler: player.name,
-              status: 'Ja' as 'Ja' | 'Nee',
-              playerObj: player.playerData || this.createDefaultPlayer(player.name, player.position),
-              playerData: player.playerData || this.createDefaultPlayer(player.name, player.position),
-              name: player.name
-            })),
-            ...details.absent.map((player: any) => ({
-              speler: player.name,
-              status: 'Nee' as 'Ja' | 'Nee',
-              playerObj: player.playerData || this.createDefaultPlayer(player.name, player.position),
-              playerData: player.playerData || this.createDefaultPlayer(player.name, player.position),
-              name: player.name
-            }))
-          ];
-          
-          this.presentCount = details.present.length;
-          this.absentCount = details.absent.length;
-          this.errorMessage = null;
-          
-          // Zet de attendance status direct vanuit de gecombineerde response
-          if (this.selectedPlayer && details.playerStatus !== undefined) {
-            this.attendanceStatus = details.playerStatus;
-          }
-
-        },
+        next: (details) => details && this.applyAttendanceDetails(details),
         error: (err) => {
           console.error('Error loading players or attendance:', err);
           this.errorMessage = 'Fout bij het laden van gegevens.';
           this.attendanceList = [];
           this.presentCount = 0;
           this.absentCount = 0;
-        }
+        },
       });
+  }
+
+  private applyAttendanceDetails(details: MatchAttendanceDetailsWithPlayerStatus): void {
+    this.attendanceList = [
+      ...details.present.map((player: any) => ({
+        speler: player.name,
+        status: 'Ja' as 'Ja' | 'Nee',
+        playerObj: player.playerData || this.createDefaultPlayer(player.name, player.position),
+        playerData: player.playerData || this.createDefaultPlayer(player.name, player.position),
+        name: player.name,
+      })),
+      ...details.absent.map((player: any) => ({
+        speler: player.name,
+        status: 'Nee' as 'Ja' | 'Nee',
+        playerObj: player.playerData || this.createDefaultPlayer(player.name, player.position),
+        playerData: player.playerData || this.createDefaultPlayer(player.name, player.position),
+        name: player.name,
+      })),
+    ];
+    this.presentCount = details.present.length;
+    this.absentCount = details.absent.length;
+    this.errorMessage = null;
+    if (this.selectedPlayer && details.playerStatus !== undefined) {
+      this.attendanceStatus = details.playerStatus;
+    }
   }
 
   loadAttendanceList(): void {
@@ -186,7 +213,9 @@ export class AttendanceComponent implements OnInit {
     
     const formattedDate = this.formatDate(this.nextGameDate);
     // Gebruik de gecombineerde methode die zowel de lijst als player status in één keer ophaalt
-    this.attendanceService.getMatchAttendanceDetailsWithPlayerStatus(formattedDate, this.selectedPlayer || undefined).subscribe({
+    this.attendanceService.getMatchAttendanceDetailsWithPlayerStatus(formattedDate, this.selectedPlayer || undefined)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (details: MatchAttendanceDetailsWithPlayerStatus) => {
         // Combineer present en absent spelers voor de lijst
         this.attendanceList = [
@@ -229,7 +258,10 @@ export class AttendanceComponent implements OnInit {
   loadPlayers(): void {
     this.isLoadingPlayers = true;
     this.playerService.getPlayers()
-      .pipe(finalize(() => this.isLoadingPlayers = false))
+      .pipe(
+        finalize(() => this.isLoadingPlayers = false),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (players) => {
           this.players = players;
@@ -295,7 +327,10 @@ export class AttendanceComponent implements OnInit {
     const currentPlayer = this.selectedPlayer;
 
     this.attendanceService.getMatchAttendanceDetailsWithPlayerStatus(formattedDate, currentPlayer)
-      .pipe(finalize(() => this.isLoadingStatus = false))
+      .pipe(
+        finalize(() => this.isLoadingStatus = false),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (details) => {
           if (this.selectedPlayer === currentPlayer) {
@@ -329,6 +364,7 @@ export class AttendanceComponent implements OnInit {
     const formattedDate = this.formatDate(this.nextGameDate);
     const currentPlayer = this.selectedPlayer;
 
+    // Mutation: geen takeUntilDestroyed zodat de write doorgaat bij navigatie.
     this.attendanceService.setAttendance({
       date: formattedDate,
       playerName: currentPlayer,
@@ -358,17 +394,19 @@ export class AttendanceComponent implements OnInit {
   }
 
   private setupNotifications(): void {
-    this.notificationService.isSupported.subscribe(supported => {
-      console.log('🔔 Notifications supported:', supported);
-      this.notificationsSupported = supported;
-      this.updateNotificationPrompt();
-    });
+    this.notificationService.isSupported
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(supported => {
+        this.notificationsSupported = supported;
+        this.updateNotificationPrompt();
+      });
 
-    this.notificationService.isEnabled.subscribe(enabled => {
-      console.log('🔔 Notifications enabled (browser):', enabled);
-      this.notificationsEnabled = enabled;
-      this.updateNotificationPrompt();
-    });
+    this.notificationService.isEnabled
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(enabled => {
+        this.notificationsEnabled = enabled;
+        this.updateNotificationPrompt();
+      });
   }
 
   private updateNotificationPrompt(): void {
@@ -411,6 +449,15 @@ export class AttendanceComponent implements OnInit {
   }
 
   async enableNotifications(): Promise<void> {
+    // iOS Safari ondersteunt Web Push alleen als de app is toegevoegd aan het beginscherm
+    // en vandaar wordt gestart. In een gewone Safari-tab faalt Notification.requestPermission()
+    // stil of met "denied". We sturen die gebruikers dus eerst naar de installatie-uitleg
+    // en proberen pas permission na terugkeer vanaf het home-screen icoon.
+    if (this.pwaInstallService.isIOS && !this.pwaInstallService.isStandalone) {
+      this.showPwaInstallGuide = true;
+      return;
+    }
+
     this.notificationLoading = true;
 
     try {
@@ -425,9 +472,10 @@ export class AttendanceComponent implements OnInit {
         // Check updated player notification status
         await this.checkPlayerNotificationStatus();
 
-        // Show PWA installation guide if not already acknowledged
+        // Laat de install-guide alleen zien voor mobiele gebruikers die de app nog niet
+        // hebben geïnstalleerd — desktop-gebruikers hebben er weinig aan.
         const pwaAcknowledged = localStorage.getItem('pwa-install-acknowledged');
-        if (!pwaAcknowledged) {
+        if (!pwaAcknowledged && this.pwaInstallService.isMobile && !this.pwaInstallService.isStandalone) {
           this.showPwaInstallGuide = true;
         }
       } else {
@@ -494,4 +542,7 @@ export class AttendanceComponent implements OnInit {
     return formatDateISO(date);
   }
 
+  trackByAttendanceName(_index: number, item: { name: string }): string {
+    return item.name;
+  }
 }

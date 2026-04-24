@@ -56,6 +56,17 @@
 }
 
 .instruction-set {
+  .platform-note {
+    margin: 0 0 16px 0;
+    padding: 12px;
+    background: rgba(244, 67, 54, 0.06);
+    border-left: 3px solid $error-color;
+    border-radius: 4px;
+    font-size: $font-size-sm;
+    color: rgba(0, 0, 0, 0.87);
+    line-height: $line-height-normal;
+  }
+
   h3 {
     display: flex;
     align-items: center;

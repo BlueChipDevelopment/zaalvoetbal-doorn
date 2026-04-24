@@ -1,3 +1,5 @@
+@import '../../../styles_variables.scss';
+
 .mat-dialog-content {
   font-size: 14px;
 }
@@ -10,4 +12,20 @@
 .chemistry-modal-panel .mat-dialog-container {
   width: 400px;
   max-width: 90vw;
+}
+
+.chemistry-entry {
+  margin-bottom: 10px;
+  padding: 8px;
+  background-color: mix($secondary-color, $light-bg, 8%);
+  border-radius: 4px;
+}
+
+.chemistry-entry__meta {
+  font-size: 0.9em;
+  color: $secondary-color;
+}
+
+.chemistry-section {
+  margin-top: 20px;
 }

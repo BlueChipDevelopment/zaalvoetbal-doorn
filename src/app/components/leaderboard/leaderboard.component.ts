@@ -1,4 +1,5 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, DestroyRef, OnInit, HostListener, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GameStatisticsService } from '../../services/game.statistics.service';
 import { TitleCasePipe } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
@@ -42,6 +43,8 @@ export class LeaderboardComponent implements OnInit {
   isLoading = true; 
   public errorMessage: string | null = null;
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private titleCasePipe: TitleCasePipe,
     private gameStatisticsService: GameStatisticsService,
@@ -62,7 +65,9 @@ export class LeaderboardComponent implements OnInit {
     this.isLoading = true;
     
     // Laad eerst de beschikbare seizoenen
-    this.gameStatisticsService.getAvailableSeasons().subscribe({
+    this.gameStatisticsService.getAvailableSeasons()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (seasons: string[]) => {
         this.availableSeasons = seasons;
         
@@ -88,7 +93,9 @@ export class LeaderboardComponent implements OnInit {
 
   private loadLeaderboard(): void {
     this.isLoading = true;
-    this.gameStatisticsService.getFullPlayerStats(this.selectedSeason).subscribe({
+    this.gameStatisticsService.getFullPlayerStats(this.selectedSeason)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (leaderboard: any[]) => {
         this.leaderboard = leaderboard;
         this.isLoading = false;

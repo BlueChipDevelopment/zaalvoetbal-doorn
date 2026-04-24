@@ -1,26 +1,26 @@
 <h2 mat-dialog-title>Chemistry informatie</h2>
 <mat-dialog-content>
   <p>Speler: <strong>{{ data.player.name }}</strong></p>
-  
+
   <div *ngIf="data.chemistryData.bestGroup.length > 0">
     <p>Beste chemie ({{ (data.chemistryData.bestGroup[0]?.chemistryScore * 100) | number:'1.0-0' }}% winst samen):</p>
-    <div *ngFor="let teammate of data.chemistryData.bestGroup" style="margin-bottom: 10px; padding: 8px; background-color: #f5f5f5; border-radius: 4px;">
+    <div *ngFor="let teammate of data.chemistryData.bestGroup; trackBy: trackByTeammate" class="chemistry-entry">
       <div><strong>{{ teammate.name }}</strong></div>
-      <div style="font-size: 0.9em; color: #666;">
-        {{ teammate.gamesPlayed }} wedstrijden samen: 
-        {{ teammate.gamesWon }} gewonnen, 
+      <div class="chemistry-entry__meta">
+        {{ teammate.gamesPlayed }} wedstrijden samen:
+        {{ teammate.gamesWon }} gewonnen,
         {{ teammate.gamesLost }} verloren<span *ngIf="teammate.gamesTied > 0">, {{ teammate.gamesTied }} gelijk</span>
       </div>
     </div>
   </div>
 
-  <div *ngIf="data.chemistryData.worstGroup.length > 0" style="margin-top: 20px;">
+  <div *ngIf="data.chemistryData.worstGroup.length > 0" class="chemistry-section">
     <p>Slechtste chemie ({{ (data.chemistryData.worstGroup[0]?.chemistryScore * 100) | number:'1.0-0' }}% winst samen):</p>
-    <div *ngFor="let teammate of data.chemistryData.worstGroup" style="margin-bottom: 10px; padding: 8px; background-color: #f5f5f5; border-radius: 4px;">
+    <div *ngFor="let teammate of data.chemistryData.worstGroup; trackBy: trackByTeammate" class="chemistry-entry">
       <div><strong>{{ teammate.name }}</strong></div>
-      <div style="font-size: 0.9em; color: #666;">
-        {{ teammate.gamesPlayed }} wedstrijden samen: 
-        {{ teammate.gamesWon }} gewonnen, 
+      <div class="chemistry-entry__meta">
+        {{ teammate.gamesPlayed }} wedstrijden samen:
+        {{ teammate.gamesWon }} gewonnen,
         {{ teammate.gamesLost }} verloren<span *ngIf="teammate.gamesTied > 0">, {{ teammate.gamesTied }} gelijk</span>
       </div>
     </div>

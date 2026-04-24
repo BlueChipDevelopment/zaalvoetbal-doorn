@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { WedstrijdenService } from '../../../services/wedstrijden.service';
@@ -15,6 +16,8 @@ export class AdminWedstrijdenComponent implements OnInit {
   dataSource = new MatTableDataSource<WedstrijdData>();
   loading = true;
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private wedstrijdenService: WedstrijdenService,
     private dialog: MatDialog
@@ -26,7 +29,9 @@ export class AdminWedstrijdenComponent implements OnInit {
 
   loadWedstrijden(): void {
     this.loading = true;
-    this.wedstrijdenService.refreshCache().subscribe({
+    this.wedstrijdenService.refreshCache()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (wedstrijden) => {
         // Sort by date descending (newest first)
         const sorted = wedstrijden.sort((a, b) => {
@@ -50,9 +55,13 @@ export class AdminWedstrijdenComponent implements OnInit {
       data: null
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(result => {
       if (result) {
-        this.wedstrijdenService.addWedstrijd(result).subscribe({
+        // Mutation: geen takeUntilDestroyed zodat de write doorgaat bij navigatie.
+        this.wedstrijdenService.addWedstrijd(result)
+          .subscribe({
           next: () => {
             this.loadWedstrijden();
           },
@@ -71,9 +80,13 @@ export class AdminWedstrijdenComponent implements OnInit {
       data: { ...wedstrijd }
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(result => {
       if (result) {
-        this.wedstrijdenService.updateWedstrijd(result).subscribe({
+        // Mutation: geen takeUntilDestroyed zodat de write doorgaat bij navigatie.
+        this.wedstrijdenService.updateWedstrijd(result)
+          .subscribe({
           next: () => {
             this.loadWedstrijden();
           },

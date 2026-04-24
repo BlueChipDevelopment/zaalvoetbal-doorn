@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NextMatchService, NextMatchInfo } from '../../services/next-match.service';
 import { GameStatisticsService } from '../../services/game.statistics.service';
 import { TeamGenerateService } from '../../services/team-generate.service';
@@ -29,7 +30,7 @@ import { environment } from '../../../environments/environment';
     PlayerCardComponent
   ]
 })
-export class OpstellingComponent implements OnInit {
+export class OpstellingComponent implements OnInit, OnDestroy {
   teams: { teamWhite: Player[]; teamRed: Player[] } | null = null;
   orderedTeams: { key: string, value: Player[] }[] = [];
   loading = true;
@@ -43,6 +44,9 @@ export class OpstellingComponent implements OnInit {
   showFullExplanation = false;
   isLoadingCommentary = false;
 
+  private destroyRef = inject(DestroyRef);
+  private countdownInterval: ReturnType<typeof setInterval> | null = null;
+
   constructor(
     private nextMatchService: NextMatchService,
     private gameStatisticsService: GameStatisticsService,
@@ -50,9 +54,18 @@ export class OpstellingComponent implements OnInit {
     private snackBar: MatSnackBar
   ) {}
 
+  ngOnDestroy(): void {
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+      this.countdownInterval = null;
+    }
+  }
+
   ngOnInit(): void {
     this.loading = true;
-    this.nextMatchService.getNextMatchInfo().subscribe({
+    this.nextMatchService.getNextMatchInfo()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (info) => {
         this.nextMatchInfo = info;
         if (info && info.wedstrijd && info.wedstrijd.teamWit && info.wedstrijd.teamRood) {
@@ -73,7 +86,8 @@ export class OpstellingComponent implements OnInit {
 
   private loadPlayerCards(info: NextMatchInfo) {
     this.gameStatisticsService.getCurrentSeason().pipe(
-      switchMap(currentSeason => this.gameStatisticsService.getFullPlayerStats(currentSeason))
+      switchMap(currentSeason => this.gameStatisticsService.getFullPlayerStats(currentSeason)),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (playerStats) => {
         const teamWhite = this.parsePlayers(info.wedstrijd.teamWit, playerStats);
@@ -121,7 +135,8 @@ export class OpstellingComponent implements OnInit {
     reveal.setHours(reveal.getHours() - 3, reveal.getMinutes() - 30);
     this.revealTime = reveal;
     this.updateCountdown();
-    setInterval(() => this.updateCountdown(), 1000);
+    if (this.countdownInterval) clearInterval(this.countdownInterval);
+    this.countdownInterval = setInterval(() => this.updateCountdown(), 1000);
   }
 
   private updateCountdown() {

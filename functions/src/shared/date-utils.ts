@@ -102,6 +102,29 @@ export function parseMatchDateToISO(dateStr: string): string | null {
 }
 
 /**
+ * Bepaal de UTC-offset van Europe/Amsterdam op een gegeven moment (bijv. "+02:00" of "+01:00").
+ * Gebruikt Intl.DateTimeFormat zodat de zomer/wintertijd-overgang correct wordt afgehandeld
+ * in alle jaren, inclusief de laatste zondag van maart en oktober.
+ */
+export function getAmsterdamUtcOffset(at: Date): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Amsterdam',
+    timeZoneName: 'shortOffset',
+    hour: '2-digit'
+  }).formatToParts(at);
+  const raw = parts.find(p => p.type === 'timeZoneName')?.value ?? 'GMT+1';
+  // Voorbeelden: "GMT+1", "GMT+2", "GMT"
+  const match = raw.match(/GMT([+-]\d{1,2})(?::?(\d{2}))?/);
+  if (!match) return '+01:00';
+  const hours = parseInt(match[1], 10);
+  const mins = match[2] ? parseInt(match[2], 10) : 0;
+  const sign = hours >= 0 ? '+' : '-';
+  const hh = String(Math.abs(hours)).padStart(2, '0');
+  const mm = String(mins).padStart(2, '0');
+  return `${sign}${hh}:${mm}`;
+}
+
+/**
  * Parse een datum string naar een Date object met specifieke tijd in Europe/Amsterdam timezone
  * @param dateStr - Datum string (dd-mm-yyyy of yyyy-mm-dd)
  * @param timeStr - Tijd string (HH:mm:ss), default is '20:30:00'
@@ -131,32 +154,9 @@ export function parseMatchDateWithTime(dateStr: string, timeStr: string = '20:30
     const day = String(date.getDate()).padStart(2, '0');
     const time = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-    // Bepaal timezone offset voor Europe/Amsterdam
-    // Zomertijd (CEST): UTC+2, van laatste zondag maart 02:00 tot laatste zondag oktober 03:00
-    // Wintertijd (CET): UTC+1
-    // Simpele benadering: april t/m september = altijd zomertijd, maart/oktober = check
-    const monthNum = date.getMonth(); // 0-indexed (0=januari, 9=oktober)
-    let isDST: boolean;
-    
-    if (monthNum >= 3 && monthNum <= 8) {
-      // April (3) t/m september (8) = altijd zomertijd
-      isDST = true;
-    } else if (monthNum < 2 || monthNum === 11) {
-      // Januari, februari, december = altijd wintertijd
-      isDST = false;
-    } else {
-      // Maart (2) of oktober (9) - vereenvoudigde check
-      // Zomertijd eindigt meestal eind oktober, begint eind maart
-      // Voor veiligheid: maart = zomertijd, oktober eerste 3 weken = zomertijd
-      if (monthNum === 2) {
-        isDST = true; // Maart: vanaf laatste week meestal zomertijd, maar gebruik hele maand
-      } else {
-        // Oktober: eerste 3 weken = zomertijd, laatste week = wintertijd
-        isDST = date.getDate() <= 25; // Veilige schatting
-      }
-    }
-    
-    const offset = isDST ? '+02:00' : '+01:00';
+    // Bepaal timezone offset voor Europe/Amsterdam op basis van de daadwerkelijke datum.
+    // Hiermee wordt de overgangsweek in maart/oktober correct afgehandeld zonder eigen DST-heuristiek.
+    const offset = getAmsterdamUtcOffset(new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes, seconds)));
 
     // Maak ISO string met timezone en parse naar Date
     const isoString = `${year}-${month}-${day}T${time}${offset}`;
