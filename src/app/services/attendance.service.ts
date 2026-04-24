@@ -157,7 +157,7 @@ export class AttendanceService {
    * Get attendance status for a specific player and date
    */
   getPlayerAttendanceStatus(playerName: string, date: string): Observable<AttendanceStatus | null> {
-    return this.getAttendanceRecords({ playerName, date }).pipe(
+    return this.getAttendanceRecords({ playerName: playerName.trim(), date }).pipe(
       map(records => records.length > 0 ? records[0].status : null)
     );
   }
@@ -167,13 +167,14 @@ export class AttendanceService {
    * This method combines getMatchAttendanceDetails and getPlayerAttendanceStatus for efficiency
    */
   getMatchAttendanceDetailsWithPlayerStatus(date: string, playerName?: string): Observable<MatchAttendanceDetailsWithPlayerStatus> {
+    const normalizedName = playerName?.trim();
     return this.getMatchAttendanceDetails(date).pipe(
       map(details => {
         let playerStatus: AttendanceStatus | null = null;
-        
-        if (playerName) {
+
+        if (normalizedName) {
           const allPlayers = [...details.present, ...details.absent, ...details.noResponse];
-          const player = allPlayers.find(p => p.name === playerName);
+          const player = allPlayers.find(p => p.name.trim() === normalizedName);
           playerStatus = player?.status || null;
         }
 
@@ -198,13 +199,17 @@ export class AttendanceService {
    * Set attendance status for a player on a specific date
    */
   setAttendance(update: AttendanceUpdate): Observable<any> {
+    // Normaliseer naam + datum vóór vergelijking en schrijven, zodat we geen
+    // nieuwe rijen met trailing spaties aanmaken.
+    const normalizedName = update.playerName.trim();
+    const normalizedDate = update.date.trim();
     return this.getAttendanceRecords().pipe(
       switchMap(records => {
-        const existingRecordIndex = records.findIndex(r => 
-          r.date === update.date && r.playerName === update.playerName
+        const existingRecordIndex = records.findIndex(r =>
+          r.date === normalizedDate && r.playerName === normalizedName
         );
 
-        const rowData = [update.date, update.playerName, update.status];
+        const rowData = [normalizedDate, normalizedName, update.status];
 
         let operation: Observable<any>;
         if (existingRecordIndex >= 0) {
@@ -221,8 +226,8 @@ export class AttendanceService {
             // Update cache with new data
             const updatedRecords = [...records];
             const newRecord: AttendanceRecord = {
-              date: update.date,
-              playerName: update.playerName,
+              date: normalizedDate,
+              playerName: normalizedName,
               status: update.status
             };
 
@@ -294,8 +299,10 @@ export class AttendanceService {
       .slice(1) // Skip header row
       .filter(row => row && row.length >= 3 && row[AANWEZIGHEID_COLUMNS.DATE] && row[AANWEZIGHEID_COLUMNS.PLAYER_NAME] && row[AANWEZIGHEID_COLUMNS.STATUS])
       .map(row => ({
-        date: row[AANWEZIGHEID_COLUMNS.DATE].toString(),
-        playerName: row[AANWEZIGHEID_COLUMNS.PLAYER_NAME].toString(),
+        date: row[AANWEZIGHEID_COLUMNS.DATE].toString().trim(),
+        // Normaliseer trailing/leading spaties — historische records als "Ruben "
+        // matchen anders niet met de speler-lijst.
+        playerName: row[AANWEZIGHEID_COLUMNS.PLAYER_NAME].toString().trim(),
         status: row[AANWEZIGHEID_COLUMNS.STATUS] as AttendanceStatus,
         timestamp: row[AANWEZIGHEID_COLUMNS.TIMESTAMP] ? row[AANWEZIGHEID_COLUMNS.TIMESTAMP].toString() : undefined
       }));
@@ -329,7 +336,7 @@ export class AttendanceService {
         }
       }
 
-      if (filter.playerName && record.playerName !== filter.playerName) {
+      if (filter.playerName && record.playerName !== filter.playerName.trim()) {
         return false;
       }
 

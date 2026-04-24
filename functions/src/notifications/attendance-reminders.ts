@@ -93,18 +93,21 @@ export const scheduledAttendanceReminders = onSchedule(
     logger.info(`📧 Next match: ${nextMatchDateStr} at ${nextMatchDate.toISOString()}`);
 
     // 3. Pre-compute "wie moet een reminder krijgen?" éénmalig — dit is hetzelfde voor 24/12/4u.
+    // Trim namen: historische records bevatten soms trailing spaces ("Ruben ")
+    // die anders nooit zouden matchen met de speler-lijst.
     const respondedNames = new Set(
       aanwezigheidRows
         .filter(r => r[COLUMN_INDICES.AANWEZIGHEID_DATUM] === nextMatchDateStr)
-        .map(r => r[COLUMN_INDICES.AANWEZIGHEID_NAAM])
+        .map(r => (r[COLUMN_INDICES.AANWEZIGHEID_NAAM] ?? '').toString().trim())
+        .filter(Boolean)
     );
 
     const activeNotificationPlayers = new Set<string>();
     for (let i = 1; i < spelersRows.length; i++) {
       const row = spelersRows[i];
-      const playerName = row[COLUMN_INDICES.NAME];
+      const playerName = (row[COLUMN_INDICES.NAME] ?? '').toString().trim();
       const isActive = row[COLUMN_INDICES.ACTIEF] === 'TRUE' || row[COLUMN_INDICES.ACTIEF] === 'Ja';
-      if (isActive && !respondedNames.has(playerName)) {
+      if (isActive && playerName && !respondedNames.has(playerName)) {
         activeNotificationPlayers.add(playerName);
       }
     }
@@ -154,7 +157,7 @@ export const scheduledAttendanceReminders = onSchedule(
           continue;
         }
 
-        const playerName = row[COLUMN_INDICES.NOTIFICATIES_PLAYER_NAME];
+        const playerName = (row[COLUMN_INDICES.NOTIFICATIES_PLAYER_NAME] ?? '').toString().trim();
         if (!playerName || !activeNotificationPlayers.has(playerName)) {
           skippedNotTargeted++;
           continue;

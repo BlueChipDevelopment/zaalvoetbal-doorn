@@ -170,7 +170,7 @@ export class NotificationService {
         userAgent: navigator.userAgent,
         timestamp: getCurrentDateTimeISO(),
         active: true,
-        playerName: playerName || ''
+        playerName: (playerName || '').trim()
       };
 
       console.log('💾 Saving subscription to server:', subscriptionData);
@@ -287,6 +287,7 @@ export class NotificationService {
   }
 
   async checkPlayerNotificationStatus(playerName: string): Promise<boolean> {
+    const normalizedPlayerName = playerName.trim();
     try {
       // 1. Check browser subscription
       if (!this.isSupported$.value) {
@@ -295,37 +296,38 @@ export class NotificationService {
 
       const registration = await navigator.serviceWorker.ready;
       const browserSubscription = await registration.pushManager.getSubscription();
-      
+
       if (!browserSubscription) {
-        console.log(`❌ No browser subscription found for ${playerName}`);
+        console.log(`❌ No browser subscription found for ${normalizedPlayerName}`);
         return false;
       }
 
-      // 2. Check Google Sheets Notificaties for this player
+      // 2. Check Google Sheets Notificaties for this player.
+      // Endpoint-match alleen is voldoende (uniek per device). Als er toevallig
+      // een rij met lege/verkeerde naam was, was dat de reden dat dit eerder niet matchte.
       const rows = await firstValueFrom(this.googleSheetsService.getSheetData(SHEET_NAMES.NOTIFICATIES));
 
       if (!rows || rows.length === 0) {
-        console.log(`❌ No notification data found in Google Sheets for ${playerName}`);
+        console.log(`❌ No notification data found in Google Sheets for ${normalizedPlayerName}`);
         return false;
       }
-      
-      // Check if player has active subscription in Google Sheets
+
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        if (row.length >= Object.keys(NOTIFICATIES_COLUMNS).length) {
-          const sheetPlayerName = row[NOTIFICATIES_COLUMNS.PLAYER_NAME];
-          const activeValue = row[NOTIFICATIES_COLUMNS.ACTIVE];
-          const isActive = activeValue === 'true' || activeValue === true || activeValue === 'TRUE';
-          const endpoint = row[NOTIFICATIES_COLUMNS.ENDPOINT];
-          
-          if (sheetPlayerName === playerName && isActive && endpoint === browserSubscription.endpoint) {
-            console.log(`✅ Found active notification subscription for ${playerName}`);
-            return true;
-          }
+        const endpoint = row[NOTIFICATIES_COLUMNS.ENDPOINT];
+        if (!endpoint) continue; // skip rijen zonder basale data
+
+        const activeValue = row[NOTIFICATIES_COLUMNS.ACTIVE];
+        const isActive = activeValue === 'true' || activeValue === true || activeValue === 'TRUE';
+        const sheetPlayerName = (row[NOTIFICATIES_COLUMNS.PLAYER_NAME] ?? '').toString().trim();
+
+        if (endpoint === browserSubscription.endpoint && isActive && sheetPlayerName === normalizedPlayerName) {
+          console.log(`✅ Found active notification subscription for ${normalizedPlayerName}`);
+          return true;
         }
       }
 
-      console.log(`❌ No active Google Sheets subscription found for ${playerName}`);
+      console.log(`❌ No active Google Sheets subscription found for ${normalizedPlayerName}`);
       return false;
 
     } catch (error) {

@@ -68,13 +68,17 @@ export const sendPushToAll = onRequest(
             }
           }
         }
+        // Trim namen zodat "Ruben " in de sheet matcht met "Ruben" in de spelerslijst.
         const respondedNames = new Set(
-          aanwezigheidRows.filter(r => r[COLUMN_INDICES.AANWEZIGHEID_DATUM] === nextDate).map(r => r[COLUMN_INDICES.AANWEZIGHEID_NAAM])
+          aanwezigheidRows
+            .filter(r => r[COLUMN_INDICES.AANWEZIGHEID_DATUM] === nextDate)
+            .map(r => (r[COLUMN_INDICES.AANWEZIGHEID_NAAM] ?? '').toString().trim())
+            .filter(Boolean)
         );
         targetRows = rows.filter((row, i) =>
           i > 0 &&
           (row[actiefCol] === 'TRUE' || row[actiefCol] === 'Ja') &&
-          !respondedNames.has(row[nameCol])
+          !respondedNames.has((row[nameCol] ?? '').toString().trim())
         );
       } else {
         targetRows = rows.filter((row, i) =>
@@ -82,7 +86,9 @@ export const sendPushToAll = onRequest(
         );
       }
 
-      const targetPlayerNames = new Set(targetRows.map(row => row[nameCol]));
+      const targetPlayerNames = new Set(
+        targetRows.map(row => (row[nameCol] ?? '').toString().trim()).filter(Boolean)
+      );
       logger.info(`📧 Target players: ${targetPlayerNames.size}, notification rows: ${notificatiesRows.length - 1}`);
 
       const notifications: Promise<any>[] = [];
@@ -116,7 +122,7 @@ export const sendPushToAll = onRequest(
           continue;
         }
 
-        const playerName = row[COLUMN_INDICES.NOTIFICATIES_PLAYER_NAME];
+        const playerName = (row[COLUMN_INDICES.NOTIFICATIES_PLAYER_NAME] ?? '').toString().trim();
 
         // Reminder: player-name is verplicht én moet in de target-set zitten.
         // Broadcast/test: stuur naar alle actieve subscriptions ook zonder bekende playerName,
