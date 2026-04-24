@@ -35,3 +35,40 @@ Pas na Supabase-migratie, of als los project eerder.
 
 Delivery-garantie is niet haalbaar zonder client-side ack-endpoint — alleen
 "opdracht gegeven aan pushservice".
+
+## Spelersprofiel-pagina
+
+Dedicated pagina per speler, bereikbaar door klikken op een naam in het
+klassement of in de aanwezigheid-lijst.
+
+**Inhoud**:
+- Rating-trend over tijd (lijngrafiek).
+- Aantallen: gespeelde wedstrijden, W/V/G, winst%, Zlatan- en ventielpunten.
+- Top-5 beste en slechtste teammates op basis van win% (uitbreiding van
+  huidige chemistry-modal).
+- Head-to-head tegen top tegenstanders: "wanneer speelt Chris tegen Ward,
+  wie wint vaker?".
+- Match history: laatste 10 wedstrijden met opstelling en uitslag.
+- Langste win-streak, huidige streak.
+
+**Dependencies**:
+- Makkelijker met echte SQL (Supabase) dan met Sheets — doe dit pas daarna.
+
+## Gamification
+
+Achievements / badges die automatisch uit bestaande data worden afgeleid.
+Versterkt betrokkenheid zonder dat je extra data hoeft bij te houden.
+
+**Voorbeelden**:
+- Mijlpalen: 10 / 50 / 100 wedstrijden gespeeld.
+- Streaks: "3 op rij gewonnen", "5 op rij gewonnen".
+- Zlatan/ventiel: "eerste Zlatan-punt", "hat-trick van Zlatan-punten", etc.
+- Seizoen: "Eerste wedstrijd van het seizoen gespeeld", "Alle wedstrijden
+  van het seizoen aanwezig geweest".
+- Gekoppeld aan spelersprofiel-pagina (verzameling zichtbaar per speler).
+
+**Opties voor later**:
+- Man-of-the-match voting (spelers stemmen achteraf op beste speler).
+- Pre-match poll "wie wint?" met scorebord voor beste voorspeller.
+- Seizoen-rewind aan het eind van het seizoen: "jouw seizoen in cijfers",
+  deelbaar via WhatsApp.
