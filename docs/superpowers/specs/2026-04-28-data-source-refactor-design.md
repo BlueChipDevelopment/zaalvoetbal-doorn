@@ -17,7 +17,9 @@ hoeven worden.
 - Domeinservices porten zodat ze de abstractie injecteren in plaats van
   `GoogleSheetsService` direct.
 - Twee components (`score`, `team-generator`) die nu `batchUpdateSheet` direct
-  aanroepen, omleiden via een nieuwe `WedstrijdenService.updateScore(...)`.
+  aanroepen, omleiden via twee nieuwe service-methodes:
+  `WedstrijdenService.updateScore(...)` (score-flow, kolommen G:I) en
+  `WedstrijdenService.updateTeams(...)` (team-flow, kolommen D:F + optioneel K).
 - Dood DI opruimen in `team-generate.service.ts` en `kalender.component.ts`.
 - Unit-tests uitbreiden voor zowel domeinservices (met gemockte abstract class)
   als de Sheets-adapters (met gemockte `GoogleSheetsService`).
@@ -114,12 +116,21 @@ export abstract class MatchDataSource {
   abstract getAll(): Observable<WedstrijdData[]>;
   abstract add(match: WedstrijdData): Observable<WedstrijdData>; // returnt incl. id
   abstract update(match: WedstrijdData): Observable<void>;
+  // Bulk-update score-kolommen (G:I = scoreWit, scoreRood, zlatan).
+  // Ventiel zit niet in deze flow — wordt via admin wedstrijd-dialog (volledige `update`) gezet.
   abstract updateScore(
     matchId: number,
     scoreWhite: number,
     scoreRed: number,
     zlatan: string,
-    ventiel: string,
+  ): Observable<void>;
+  // Bulk-update team-kolommen (D:F + optioneel K). Gebruikt door team-generator.
+  abstract updateTeams(
+    matchId: number,
+    teamWit: string,
+    teamRood: string,
+    teamGeneration: string,
+    voorbeschouwing?: string,
   ): Observable<void>;
 }
 
@@ -164,7 +175,7 @@ de provider in `app.config.ts` tussen `Sheets…` en `Supabase…`.
 | Bestand | Wijziging |
 |---|---|
 | `player.service.ts` | Injecteer `PlayerDataSource` i.p.v. `GoogleSheetsService`. Verwijder `transformSheetDataToPlayers` (verhuist). Behoudt cache, filtering, sanitize-helpers. |
-| `wedstrijden.service.ts` | Injecteer `MatchDataSource`. Voeg public `updateScore(...)` toe. Bestaande mapping naar `WedstrijdData` verhuist. |
+| `wedstrijden.service.ts` | Injecteer `MatchDataSource`. Voeg public `updateScore(...)` en `updateTeams(...)` toe. Bestaande mapping naar `WedstrijdData` verhuist. |
 | `attendance.service.ts` | Injecteer `AttendanceDataSource`. Mapping verhuist. |
 | `notification.service.ts` | Injecteer `NotificationDataSource`. Mapping verhuist. |
 | `score.component.ts` | `batchUpdateSheet`-call vervangen door `wedstrijdenService.updateScore(...)`. |
@@ -202,8 +213,9 @@ tests toe in deze sub-project.
   inclusief de array→object-mapping.
 - [ ] Vier domeinservices injecteren de abstract class in plaats van
   `GoogleSheetsService` direct.
-- [ ] `score.component.ts` en `team-generator.component.ts` roepen
-  `WedstrijdenService.updateScore(...)` aan in plaats van `batchUpdateSheet`.
+- [ ] `score.component.ts` roept `WedstrijdenService.updateScore(...)` aan en
+  `team-generator.component.ts` roept `WedstrijdenService.updateTeams(...)` aan,
+  beide in plaats van `batchUpdateSheet`.
 - [ ] `team-generate.service.ts` en `kalender.component.ts` injecteren
   `GoogleSheetsService` niet meer.
 - [ ] `app.config.ts` koppelt elk abstract class aan z'n Sheets-implementatie.
