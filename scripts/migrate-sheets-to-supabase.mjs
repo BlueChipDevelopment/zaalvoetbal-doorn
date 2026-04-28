@@ -391,6 +391,51 @@ async function writeAttendance(supabase, records, args) {
   return records.length;
 }
 
+const NOTIFICATIES_COLUMNS = {
+  ENDPOINT: 0, P256DH: 1, AUTH: 2,
+  USER_AGENT: 3, TIMESTAMP: 4, ACTIVE: 5, PLAYER_NAME: 6,
+};
+
+function transformPushSubscriptions(rawNotificaties, players) {
+  const warnings = [];
+  const records = [];
+  const playerByName = new Map();
+  for (const p of players) {
+    playerByName.set(p.name.trim().toLowerCase(), p.id);
+  }
+  rawNotificaties.slice(1).forEach((row, idx) => {
+    if (!row || !row[NOTIFICATIES_COLUMNS.ENDPOINT]) return;
+    const endpoint = sanitize(row[NOTIFICATIES_COLUMNS.ENDPOINT]);
+    if (!endpoint) return;
+    const playerName = sanitize(row[NOTIFICATIES_COLUMNS.PLAYER_NAME]);
+    const playerId = playerName ? playerByName.get(playerName.toLowerCase()) ?? null : null;
+    if (playerName && playerId === null) {
+      warnings.push(`rij ${idx + 2}: speler "${playerName}" niet gevonden, player_id wordt null`);
+    }
+    records.push({
+      endpoint,
+      keys_p256dh: sanitize(row[NOTIFICATIES_COLUMNS.P256DH]),
+      keys_auth: sanitize(row[NOTIFICATIES_COLUMNS.AUTH]),
+      user_agent: sanitize(row[NOTIFICATIES_COLUMNS.USER_AGENT]) || null,
+      last_seen_at: sanitize(row[NOTIFICATIES_COLUMNS.TIMESTAMP]) || null,
+      active: parseBoolean(row[NOTIFICATIES_COLUMNS.ACTIVE]),
+      player_id: playerId,
+    });
+  });
+  return { records, warnings };
+}
+
+async function writePushSubscriptions(supabase, records, args) {
+  if (!args.write) {
+    console.log(`  (dry-run) zou ${records.length} push subs inserten`);
+    return records.length;
+  }
+  // Endpoint is UNIQUE — gebruik upsert om dubbele runs idempotent te maken.
+  const { error } = await supabase.from('push_subscriptions').upsert(records, { onConflict: 'endpoint' });
+  if (error) throw new Error(`Upsert push_subscriptions failed: ${error.message}`);
+  return records.length;
+}
+
 async function main() {
   const args = parseArgs();
   const env = loadEnv();
@@ -456,6 +501,13 @@ async function main() {
   }
   const attendanceWritten = await writeAttendance(supabase, attendance, args);
   console.log(`  Geschreven: ${attendanceWritten}`);
+
+  console.log('\n=== Push subscriptions ===');
+  const { records: pushRecords, warnings: pushWarnings } = transformPushSubscriptions(rawNotificaties, players);
+  console.log(`  Getransformeerd: ${pushRecords.length} push subs`);
+  for (const w of pushWarnings) console.warn(`  WARN: ${w}`);
+  const pushWritten = await writePushSubscriptions(supabase, pushRecords, args);
+  console.log(`  Geschreven: ${pushWritten}`);
 }
 
 main().catch(err => {
