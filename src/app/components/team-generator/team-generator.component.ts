@@ -5,7 +5,6 @@ import { Player } from '../../interfaces/IPlayer';
 import { Positions } from '../../enums/positions.enum';
 import { Team, Teams } from '../../interfaces/ITeam';
 import { TeamGenerateService, TeamGenerationResult } from '../../services/team-generate.service';
-import { GoogleSheetsService } from '../../services/google-sheets-service';
 import { AttendanceService } from '../../services/attendance.service';
 import { PlayerService } from '../../services/player.service';
 import { PlayerSheetData } from '../../interfaces/IPlayerSheet';
@@ -26,7 +25,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { WEDSTRIJD_RANGES } from '../../constants/sheet-columns';
 import { environment } from '../../../environments/environment';
 import { PlayerCardComponent } from '../player-card/player-card.component';
 import { DragDropModule } from '@angular/cdk/drag-drop';
@@ -92,7 +90,6 @@ export class TeamGeneratorComponent implements OnInit {
     private teamGenerateService: TeamGenerateService,
     private nextMatchService: NextMatchService,
     private wedstrijdenService: WedstrijdenService,
-    private googleSheetsService: GoogleSheetsService,
     private attendanceService: AttendanceService,
     private playerService: PlayerService,
     private snackBar: MatSnackBar,
@@ -747,67 +744,54 @@ export class TeamGeneratorComponent implements OnInit {
     // Save to Wedstrijden sheet as before
     const teamWhiteNames = this.teams.teamWhite.squad.map(p => p.name).join(', ');
     const teamRedNames = this.teams.teamRed.squad.map(p => p.name).join(', ');
-    
-    // Gebruik de absoluteRowNumber uit de wedstrijd voor veilig opslaan
-    let sheetRowIndex = this.nextMatchInfo.rowNumber;
-    
-    if (!sheetRowIndex) {
-      // Fallback naar oude methode voor backwards compatibility
-      sheetRowIndex = this.nextMatchInfo.matchNumber ? Number(this.nextMatchInfo.matchNumber) + 1 : undefined;
-    }
-    
-    if (!sheetRowIndex) {
-      this.snackBar.open('Kan rijnummer van de wedstrijd niet bepalen.', 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
-      return;
-    }
 
     // Extra validatie: controleer seizoen en wedstrijdnummer
     const seizoen = this.nextMatchInfo.seizoen;
     const matchNumber = this.nextMatchInfo.matchNumber;
-    
-    console.log(`💾 Teams opslaan - Seizoen: ${seizoen || 'onbekend'}, Wedstrijd: ${matchNumber}, Rij: ${sheetRowIndex}`);
 
-    const updateData: { range: string; values: any[][] }[] = [
-      {
-        range: WEDSTRIJD_RANGES.TEAMS_WITH_GENERATIE(sheetRowIndex),
-        values: [[teamWhiteNames, teamRedNames, 'Handmatig']]
-      }
-    ];
+    console.log(`💾 Teams opslaan - Seizoen: ${seizoen || 'onbekend'}, Wedstrijd: ${matchNumber}`);
 
-    if (this.algorithmExplanation) {
-      updateData.push({
-        range: WEDSTRIJD_RANGES.VOORBESCHOUWING(sheetRowIndex),
-        values: [[this.algorithmExplanation]]
+    // Match-id opzoeken voor de updateTeams-aanroep
+    const matchId = this.nextMatchInfo?.wedstrijd?.id;
+    if (!matchId) {
+      console.error('❌ Geen match-id beschikbaar voor team-update');
+      this.isSavingTeams = false;
+      this.loadingSubject.next(false);
+      this.snackBar.open('Fout: kon wedstrijd niet identificeren.', 'Sluiten', {
+        duration: 5000,
+        panelClass: ['futsal-notification', 'futsal-notification-error'],
       });
+      return;
     }
 
     // Mutation: bewust GEEN takeUntilDestroyed zodat de save doorgaat ook als de
-    // gebruiker wegnavigeert voor de response binnen is. De observable completeert
-    // na één emission dus een memory leak is er niet.
-    this.googleSheetsService.batchUpdateSheet(updateData)
-      .subscribe({
-        next: () => {
-          console.log(`✅ Teams succesvol opgeslagen voor ${seizoen || 'onbekend'} wedstrijd ${matchNumber}`);
-          // Wedstrijden cache verversen zodat de nieuwe opstelling direct zichtbaar is
-          this.wedstrijdenService.refreshCache().subscribe();
-          this.isTeamsSaved = true;
-          this.isSavingTeams = false;
-          this.loadingSubject.next(false);
-          this.snackBar.open('Teams opgeslagen!', 'Sluiten', { duration: 3000, panelClass: ['futsal-notification', 'futsal-notification-success'] });
-          // Push notificatie sturen naar alle spelers met toestemming
-          this.sendPushNotificationToAll(
-            'Opstelling bekend ⚽',
-            'Bekijk de teams voor de volgende wedstrijd.',
-            window.location.origin + '/opstelling'
-          );
-        },
-        error: (err) => {
-          console.error(`❌ Fout bij opslaan teams voor ${seizoen || 'onbekend'} wedstrijd ${matchNumber}:`, err);
-          this.isSavingTeams = false;
-          this.loadingSubject.next(false);
-          this.snackBar.open('Fout bij opslaan teams: ' + (err.message || err), 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
-        }
-      });
+    // gebruiker wegnavigeert voor de response binnen is.
+    this.wedstrijdenService.updateTeams(
+      matchId,
+      teamWhiteNames,
+      teamRedNames,
+      'Handmatig',
+      this.algorithmExplanation || undefined,
+    ).subscribe({
+      next: () => {
+        console.log(`✅ Teams succesvol opgeslagen voor ${seizoen || 'onbekend'} wedstrijd ${matchNumber}`);
+        this.isTeamsSaved = true;
+        this.isSavingTeams = false;
+        this.loadingSubject.next(false);
+        this.snackBar.open('Teams opgeslagen!', 'Sluiten', { duration: 3000, panelClass: ['futsal-notification', 'futsal-notification-success'] });
+        this.sendPushNotificationToAll(
+          'Opstelling bekend ⚽',
+          'Bekijk de teams voor de volgende wedstrijd.',
+          window.location.origin + '/opstelling',
+        );
+      },
+      error: (err) => {
+        console.error(`❌ Fout bij opslaan teams voor ${seizoen || 'onbekend'} wedstrijd ${matchNumber}:`, err);
+        this.isSavingTeams = false;
+        this.loadingSubject.next(false);
+        this.snackBar.open('Fout bij opslaan teams: ' + (err.message || err), 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
+      },
+    });
   }
 
   onPlayerDrop(event: CdkDragDrop<any[]>, targetTeamKey: string) {
