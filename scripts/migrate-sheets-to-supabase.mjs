@@ -12,6 +12,8 @@
  * Use --wipe-first (alleen samen met --write) om bestaande target-data te wissen.
  */
 
+import { readFile, writeFile } from 'node:fs/promises';
+
 import { createClient } from '@supabase/supabase-js';
 
 function parseArgs() {
@@ -459,6 +461,39 @@ async function sanityChecks(supabase, expected, args) {
   return { ok: allOk };
 }
 
+async function flipFeatureFlag(args) {
+  if (!args.write) {
+    console.log('\n=== Feature flag (overgeslagen in dry-run) ===');
+    return;
+  }
+  console.log('\n=== Feature flag ===');
+  const files = [
+    'src/environments/environment.ts',
+    'src/environments/environment.prod.ts',
+  ];
+  for (const file of files) {
+    try {
+      const content = await readFile(file, 'utf8');
+      if (content.includes(`dataSource: 'supabase'`)) {
+        console.log(`  ${file}: al 'supabase' — overgeslagen`);
+        continue;
+      }
+      const updated = content.replace(
+        /dataSource:\s*'sheets'/,
+        `dataSource: 'supabase'`,
+      );
+      if (updated === content) {
+        console.warn(`  ${file}: 'sheets'-pattern niet gevonden — handmatig aanpassen`);
+        continue;
+      }
+      await writeFile(file, updated, 'utf8');
+      console.log(`  ${file}: 'sheets' → 'supabase' ✓`);
+    } catch (err) {
+      console.warn(`  ${file}: kon niet aanpassen (${err.message})`);
+    }
+  }
+}
+
 async function main() {
   const args = parseArgs();
   const env = loadEnv();
@@ -542,6 +577,15 @@ async function main() {
   if (args.write && !sanity.ok) {
     console.error('\nSanity checks faalden — feature-flag wordt NIET gefliped.');
     process.exit(1);
+  }
+
+  await flipFeatureFlag(args);
+
+  console.log('\n=== Klaar ===');
+  if (args.write) {
+    console.log('Migratie voltooid. Restart de Angular app (npm start) om de nieuwe flag op te pakken.');
+  } else {
+    console.log('Dry-run klaar. Run met --write --wipe-first voor de echte migratie.');
   }
 }
 
