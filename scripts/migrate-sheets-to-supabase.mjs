@@ -316,6 +316,81 @@ async function writeMatchLineups(supabase, lineups, args) {
   return lineups.length;
 }
 
+const AANWEZIGHEID_COLUMNS = { DATE: 0, PLAYER_NAME: 1, STATUS: 2, TIMESTAMP: 3 };
+
+function transformAttendance(rawAanwezigheid, matches, players) {
+  const warnings = [];
+  // Bouw lookup-maps voor performance.
+  const matchByDate = new Map();
+  for (const m of matches) {
+    matchByDate.set(m.date, m.id);
+  }
+  const playerByName = new Map();
+  for (const p of players) {
+    playerByName.set(p.name.trim().toLowerCase(), p.id);
+  }
+
+  // Dedupe op (match_id, player_id) — last-wins (latere rijen in de sheet overschrijven eerdere).
+  const byKey = new Map();
+  let duplicateCount = 0;
+
+  rawAanwezigheid.slice(1).forEach((row, idx) => {
+    if (!row || row.length < 3) return;
+    const dateRaw = sanitize(row[AANWEZIGHEID_COLUMNS.DATE]);
+    const playerName = sanitize(row[AANWEZIGHEID_COLUMNS.PLAYER_NAME]);
+    const status = sanitize(row[AANWEZIGHEID_COLUMNS.STATUS]);
+    if (!dateRaw || !playerName || !status) return;
+
+    // dateRaw is al "YYYY-MM-DD" in de Aanwezigheid-tab (bevestigd in CLAUDE.md).
+    // Maar val terug op DD-MM-YYYY-parse als 't formaat anders blijkt.
+    let dateIso = dateRaw;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) {
+      const parsed = parseDateToIso(dateRaw);
+      if (!parsed) {
+        warnings.push(`rij ${idx + 2}: ongeldig datum-formaat "${dateRaw}"`);
+        return;
+      }
+      dateIso = parsed;
+    }
+    const matchId = matchByDate.get(dateIso);
+    if (!matchId) {
+      warnings.push(`rij ${idx + 2}: geen match gevonden voor datum ${dateIso}`);
+      return;
+    }
+    const playerId = playerByName.get(playerName.toLowerCase());
+    if (!playerId) {
+      warnings.push(`rij ${idx + 2}: speler "${playerName}" niet gevonden`);
+      return;
+    }
+    if (status !== 'Ja' && status !== 'Nee' && status !== 'Geen Reactie') {
+      warnings.push(`rij ${idx + 2}: ongeldige status "${status}"`);
+      return;
+    }
+    const key = `${matchId}::${playerId}`;
+    if (byKey.has(key)) duplicateCount++;
+    byKey.set(key, { match_id: matchId, player_id: playerId, status });
+  });
+
+  if (duplicateCount > 0) {
+    warnings.push(`${duplicateCount} duplicate (match,player)-rijen gededupliceerd (last-wins)`);
+  }
+
+  return { records: Array.from(byKey.values()), warnings };
+}
+
+async function writeAttendance(supabase, records, args) {
+  if (!args.write) {
+    console.log(`  (dry-run) zou ${records.length} attendance-rijen inserten`);
+    return records.length;
+  }
+  for (let i = 0; i < records.length; i += 500) {
+    const chunk = records.slice(i, i + 500);
+    const { error } = await supabase.from('attendance').insert(chunk);
+    if (error) throw new Error(`Insert attendance chunk ${i} failed: ${error.message}`);
+  }
+  return records.length;
+}
+
 async function main() {
   const args = parseArgs();
   const env = loadEnv();
@@ -370,6 +445,17 @@ async function main() {
   for (const w of lineupWarnings) console.warn(`  WARN: ${w}`);
   const lineupsWritten = await writeMatchLineups(supabase, lineups, args);
   console.log(`  Geschreven: ${lineupsWritten}`);
+
+  console.log('\n=== Attendance ===');
+  const { records: attendance, warnings: attendanceWarnings } = transformAttendance(rawAanwezigheid, matches, players);
+  console.log(`  Getransformeerd: ${attendance.length} attendance-rijen`);
+  if (attendanceWarnings.length > 0) {
+    console.warn(`  ${attendanceWarnings.length} warnings:`);
+    for (const w of attendanceWarnings.slice(0, 10)) console.warn(`    ${w}`);
+    if (attendanceWarnings.length > 10) console.warn(`    ... en ${attendanceWarnings.length - 10} meer`);
+  }
+  const attendanceWritten = await writeAttendance(supabase, attendance, args);
+  console.log(`  Geschreven: ${attendanceWritten}`);
 }
 
 main().catch(err => {
