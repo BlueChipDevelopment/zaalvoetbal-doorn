@@ -436,6 +436,29 @@ async function writePushSubscriptions(supabase, records, args) {
   return records.length;
 }
 
+async function sanityChecks(supabase, expected, args) {
+  if (!args.write) {
+    console.log('\n=== Sanity checks (overgeslagen in dry-run) ===');
+    return { ok: true };
+  }
+  console.log('\n=== Sanity checks ===');
+  const checks = [
+    { table: 'players', expected: expected.players },
+    { table: 'matches', expected: expected.matches },
+    { table: 'match_lineups', expected: expected.lineups },
+    { table: 'attendance', expected: expected.attendance },
+    { table: 'push_subscriptions', expected: expected.push },
+  ];
+  let allOk = true;
+  for (const c of checks) {
+    const actual = await tableCount(supabase, c.table);
+    const ok = actual === c.expected;
+    console.log(`  ${c.table}: expected ${c.expected}, got ${actual} ${ok ? '✓' : '✗'}`);
+    if (!ok) allOk = false;
+  }
+  return { ok: allOk };
+}
+
 async function main() {
   const args = parseArgs();
   const env = loadEnv();
@@ -508,6 +531,18 @@ async function main() {
   for (const w of pushWarnings) console.warn(`  WARN: ${w}`);
   const pushWritten = await writePushSubscriptions(supabase, pushRecords, args);
   console.log(`  Geschreven: ${pushWritten}`);
+
+  const sanity = await sanityChecks(supabase, {
+    players: playersWritten,
+    matches: matchesWritten,
+    lineups: lineupsWritten,
+    attendance: attendanceWritten,
+    push: pushWritten,
+  }, args);
+  if (args.write && !sanity.ok) {
+    console.error('\nSanity checks faalden — feature-flag wordt NIET gefliped.');
+    process.exit(1);
+  }
 }
 
 main().catch(err => {
