@@ -37,6 +37,7 @@ import { AttendanceDataSource } from './services/data-sources/attendance-data-so
 import { SheetsAttendanceDataSource } from './services/data-sources/attendance-data-source.sheets';
 import { NotificationDataSource } from './services/data-sources/notification-data-source';
 import { SheetsNotificationDataSource } from './services/data-sources/notification-data-source.sheets';
+import { PlayerNamePipe } from './pipes/player-name.pipe';
 
 registerLocaleData(localeNl);
 
@@ -76,6 +77,7 @@ import { LoginComponent } from './components/login/login.component';
     MatSidenavModule, 
     AppRoutingModule,
     AboutComponent,
+    PlayerNamePipe,
     ServiceWorkerModule.register('ngsw-worker.js', {
       enabled: environment.production || environment.enableServiceWorker,
       registrationStrategy: 'registerImmediately'
