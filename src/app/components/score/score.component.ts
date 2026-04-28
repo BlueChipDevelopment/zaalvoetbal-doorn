@@ -1,6 +1,5 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { GoogleSheetsService } from '../../services/google-sheets-service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { NextMatchService, NextMatchInfo } from '../../services/next-match.service';
@@ -19,7 +18,6 @@ import { PlayerCardComponent } from '../player-card/player-card.component';
 import { GameStatisticsService } from '../../services/game.statistics.service';
 import { WedstrijdenService } from '../../services/wedstrijden.service';
 import { Player } from '../../interfaces/IPlayer';
-import { WEDSTRIJD_RANGES } from '../../constants/sheet-columns';
 
 interface Match {
   rowNumber?: number; // Make optional
@@ -66,7 +64,6 @@ export class ScoreComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
 
   constructor(
-    private googleSheetsService: GoogleSheetsService,
     private _snackBar: MatSnackBar,
     private router: Router,
     private nextMatchService: NextMatchService,
@@ -213,27 +210,30 @@ export class ScoreComponent implements OnInit {
   }
 
   private performScoreUpdate(rowIndexToUpdate: number): void {
-    // Log voor debugging en monitoring
     const matchNumber = this.nextMatch?.matchNumber;
     const seizoen = this.nextMatchInfo?.wedstrijd?.seizoen;
-    console.log(`💾 Scores opslaan - Seizoen: ${seizoen || 'onbekend'}, Wedstrijd: ${matchNumber}, Rij: ${rowIndexToUpdate}`);
-    
-    const updateData = [
-      {
-        range: WEDSTRIJD_RANGES.SCORES_AND_ZLATAN(rowIndexToUpdate),
-        values: [
-          [this.whiteGoals, this.redGoals, this.selectedZlatan || '']
-        ]
-      }
-    ];
+    const matchId = this.nextMatchInfo?.wedstrijd?.id;
+    console.log(`💾 Scores opslaan - Seizoen: ${seizoen || 'onbekend'}, Wedstrijd: ${matchNumber}, ID: ${matchId}`);
 
-    // Mutation: geen takeUntilDestroyed — als de gebruiker direct na opslaan wegnavigeert
-    // mag de save-request niet worden afgebroken. Observable completeert na één emission.
-    this.googleSheetsService.batchUpdateSheet(updateData)
-      .subscribe({
+    if (!matchId) {
+      console.error('❌ Geen match-id beschikbaar voor score-update');
+      this._snackBar.open('Fout: kon wedstrijd niet identificeren.', 'Sluiten', {
+        duration: 5000,
+        panelClass: ['futsal-notification', 'futsal-notification-error']
+      });
+      return;
+    }
+
+    // Mutation: bewust GEEN takeUntilDestroyed zodat de save doorgaat ook als de
+    // gebruiker wegnavigeert voor de response binnen is.
+    this.wedstrijdenService.updateScore(
+      matchId,
+      this.whiteGoals!,
+      this.redGoals!,
+      this.selectedZlatan || '',
+    ).subscribe({
       next: () => {
         console.log(`✅ Scores succesvol opgeslagen voor ${seizoen || 'onbekend'} wedstrijd ${matchNumber}`);
-        // Reset cache zodat het klassement direct de nieuwe data toont
         this.wedstrijdenService.refreshCache().subscribe();
         this._snackBar.open('Scores en Zlatan succesvol opgeslagen!', 'OK', {
           duration: 3000,
