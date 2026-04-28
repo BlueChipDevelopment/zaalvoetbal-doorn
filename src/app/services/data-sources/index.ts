@@ -3,6 +3,7 @@ export * from './player-data-source.sheets';
 export * from './player-data-source.supabase';
 export * from './match-data-source';
 export * from './match-data-source.sheets';
+export * from './match-data-source.supabase';
 export * from './attendance-data-source';
 export * from './attendance-data-source.sheets';
 export * from './notification-data-source';
