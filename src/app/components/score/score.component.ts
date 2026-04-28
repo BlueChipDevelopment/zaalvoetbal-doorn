@@ -234,7 +234,6 @@ export class ScoreComponent implements OnInit {
     ).subscribe({
       next: () => {
         console.log(`✅ Scores succesvol opgeslagen voor ${seizoen || 'onbekend'} wedstrijd ${matchNumber}`);
-        this.wedstrijdenService.refreshCache().subscribe();
         this._snackBar.open('Scores en Zlatan succesvol opgeslagen!', 'OK', {
           duration: 3000,
           panelClass: ['futsal-notification', 'futsal-notification-success']
