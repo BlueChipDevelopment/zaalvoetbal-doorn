@@ -93,7 +93,7 @@ issues op. Als ooit start-tijd nodig is, kolom toevoegen.
 CREATE TABLE players (
   id          bigserial PRIMARY KEY,
   name        text UNIQUE NOT NULL,
-  position    text NOT NULL,        -- 'Keeper', 'Speler', etc.
+  position    text NOT NULL CHECK (position IN ('Speler', 'Keeper')),
   actief      boolean NOT NULL DEFAULT true,
   created_at  timestamptz NOT NULL DEFAULT now()
 );
@@ -366,9 +366,9 @@ supabaseAnonKey: 'eyJ...',
 - **Free-tier project pauzeert na 7 dagen inactiviteit.** Niet relevant tijdens
   het seizoen, wel even unpausen na de zomerstop.
 - **500 MB DB-limiet.** Voor jullie data ruim voldoende.
-- **`season` generated column gaat ervan uit dat het seizoen in augustus start.**
-  Nu impliciet ook zo in de Angular-code; verifiëren tegen de huidige
-  `WedstrijdenService` voordat de migratie live gaat.
+- **`season` generated column** start het seizoen op 1 augustus (`month >= 8`).
+  Bevestigd: dit klopt met de huidige praktijk (eind augustus). Als seizoenen
+  ooit verschuiven, schema-migratie nodig.
 - **`zlatan_player_id` / `ventiel_player_id` zijn nullable FK's** — dat strookt
   met huidige praktijk dat een wedstrijd er ook géén kan hebben. Bestaande
   string-namen in Sheets moeten naar player IDs gemapt worden tijdens migratie
