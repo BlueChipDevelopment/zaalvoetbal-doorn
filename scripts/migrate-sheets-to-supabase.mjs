@@ -119,6 +119,61 @@ async function wipeAll(supabase) {
   }
 }
 
+const SPELER_COLUMNS = { NAME: 0, POSITION: 1, ACTIEF: 2 };
+
+function transformPlayers(rawSpelers) {
+  // Skip header (index 0). Id = 1-based dataRow-index, vóór filter.
+  const players = rawSpelers.slice(1)
+    .map((row, idx) => ({ row, dataRowIndex: idx + 1 }))
+    .filter(({ row }) => row && row[SPELER_COLUMNS.NAME])
+    .map(({ row, dataRowIndex }) => ({
+      id: dataRowIndex,
+      name: sanitize(row[SPELER_COLUMNS.NAME]),
+      position: sanitize(row[SPELER_COLUMNS.POSITION]) || '',
+      actief: parseBoolean(row[SPELER_COLUMNS.ACTIEF]),
+    }));
+
+  // Sanity: position moet 'Speler' of 'Keeper' zijn (CHECK constraint in schema).
+  for (const p of players) {
+    if (p.position !== 'Speler' && p.position !== 'Keeper') {
+      console.warn(`  Player "${p.name}" heeft ongeldige position "${p.position}", forceer naar 'Speler'`);
+      p.position = 'Speler';
+    }
+  }
+
+  // Sanity: duplicate names (UNIQUE in schema).
+  const names = new Set();
+  for (const p of players) {
+    if (names.has(p.name.toLowerCase())) {
+      throw new Error(`Duplicate player name (case-insensitive): "${p.name}". Kan niet importeren — fix de Spelers-sheet eerst.`);
+    }
+    names.add(p.name.toLowerCase());
+  }
+
+  return players;
+}
+
+async function writePlayers(supabase, players, args) {
+  if (!args.write) {
+    console.log(`  (dry-run) zou ${players.length} players inserten`);
+    return players.length;
+  }
+  const { error } = await supabase.from('players').insert(players);
+  if (error) throw new Error(`Insert players failed: ${error.message}`);
+
+  // Sequence vooruit zetten voor toekomstige inserts vanuit de app.
+  const maxId = Math.max(...players.map(p => p.id));
+  const { error: seqErr } = await supabase.rpc('setval_seq', { seq_name: 'players_id_seq', new_value: maxId });
+  if (seqErr) {
+    console.warn(`  Sequence-update via RPC niet beschikbaar (${seqErr.message}).`);
+    console.warn(`  Run handmatig in Studio: SELECT setval('players_id_seq', ${maxId});`);
+  } else {
+    console.log(`  Sequence players_id_seq → ${maxId}`);
+  }
+
+  return players.length;
+}
+
 async function main() {
   const args = parseArgs();
   const env = loadEnv();
@@ -154,7 +209,11 @@ async function main() {
   console.log(`  Aanwezigheid:  ${rawAanwezigheid.length - 1} rijen (excl. header)`);
   console.log(`  Notificaties:  ${rawNotificaties.length - 1} rijen (excl. header)`);
 
-  console.log('\n(stub: nog geen migratie-logica geïmplementeerd)');
+  console.log('\n=== Players ===');
+  const players = transformPlayers(rawSpelers);
+  console.log(`  Getransformeerd: ${players.length} players`);
+  const playersWritten = await writePlayers(supabase, players, args);
+  console.log(`  Geschreven: ${playersWritten}`);
 }
 
 main().catch(err => {
