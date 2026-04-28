@@ -41,7 +41,7 @@ describe('WedstrijdIdentifierService', () => {
     const wedstrijd1: WedstrijdData = {
       id: 1,
       seizoen: '2024-2025',
-      datum: '01-09-2024',
+      datum: new Date(2024, 8, 1),
       teamWit: 'Team A',
       teamRood: 'Team B',
       scoreWit: null,
@@ -53,7 +53,7 @@ describe('WedstrijdIdentifierService', () => {
     const wedstrijd2: WedstrijdData = {
       id: 1,
       seizoen: '2024-2025',
-      datum: '01-09-2024',
+      datum: new Date(2024, 8, 1),
       teamWit: 'Team A',
       teamRood: 'Team B',
       scoreWit: null,
@@ -69,7 +69,7 @@ describe('WedstrijdIdentifierService', () => {
     const wedstrijd1: WedstrijdData = {
       id: 1,
       seizoen: '2024-2025',
-      datum: '01-09-2024',
+      datum: new Date(2024, 8, 1),
       teamWit: 'Team A',
       teamRood: 'Team B',
       scoreWit: null,
@@ -81,7 +81,7 @@ describe('WedstrijdIdentifierService', () => {
     const wedstrijd2: WedstrijdData = {
       id: 2,
       seizoen: '2024-2025',
-      datum: '08-09-2024',
+      datum: new Date(2024, 8, 8),
       teamWit: 'Team C',
       teamRood: 'Team D',
       scoreWit: null,
@@ -97,7 +97,8 @@ describe('WedstrijdIdentifierService', () => {
     const wedstrijd: WedstrijdData = {
       id: 5,
       seizoen: '2024-2025',
-      datum: '01-09-2024',
+      seizoenWedstrijdNummer: 5,
+      datum: new Date(2024, 8, 1),
       teamWit: 'Team A',
       teamRood: 'Team B',
       scoreWit: null,
@@ -106,7 +107,7 @@ describe('WedstrijdIdentifierService', () => {
       ventiel: ''
     };
 
-    expect(service.getWedstrijdDisplayName(wedstrijd)).toBe('2024-2025 #5');
+    expect(service.getWedstrijdDisplayName(wedstrijd)).toBe('2024-2025 Wedstrijd #5');
   });
 
   it('should validate safe to update correctly', () => {
@@ -114,7 +115,7 @@ describe('WedstrijdIdentifierService', () => {
       id: 1,
       seizoen: '2024-2025',
       absoluteRowNumber: 10,
-      datum: '01-09-2024',
+      datum: new Date(2024, 8, 1),
       teamWit: 'Team A',
       teamRood: 'Team B',
       scoreWit: null,
@@ -126,7 +127,7 @@ describe('WedstrijdIdentifierService', () => {
     const unsafeWedstrijd: WedstrijdData = {
       id: 1,
       seizoen: null,
-      datum: '01-09-2024',
+      datum: new Date(2024, 8, 1),
       teamWit: 'Team A',
       teamRood: 'Team B',
       scoreWit: null,
