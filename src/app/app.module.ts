@@ -31,6 +31,8 @@ import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideAuth, getAuth } from '@angular/fire/auth';
 import { PlayerDataSource } from './services/data-sources/player-data-source';
 import { SheetsPlayerDataSource } from './services/data-sources/player-data-source.sheets';
+import { MatchDataSource } from './services/data-sources/match-data-source';
+import { SheetsMatchDataSource } from './services/data-sources/match-data-source.sheets';
 
 registerLocaleData(localeNl);
 
@@ -81,7 +83,8 @@ import { LoginComponent } from './components/login/login.component';
     { provide: LOCALE_ID, useValue: 'nl' },
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideAuth(() => getAuth()),
-    { provide: PlayerDataSource, useClass: SheetsPlayerDataSource }
+    { provide: PlayerDataSource, useClass: SheetsPlayerDataSource },
+    { provide: MatchDataSource, useClass: SheetsMatchDataSource }
   ]
 })
 export class AppModule {}
