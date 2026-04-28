@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, from } from 'rxjs';
+import { Observable, from, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { WedstrijdData } from '../../interfaces/IWedstrijd';
 import { Database } from '../../types/database.types';
@@ -162,6 +162,16 @@ export class SupabaseMatchDataSource extends MatchDataSource {
     );
   }
 
+  /**
+   * Vervangt de match_lineups voor een wedstrijd via delete + insert.
+   *
+   * Let op: deze flow draait NIET in een Postgres-transactie. Als de delete
+   * slaagt maar de insert faalt, raakt de wedstrijd zijn opstelling kwijt.
+   * Voor de huidige schaal (1 wedstrijd/week, single-user write) acceptabel,
+   * maar bij volume (data-migratie sub-project 5) de hele flow vervangen door
+   * een Postgres RPC `replace_match_lineups(match_id, lineups jsonb)` die
+   * beide stappen atomic uitvoert.
+   */
   private replaceLineups(matchId: number, teamWit: number[], teamRood: number[]): Observable<void> {
     return from(
       this.supabase.client.from('match_lineups').delete().eq('match_id', matchId),
@@ -173,7 +183,7 @@ export class SupabaseMatchDataSource extends MatchDataSource {
           ...teamRood.map(pid => ({ match_id: matchId, player_id: pid, team: 'rood' as const })),
         ];
         if (lineupRows.length === 0) {
-          return [undefined];
+          return of(undefined);
         }
         return from(
           this.supabase.client.from('match_lineups').insert(lineupRows),
