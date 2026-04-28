@@ -1,13 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, BehaviorSubject, combineLatest } from 'rxjs';
-import { map, tap, catchError, shareReplay, switchMap, finalize } from 'rxjs/operators';
-import { GoogleSheetsService } from './google-sheets-service';
+import { map, tap, catchError, shareReplay, switchMap } from 'rxjs/operators';
 import { PlayerService } from './player.service';
 import { formatDateISO, getCurrentDateISO } from '../utils/date-utils';
-import { 
-  AttendanceRecord, 
-  AttendanceStatus, 
-  MatchAttendanceOverview, 
+import {
+  AttendanceRecord,
+  AttendanceStatus,
+  MatchAttendanceOverview,
   MatchAttendanceDetails,
   MatchAttendanceDetailsWithPlayerStatus,
   AttendanceFilter,
@@ -15,48 +14,35 @@ import {
   AttendancePlayerInfo
 } from '../interfaces/IAttendance';
 import { PlayerSheetData } from '../interfaces/IPlayerSheet';
-import { AANWEZIGHEID_COLUMNS } from '../constants/sheet-columns';
+import { AttendanceDataSource } from './data-sources/attendance-data-source';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AttendanceService {
-  private readonly SHEET_NAME = 'Aanwezigheid';
   private attendanceCache$ = new BehaviorSubject<AttendanceRecord[] | null>(null);
   private cacheTimestamp = 0;
-  private readonly CACHE_DURATION = 2 * 60 * 1000; // 2 minutes cache (shorter than players)
+  private readonly CACHE_DURATION = 2 * 60 * 1000;
 
   constructor(
-    private googleSheetsService: GoogleSheetsService,
+    private dataSource: AttendanceDataSource,
     private playerService: PlayerService
   ) {}
 
-  /**
-   * Get all attendance records with optional filtering
-   */
   getAttendanceRecords(filter?: AttendanceFilter): Observable<AttendanceRecord[]> {
     return this.getCachedAttendance().pipe(
       map(records => this.applyFilter(records, filter))
     );
   }
 
-  /**
-   * Get attendance records for a specific date
-   */
   getAttendanceForDate(date: string): Observable<AttendanceRecord[]> {
     return this.getAttendanceRecords({ date });
   }
 
-  /**
-   * Get attendance records for a specific player
-   */
   getAttendanceForPlayer(playerName: string): Observable<AttendanceRecord[]> {
     return this.getAttendanceRecords({ playerName });
   }
 
-  /**
-   * Get attendance overview for all matches
-   */
   getMatchAttendanceOverviews(filter?: AttendanceFilter): Observable<MatchAttendanceOverview[]> {
     return this.getAttendanceRecords(filter).pipe(
       map(records => {
@@ -71,9 +57,6 @@ export class AttendanceService {
     );
   }
 
-  /**
-   * Get detailed attendance information for a specific match
-   */
   getMatchAttendanceDetails(date: string): Observable<MatchAttendanceDetails> {
     return combineLatest([
       this.getAttendanceForDate(date),
@@ -84,27 +67,16 @@ export class AttendanceService {
         attendanceRecords.forEach(record => {
           attendanceMap.set(record.playerName, record);
         });
-
         const present: AttendancePlayerInfo[] = [];
         const absent: AttendancePlayerInfo[] = [];
         const noResponse: AttendancePlayerInfo[] = [];
-
-        // Helper function to categorize player based on attendance status
         const categorizePlayer = (playerInfo: AttendancePlayerInfo) => {
           switch (playerInfo.status) {
-            case 'Ja':
-              present.push(playerInfo);
-              break;
-            case 'Nee':
-              absent.push(playerInfo);
-              break;
-            case 'Geen Reactie':
-              noResponse.push(playerInfo);
-              break;
+            case 'Ja': present.push(playerInfo); break;
+            case 'Nee': absent.push(playerInfo); break;
+            case 'Geen Reactie': noResponse.push(playerInfo); break;
           }
         };
-
-        // Process all players from the player list
         allPlayers.forEach((player: PlayerSheetData) => {
           const attendance = attendanceMap.get(player.name);
           const playerInfo: AttendancePlayerInfo = {
@@ -113,12 +85,10 @@ export class AttendanceService {
             status: attendance?.status || (player.actief ? 'Geen Reactie' : undefined),
             playerData: player
           };
-
           if (playerInfo.status) {
             categorizePlayer(playerInfo);
           }
         });
-
         attendanceRecords.forEach(record => {
           const playerExists = allPlayers.some(p => p.name === record.playerName);
           if (!playerExists) {
@@ -130,19 +100,13 @@ export class AttendanceService {
                 name: record.playerName,
                 position: '',
                 actief: false,
-                pushPermission: false,
-                pushSubscription: undefined
-              }
+              } as PlayerSheetData,
             };
-
             categorizePlayer(playerInfo);
           }
         });
-
-        // Sort all arrays by name
-        const sortByName = (a: AttendancePlayerInfo, b: AttendancePlayerInfo) => 
+        const sortByName = (a: AttendancePlayerInfo, b: AttendancePlayerInfo) =>
           a.name.localeCompare(b.name);
-
         return {
           date,
           present: present.sort(sortByName),
@@ -153,90 +117,58 @@ export class AttendanceService {
     );
   }
 
-  /**
-   * Get attendance status for a specific player and date
-   */
   getPlayerAttendanceStatus(playerName: string, date: string): Observable<AttendanceStatus | null> {
     return this.getAttendanceRecords({ playerName: playerName.trim(), date }).pipe(
       map(records => records.length > 0 ? records[0].status : null)
     );
   }
 
-  /**
-   * Get detailed attendance information for a specific match including player status
-   * This method combines getMatchAttendanceDetails and getPlayerAttendanceStatus for efficiency
-   */
   getMatchAttendanceDetailsWithPlayerStatus(date: string, playerName?: string): Observable<MatchAttendanceDetailsWithPlayerStatus> {
     const normalizedName = playerName?.trim();
     return this.getMatchAttendanceDetails(date).pipe(
       map(details => {
         let playerStatus: AttendanceStatus | null = null;
-
         if (normalizedName) {
           const allPlayers = [...details.present, ...details.absent, ...details.noResponse];
           const player = allPlayers.find(p => p.name.trim() === normalizedName);
           playerStatus = player?.status || null;
         }
-
-        return {
-          ...details,
-          playerStatus
-        };
+        return { ...details, playerStatus };
       })
     );
   }
 
-  /**
-   * Get all players present for a specific date (useful for team generation)
-   */
   getPresentPlayers(date: string): Observable<AttendancePlayerInfo[]> {
     return this.getMatchAttendanceDetails(date).pipe(
       map(details => details.present)
     );
   }
 
-  /**
-   * Set attendance status for a player on a specific date
-   */
-  setAttendance(update: AttendanceUpdate): Observable<any> {
-    // Normaliseer naam + datum vóór vergelijking en schrijven, zodat we geen
-    // nieuwe rijen met trailing spaties aanmaken.
+  setAttendance(update: AttendanceUpdate): Observable<void> {
     const normalizedName = update.playerName.trim();
     const normalizedDate = update.date.trim();
     return this.getAttendanceRecords().pipe(
       switchMap(records => {
-        const existingRecordIndex = records.findIndex(r =>
-          r.date === normalizedDate && r.playerName === normalizedName
-        );
-
-        const rowData = [normalizedDate, normalizedName, update.status];
-
-        let operation: Observable<any>;
-        if (existingRecordIndex >= 0) {
-          // Update existing record (index + 2 because of header row and 0-based indexing)
-          const sheetRowIndex = existingRecordIndex + 2;
-          operation = this.googleSheetsService.updateSheetRow(this.SHEET_NAME, sheetRowIndex, rowData);
-        } else {
-          // Append new record
-          operation = this.googleSheetsService.appendSheetRow(this.SHEET_NAME, rowData);
-        }
-
-        return operation.pipe(
+        return this.dataSource.upsert({
+          date: normalizedDate,
+          playerName: normalizedName,
+          status: update.status,
+        }).pipe(
           tap(() => {
-            // Update cache with new data
+            const existingIndex = records.findIndex(r =>
+              r.date === normalizedDate && r.playerName === normalizedName
+            );
             const updatedRecords = [...records];
             const newRecord: AttendanceRecord = {
               date: normalizedDate,
               playerName: normalizedName,
-              status: update.status
+              status: update.status,
             };
-
-            if (existingRecordIndex >= 0) {
-              updatedRecords[existingRecordIndex] = newRecord;
+            if (existingIndex >= 0) {
+              updatedRecords[existingIndex] = newRecord;
             } else {
               updatedRecords.push(newRecord);
             }
-
             this.attendanceCache$.next(updatedRecords);
           })
         );
@@ -244,37 +176,25 @@ export class AttendanceService {
     );
   }
 
-  /**
-   * Get players who haven't responded for a specific date
-   */
   getPlayersWithoutResponse(date: string): Observable<AttendancePlayerInfo[]> {
     return this.getMatchAttendanceDetails(date).pipe(
       map(details => details.noResponse)
     );
   }
 
-  /**
-   * Refresh the attendance cache
-   */
   refreshCache(): Observable<AttendanceRecord[]> {
     this.attendanceCache$.next(null);
     this.cacheTimestamp = 0;
     return this.getCachedAttendance();
   }
 
-  /**
-   * Private method to get cached attendance data
-   */
   private getCachedAttendance(): Observable<AttendanceRecord[]> {
     const now = Date.now();
     const cachedData = this.attendanceCache$.value;
-
     if (cachedData && (now - this.cacheTimestamp) < this.CACHE_DURATION) {
       return of(cachedData);
     }
-
-    return this.googleSheetsService.getSheetData(this.SHEET_NAME).pipe(
-      map(rawData => this.parseAttendanceData(rawData)),
+    return this.dataSource.getAll().pipe(
       tap(attendance => {
         this.attendanceCache$.next(attendance);
         this.cacheTimestamp = now;
@@ -287,83 +207,30 @@ export class AttendanceService {
     );
   }
 
-  /**
-   * Private method to parse raw sheet data into typed attendance records
-   */
-  private parseAttendanceData(rawData: any[][]): AttendanceRecord[] {
-    if (!rawData || rawData.length <= 1) {
-      return [];
-    }
-
-    return rawData
-      .slice(1) // Skip header row
-      .filter(row => row && row.length >= 3 && row[AANWEZIGHEID_COLUMNS.DATE] && row[AANWEZIGHEID_COLUMNS.PLAYER_NAME] && row[AANWEZIGHEID_COLUMNS.STATUS])
-      .map(row => ({
-        date: row[AANWEZIGHEID_COLUMNS.DATE].toString().trim(),
-        // Normaliseer trailing/leading spaties — historische records als "Ruben "
-        // matchen anders niet met de speler-lijst.
-        playerName: row[AANWEZIGHEID_COLUMNS.PLAYER_NAME].toString().trim(),
-        status: row[AANWEZIGHEID_COLUMNS.STATUS] as AttendanceStatus,
-        timestamp: row[AANWEZIGHEID_COLUMNS.TIMESTAMP] ? row[AANWEZIGHEID_COLUMNS.TIMESTAMP].toString() : undefined
-      }));
-  }
-
-  /**
-   * Private method to apply filters to attendance records
-   */
   private applyFilter(records: AttendanceRecord[], filter?: AttendanceFilter): AttendanceRecord[] {
-    if (!filter) {
-      return records;
-    }
-
+    if (!filter) return records;
     return records.filter(record => {
-      if (filter.date && record.date !== filter.date) {
-        return false;
-      }
-
-      if (filter.fromDate && record.date < filter.fromDate) {
-        return false;
-      }
-
-      if (filter.toDate && record.date > filter.toDate) {
-        return false;
-      }
-
+      if (filter.date && record.date !== filter.date) return false;
+      if (filter.fromDate && record.date < filter.fromDate) return false;
+      if (filter.toDate && record.date > filter.toDate) return false;
       if (filter.futureOnly) {
         const today = getCurrentDateISO();
-        if (record.date <= today) {
-          return false;
-        }
+        if (record.date <= today) return false;
       }
-
-      if (filter.playerName && record.playerName !== filter.playerName.trim()) {
-        return false;
-      }
-
-      if (filter.status && record.status !== filter.status) {
-        return false;
-      }
-
+      if (filter.playerName && record.playerName !== filter.playerName.trim()) return false;
+      if (filter.status && record.status !== filter.status) return false;
       return true;
     });
   }
 
-  /**
-   * Private method to group records by date
-   */
   private groupByDate(records: AttendanceRecord[]): { [date: string]: AttendanceRecord[] } {
     return records.reduce((groups, record) => {
-      if (!groups[record.date]) {
-        groups[record.date] = [];
-      }
+      if (!groups[record.date]) groups[record.date] = [];
       groups[record.date].push(record);
       return groups;
     }, {} as { [date: string]: AttendanceRecord[] });
   }
 
-  /**
-   * Format date to YYYY-MM-DD format
-   */
   formatDate(date: Date): string {
     return formatDateISO(date);
   }
