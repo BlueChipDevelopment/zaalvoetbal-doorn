@@ -15,7 +15,12 @@ export abstract class MatchDataSource {
     zlatan: string,
   ): Observable<void>;
   /** Schrijft team-namen + generatietype (kolommen D:F), en optioneel
-   * voorbeschouwing (kolom K). Gebruikt door team-generator. */
+   * voorbeschouwing (kolom K). Gebruikt door team-generator.
+   *
+   * `voorbeschouwing` wordt alleen geschreven wanneer truthy (niet-leeg). Een
+   * lege string `''` of `undefined` zal een bestaande voorbeschouwing dus NIET
+   * wissen. Om een voorbeschouwing te wissen, gebruik de volledige
+   * `update(match)` met `voorbeschouwing: ''` in plaats van deze partial-update. */
   abstract updateTeams(
     matchId: number,
     teamWit: string,

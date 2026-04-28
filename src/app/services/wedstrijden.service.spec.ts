@@ -1,120 +1,109 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { WedstrijdenService } from './wedstrijden.service';
-import { GoogleSheetsService } from './google-sheets-service';
+import { MatchDataSource } from './data-sources/match-data-source';
+import { WedstrijdData } from '../interfaces/IWedstrijd';
 
 describe('WedstrijdenService', () => {
   let service: WedstrijdenService;
-  let mockGoogleSheetsService: jasmine.SpyObj<GoogleSheetsService>;
+  let mockDataSource: jasmine.SpyObj<MatchDataSource>;
 
-  // Mock data that matches the expected Google Sheets format
-  const mockWedstrijdenData = [
-    ['ID', 'Datum', 'Team Wit', 'Team Rood', 'Score Wit', 'Score Rood', 'Zlatan', 'Ventiel'], // Header
-    ['1', '15-09-2024', 'Team A', 'Team B', '3', '2', 'Player1', 'Player2'],
-    ['2', '22-09-2024', 'Team C', 'Team D', '1', '4', 'Player3', 'Player4'],
-    ['3', '29-09-2024', 'Team A', 'Team C', '', '', 'Player1', 'Player3'], // Future match
-    ['4', '15-01-2025', 'Team B', 'Team D', '2', '1', 'Player2', 'Player4']
+  const mockMatches: WedstrijdData[] = [
+    {
+      id: 1,
+      seizoen: '2025-2026',
+      seizoenWedstrijdNummer: 1,
+      datum: new Date('2025-09-15'),
+      datumString: '15-09-2025',
+      teamWit: 'Wit',
+      teamRood: 'Rood',
+      teamGeneratie: 'Automatisch',
+      scoreWit: 3,
+      scoreRood: 2,
+      zlatan: 'Bob',
+      ventiel: '',
+      absoluteRowNumber: 2,
+      locatie: 'Sporthal Steinheim',
+    },
+    {
+      id: 2,
+      seizoen: '2025-2026',
+      seizoenWedstrijdNummer: 2,
+      datum: new Date('2025-09-22'),
+      datumString: '22-09-2025',
+      teamWit: 'Wit',
+      teamRood: 'Rood',
+      teamGeneratie: 'Automatisch',
+      scoreWit: null,
+      scoreRood: null,
+      zlatan: '',
+      ventiel: '',
+      absoluteRowNumber: 3,
+      locatie: 'Sporthal Steinheim',
+    },
   ];
 
   beforeEach(() => {
-    const googleSheetsSpy = jasmine.createSpyObj('GoogleSheetsService', ['getSheetData']);
-
+    mockDataSource = jasmine.createSpyObj('MatchDataSource',
+      ['getAll', 'add', 'update', 'updateScore', 'updateTeams']);
     TestBed.configureTestingModule({
       providers: [
         WedstrijdenService,
-        { provide: GoogleSheetsService, useValue: googleSheetsSpy }
-      ]
+        { provide: MatchDataSource, useValue: mockDataSource },
+      ],
     });
-
     service = TestBed.inject(WedstrijdenService);
-    mockGoogleSheetsService = TestBed.inject(GoogleSheetsService) as jasmine.SpyObj<GoogleSheetsService>;
-    
-    // Default mock return
-    mockGoogleSheetsService.getSheetData.and.returnValue(of(mockWedstrijdenData));
+    mockDataSource.getAll.and.returnValue(of(mockMatches));
   });
 
-  it('should be created', () => {
-    expect(service).toBeTruthy();
-  });
-
-  it('should get all wedstrijden', (done) => {
-    service.getWedstrijden().subscribe(wedstrijden => {
-      expect(wedstrijden).toBeTruthy();
-      expect(wedstrijden.length).toBe(4);
-      expect(wedstrijden[0].teamWit).toBe('Team A');
-      expect(wedstrijden[0].scoreWit).toBe(3);
+  it('getGespeeldeWedstrijden filtert op aanwezige scores', (done) => {
+    service.getGespeeldeWedstrijden().subscribe(matches => {
+      expect(matches.length).toBe(1);
+      expect(matches[0].id).toBe(1);
       done();
     });
   });
 
-  it('should get only gespeelde wedstrijden', (done) => {
-    service.getGespeeldeWedstrijden().subscribe(wedstrijden => {
-      expect(wedstrijden).toBeTruthy();
-      expect(wedstrijden.length).toBe(3); // Excluding the future match
-      wedstrijden.forEach(w => {
-        expect(w.scoreWit).not.toBeNull();
-        expect(w.scoreRood).not.toBeNull();
-      });
+  it('getToekomstigeWedstrijden filtert op afwezige scores', (done) => {
+    service.getToekomstigeWedstrijden().subscribe(matches => {
+      expect(matches.length).toBe(1);
+      expect(matches[0].id).toBe(2);
       done();
     });
   });
 
-  it('should get only toekomstige wedstrijden', (done) => {
-    service.getToekomstigeWedstrijden().subscribe(wedstrijden => {
-      expect(wedstrijden).toBeTruthy();
-      expect(wedstrijden.length).toBe(1); // Only the future match
-      expect(wedstrijden[0].scoreWit).toBeNull();
-      expect(wedstrijden[0].scoreRood).toBeNull();
+  it('updateScore delegeert naar de data-source en clear de cache', (done) => {
+    mockDataSource.updateScore.and.returnValue(of(undefined));
+    service.updateScore(1, 4, 1, 'Bob').subscribe(() => {
+      expect(mockDataSource.updateScore).toHaveBeenCalledWith(1, 4, 1, 'Bob');
       done();
     });
   });
 
-  it('should get beschikbare seizoenen', (done) => {
-    service.getBeschikbareSeizoen().subscribe(seizoenen => {
-      expect(seizoenen).toBeTruthy();
-      expect(seizoenen.length).toBeGreaterThan(0);
-      expect(seizoenen[0]).toEqual(jasmine.objectContaining({
-        seizoen: jasmine.any(String),
-        aantalWedstrijden: jasmine.any(Number),
-        aantalGespeeld: jasmine.any(Number)
-      }));
+  it('updateTeams delegeert naar de data-source met optionele voorbeschouwing', (done) => {
+    mockDataSource.updateTeams.and.returnValue(of(undefined));
+    service.updateTeams(1, 'A,B', 'C,D', 'Handmatig', 'tactiek').subscribe(() => {
+      expect(mockDataSource.updateTeams).toHaveBeenCalledWith(1, 'A,B', 'C,D', 'Handmatig', 'tactiek');
       done();
     });
   });
 
-  it('should filter wedstrijden by seizoen', (done) => {
-    service.getWedstrijdenVoorSeizoen('2024-2025').subscribe(wedstrijden => {
-      expect(wedstrijden).toBeTruthy();
-      // All September 2024 and January 2025 matches should be in 2024-2025 season
-      expect(wedstrijden.length).toBeGreaterThan(0);
+  it('addWedstrijd geeft de uitgevulde match (incl. id) door', (done) => {
+    const input: WedstrijdData = {
+      seizoen: '2026-2027',
+      datum: new Date('2026-08-30'),
+      teamWit: 'Wit',
+      teamRood: 'Rood',
+      teamGeneratie: 'Automatisch',
+      scoreWit: null,
+      scoreRood: null,
+      zlatan: '',
+      ventiel: '',
+    };
+    mockDataSource.add.and.returnValue(of({ ...input, id: 42, datumString: '30-08-2026' }));
+    service.addWedstrijd(input).subscribe(result => {
+      expect(result.id).toBe(42);
       done();
-    });
-  });
-
-  it('should handle empty data gracefully', (done) => {
-    mockGoogleSheetsService.getSheetData.and.returnValue(of([]));
-    
-    service.getWedstrijden().subscribe(wedstrijden => {
-      expect(wedstrijden).toEqual([]);
-      done();
-    });
-  });
-
-  it('should refresh cache', (done) => {
-    // First call
-    service.getWedstrijden().subscribe(() => {
-      expect(mockGoogleSheetsService.getSheetData).toHaveBeenCalledTimes(1);
-      
-      // Second call should use cache
-      service.getWedstrijden().subscribe(() => {
-        expect(mockGoogleSheetsService.getSheetData).toHaveBeenCalledTimes(1);
-        
-        // Refresh cache should force new call
-        service.refreshCache().subscribe(() => {
-          expect(mockGoogleSheetsService.getSheetData).toHaveBeenCalledTimes(2);
-          done();
-        });
-      });
     });
   });
 });

@@ -80,6 +80,82 @@ describe('SheetsMatchDataSource', () => {
     expect(arg[1].values).toEqual([['Een tactische analyse']]);
   });
 
+  it('add berekent next-id en returnt match incl. id en datumString', async () => {
+    sheets.getSheetData.and.returnValue(of([
+      ['ID', 'Seizoen', 'Datum', 'TeamWit', 'TeamRood', 'Generatie', 'ScoreWit', 'ScoreRood', 'Zlatan', 'Ventiel'],
+      [5, '2025-2026', '15-09-2025', 'Wit', 'Rood', 'Automatisch', 3, 2, 'Bob', ''],
+    ]));
+    sheets.appendSheetRow.and.returnValue(of({ updatedRange: 'Wedstrijden!A3' } as any));
+
+    const input: any = {
+      seizoen: '2026-2027',
+      datum: new Date(2026, 7, 30), // 30-08-2026 (month is 0-based)
+      teamWit: 'Wit',
+      teamRood: 'Rood',
+      teamGeneratie: 'Automatisch',
+      scoreWit: null,
+      scoreRood: null,
+      zlatan: '',
+      ventiel: '',
+    };
+
+    const result = await lastValueFrom(dataSource.add(input));
+
+    expect(result.id).toBe(6);
+    expect(result.datumString).toBe('30-08-2026');
+    const args = sheets.appendSheetRow.calls.mostRecent().args;
+    expect(args[0]).toBe('Wedstrijden');
+    const row = args[1] as any[];
+    expect(row.length).toBe(10);
+    expect(row[0]).toBe(6);
+    expect(row[2]).toBe('30-08-2026');
+  });
+
+  it('update gooit error als absoluteRowNumber ontbreekt', async () => {
+    const match: any = {
+      id: 1,
+      seizoen: '2025-2026',
+      datum: new Date('2025-09-15'),
+      teamWit: 'Wit',
+      teamRood: 'Rood',
+      teamGeneratie: 'Automatisch',
+      scoreWit: 3,
+      scoreRood: 2,
+      zlatan: '',
+      ventiel: '',
+    };
+
+    await expectAsync(lastValueFrom(dataSource.update(match)))
+      .toBeRejectedWithError(/absoluteRowNumber/);
+  });
+
+  it('update schrijft 10-koloms-rij naar het opgegeven absoluteRowNumber', async () => {
+    sheets.updateSheetRow.and.returnValue(of({ updatedCells: 10 } as any));
+
+    const match: any = {
+      id: 7,
+      seizoen: '2025-2026',
+      datum: new Date(2025, 8, 15), // 15-09-2025
+      teamWit: 'Wit',
+      teamRood: 'Rood',
+      teamGeneratie: 'Handmatig',
+      scoreWit: 4,
+      scoreRood: 1,
+      zlatan: 'Bob',
+      ventiel: 'Carl',
+      absoluteRowNumber: 5,
+    };
+
+    await lastValueFrom(dataSource.update(match));
+
+    const args = sheets.updateSheetRow.calls.mostRecent().args;
+    expect(args[0]).toBe('Wedstrijden');
+    expect(args[1]).toBe(5);
+    const row = args[2] as any[];
+    expect(row.length).toBe(10);
+    expect(row).toEqual([7, '2025-2026', '15-09-2025', 'Wit', 'Rood', 'Handmatig', 4, 1, 'Bob', 'Carl']);
+  });
+
   it('updateTeams zonder voorbeschouwing schrijft alleen D:F', async () => {
     sheets.getSheetData.and.returnValue(of([
       ['ID', 'Seizoen', 'Datum', 'TeamWit', 'TeamRood', 'Generatie', 'ScoreWit', 'ScoreRood', 'Zlatan', 'Ventiel'],
