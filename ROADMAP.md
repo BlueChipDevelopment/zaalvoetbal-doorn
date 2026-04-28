@@ -24,6 +24,13 @@ Vervang Google Sheets als data-store door Supabase (Postgres).
   bestaande `beheer`-module uitbreiden.
 - Google Drive version history verdwijnt — inrichten van backup/point-in-time.
 
+**Backup-strategie (free tier heeft geen automatische backups)**:
+- Wekelijkse `pg_dump` via GitHub Actions naar private repo of Drive/S3 — set & forget.
+- Alternatief lokaal: `supabase db dump` via de CLI of `pg_dump` direct.
+- CSV-export per tabel als leesbare snapshot (Sheets-vervanger voor handmatig kijken).
+- Free-project pauzeert na 7 dagen inactiviteit; niet relevant tijdens seizoen,
+  wel even handmatig unpausen na de zomerstop.
+
 ## Beheer-scherm "Notificaties"
 
 Pas na Supabase-migratie, of als los project eerder.
