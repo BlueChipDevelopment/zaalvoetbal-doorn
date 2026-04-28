@@ -58,11 +58,9 @@ export class GameStatisticsService {
       wedstrijden: this.wedstrijdenService.getGespeeldeWedstrijden()
     }).pipe(
       map(({ spelers, wedstrijden }) => {
-        // spelers is already typed and processed by PlayerService
-        const actieveSpelers = spelers.filter(player => player.actief);
-        const actieveSpelersMap: { [naam: string]: PlayerSheetData } = {};
-        actieveSpelers.forEach((player) => {
-          actieveSpelersMap[player.name.trim().toLowerCase()] = player;
+        const spelersById = new Map<number, PlayerSheetData>();
+        spelers.forEach(p => {
+          if (typeof p.id === 'number') spelersById.set(p.id, p);
         });
 
         let geldigeWedstrijden = wedstrijden;
@@ -70,76 +68,79 @@ export class GameStatisticsService {
         // Filter wedstrijden op seizoen indien opgegeven
         if (season) {
           geldigeWedstrijden = geldigeWedstrijden.filter(match => {
-            // Gebruik het seizoen direct uit de wedstrijd data (kolom B uit spreadsheet)
             return match.seizoen === season;
           });
         }
 
         // Sorteer geldigeWedstrijden op datum (oud -> nieuw) zodat gameHistory altijd chronologisch is
         const geldigeWedstrijdenSorted = [...geldigeWedstrijden].sort((a, b) => {
-          // Datum is nu een Date object, dus direct vergelijken
           if (!a.datum || !b.datum) return 0;
           return a.datum.getTime() - b.datum.getTime();
         });
-        
-        // Statistieken per speler
-        const playerStats: { [player: string]: { gamesPlayed: number; totalPoints: number; wins: number; losses: number; ties: number; gameHistory: GameHistoryEntry[]; zlatanPoints: number; ventielPoints: number } } = {};
+
+        // Statistieken per speler — gekeyed op id
+        const playerStats: { [playerId: number]: { gamesPlayed: number; totalPoints: number; wins: number; losses: number; ties: number; gameHistory: GameHistoryEntry[]; zlatanPoints: number; ventielPoints: number } } = {};
+
+        const idToName = (id: number): string => spelersById.get(id)?.name ?? '';
+
         geldigeWedstrijdenSorted.forEach(match => {
-          const teamWhitePlayers = (match.teamWit || '').split(',').map((p: string) => p.trim().toLowerCase()).filter((p: string) => p && p !== 'team wit');
-          const teamRedPlayers = (match.teamRood || '').split(',').map((p: string) => p.trim().toLowerCase()).filter((p: string) => p && p !== 'team rood');
-          const allPlayers = [...teamWhitePlayers, ...teamRedPlayers];
+          const teamWhiteIds = match.teamWit || [];
+          const teamRedIds = match.teamRood || [];
+          const allIds = [...teamWhiteIds, ...teamRedIds];
+          const allNames = allIds.map(idToName).filter(Boolean);
+          const teamWhiteNames = teamWhiteIds.map(idToName).filter(Boolean);
+          const teamRedNames = teamRedIds.map(idToName).filter(Boolean);
           const teamWhiteGoals = match.scoreWit || 0;
           const teamRedGoals = match.scoreRood || 0;
-          
+
           // White team players
-          teamWhitePlayers.forEach((player: string) => {
-            if (!playerStats[player]) playerStats[player] = { gamesPlayed: 0, totalPoints: 0, wins: 0, losses: 0, ties: 0, gameHistory: [], zlatanPoints: 0, ventielPoints: 0 };
-            playerStats[player].gamesPlayed++;
-            if (teamWhiteGoals > teamRedGoals) playerStats[player].wins++;
-            else if (teamWhiteGoals < teamRedGoals) playerStats[player].losses++;
-            else playerStats[player].ties++;
-            playerStats[player].gameHistory.push({
+          teamWhiteIds.forEach((pid: number) => {
+            if (!playerStats[pid]) playerStats[pid] = { gamesPlayed: 0, totalPoints: 0, wins: 0, losses: 0, ties: 0, gameHistory: [], zlatanPoints: 0, ventielPoints: 0 };
+            playerStats[pid].gamesPlayed++;
+            if (teamWhiteGoals > teamRedGoals) playerStats[pid].wins++;
+            else if (teamWhiteGoals < teamRedGoals) playerStats[pid].losses++;
+            else playerStats[pid].ties++;
+            playerStats[pid].gameHistory.push({
               result: teamWhiteGoals > teamRedGoals ? 3 : teamWhiteGoals === teamRedGoals ? 2 : 1,
               date: match.datum,
-              playerIds: allPlayers,
-              teammates: teamWhitePlayers,
-              opponents: teamRedPlayers
+              playerIds: allNames,
+              teammates: teamWhiteNames,
+              opponents: teamRedNames
             });
-            if (match.zlatan && match.zlatan.trim().toLowerCase() === player) {
-              playerStats[player].zlatanPoints = (playerStats[player].zlatanPoints || 0) + 1;
+            if (match.zlatanPlayerId === pid) {
+              playerStats[pid].zlatanPoints = (playerStats[pid].zlatanPoints || 0) + 1;
             }
-            if (match.ventiel && match.ventiel.trim().toLowerCase() === player) {
-              playerStats[player].ventielPoints = (playerStats[player].ventielPoints || 0) + 1;
+            if (match.ventielPlayerId === pid) {
+              playerStats[pid].ventielPoints = (playerStats[pid].ventielPoints || 0) + 1;
             }
           });
-          
+
           // Red team players
-          teamRedPlayers.forEach((player: string) => {
-            if (!playerStats[player]) playerStats[player] = { gamesPlayed: 0, totalPoints: 0, wins: 0, losses: 0, ties: 0, gameHistory: [], zlatanPoints: 0, ventielPoints: 0 };
-            playerStats[player].gamesPlayed++;
-            if (teamRedGoals > teamWhiteGoals) playerStats[player].wins++;
-            else if (teamRedGoals < teamWhiteGoals) playerStats[player].losses++;
-            else playerStats[player].ties++;
-            playerStats[player].gameHistory.push({
+          teamRedIds.forEach((pid: number) => {
+            if (!playerStats[pid]) playerStats[pid] = { gamesPlayed: 0, totalPoints: 0, wins: 0, losses: 0, ties: 0, gameHistory: [], zlatanPoints: 0, ventielPoints: 0 };
+            playerStats[pid].gamesPlayed++;
+            if (teamRedGoals > teamWhiteGoals) playerStats[pid].wins++;
+            else if (teamRedGoals < teamWhiteGoals) playerStats[pid].losses++;
+            else playerStats[pid].ties++;
+            playerStats[pid].gameHistory.push({
               result: teamRedGoals > teamWhiteGoals ? 3 : teamRedGoals === teamWhiteGoals ? 2 : 1,
               date: match.datum,
-              playerIds: allPlayers,
-              teammates: teamRedPlayers,
-              opponents: teamWhitePlayers
+              playerIds: allNames,
+              teammates: teamRedNames,
+              opponents: teamWhiteNames
             });
-            if (match.zlatan && match.zlatan.trim().toLowerCase() === player) {
-              playerStats[player].zlatanPoints = (playerStats[player].zlatanPoints || 0) + 1;
+            if (match.zlatanPlayerId === pid) {
+              playerStats[pid].zlatanPoints = (playerStats[pid].zlatanPoints || 0) + 1;
             }
-            if (match.ventiel && match.ventiel.trim().toLowerCase() === player) {
-              playerStats[player].ventielPoints = (playerStats[player].ventielPoints || 0) + 1;
+            if (match.ventielPlayerId === pid) {
+              playerStats[pid].ventielPoints = (playerStats[pid].ventielPoints || 0) + 1;
             }
           });
         });
         // Voeg spelers toe die in de Spelers-lijst staan maar nog geen wedstrijden hebben gespeeld
         spelers.forEach((player) => {
-          const naam = player.name?.trim().toLowerCase();
-          if (naam && !playerStats[naam]) {
-            playerStats[naam] = {
+          if (typeof player.id === 'number' && !playerStats[player.id]) {
+            playerStats[player.id] = {
               gamesPlayed: 0,
               totalPoints: 0,
               wins: 0,
@@ -158,13 +159,14 @@ export class GameStatisticsService {
         const maxTotalPoints = Math.max(...Object.values(playerStats).map(stats => stats.totalPoints || 0), 1);
         // Maak array met alle info
         return Object.entries(playerStats)
-          .map(([player, stats]) => {
-            // Zoek de speler op in de PlayerService data
-            const spelerData = spelers.find((p) => p.name && p.name.trim().toLowerCase() === player);
+          .map(([playerIdStr, stats]) => {
+            const playerId = Number(playerIdStr);
+            const spelerData = spelersById.get(playerId);
             let rating = Math.round((stats.totalPoints / (maxTotalPoints / 10)));
             rating = Math.max(1, Math.min(10, rating));
             return {
-              name: spelerData ? spelerData.name : player,
+              id: spelerData?.id,
+              name: spelerData ? spelerData.name : '',
               position: spelerData ? spelerData.position : null,
               rating: rating,
               gamesPlayed: stats.gamesPlayed,
@@ -179,6 +181,8 @@ export class GameStatisticsService {
               actief: spelerData ? spelerData.actief : false
             } as Player;
           })
+          // Filter: alleen spelers met geldige naam (gevonden in spelersById)
+          .filter(player => !!player.name)
           // Filter: verwijder spelers die niet actief zijn EN geen wedstrijden hebben in dit seizoen
           .filter(player => player.actief || player.gamesPlayed > 0)
           .sort((a, b) => b.totalPoints - a.totalPoints);

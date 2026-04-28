@@ -12,6 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { PlayerNamePipe } from '../../pipes/player-name.pipe';
 
 import { AdminRoutingModule } from './admin-routing.module';
 import { AdminComponent } from './admin.component';
@@ -42,7 +43,8 @@ import { WedstrijdDialogComponent } from './admin-wedstrijden/wedstrijd-dialog/w
     MatSelectModule,
     MatSlideToggleModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    PlayerNamePipe
   ]
 })
 export class AdminModule { }

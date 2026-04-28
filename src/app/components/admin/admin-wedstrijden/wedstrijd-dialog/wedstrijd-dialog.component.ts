@@ -1,7 +1,10 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { Observable } from 'rxjs';
 import { WedstrijdData } from '../../../../interfaces/IWedstrijd';
+import { PlayerService } from '../../../../services/player.service';
+import { PlayerSheetData } from '../../../../interfaces/IPlayerSheet';
 
 @Component({
   selector: 'app-wedstrijd-dialog',
@@ -11,22 +14,25 @@ import { WedstrijdData } from '../../../../interfaces/IWedstrijd';
 export class WedstrijdDialogComponent implements OnInit {
   wedstrijdForm: FormGroup;
   teamGeneratieOpties: string[] = ['Automatisch', 'Handmatig'];
+  allPlayers$: Observable<PlayerSheetData[]>;
 
   constructor(
     private fb: FormBuilder,
+    private playerService: PlayerService,
     public dialogRef: MatDialogRef<WedstrijdDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: WedstrijdData | null
   ) {
+    this.allPlayers$ = this.playerService.getPlayers();
     this.wedstrijdForm = this.fb.group({
       seizoen: [data?.seizoen || this.getCurrentSeizoen(), Validators.required],
       datum: [data?.datum || null, Validators.required],
-      teamWit: [data?.teamWit || ''],
-      teamRood: [data?.teamRood || ''],
+      teamWit: [data?.teamWit || []],
+      teamRood: [data?.teamRood || []],
       teamGeneratie: [data?.teamGeneratie || ''],
       scoreWit: [data?.scoreWit, [Validators.min(0)]],
       scoreRood: [data?.scoreRood, [Validators.min(0)]],
-      zlatan: [data?.zlatan || ''],
-      ventiel: [data?.ventiel || '']
+      zlatanPlayerId: [data?.zlatanPlayerId ?? null],
+      ventielPlayerId: [data?.ventielPlayerId ?? null]
     });
   }
 
@@ -36,9 +42,8 @@ export class WedstrijdDialogComponent implements OnInit {
     const now = new Date();
     const month = now.getMonth(); // 0-11
     const year = now.getFullYear();
-    
+
     // Seizoen loopt van augustus (7) tot juli (6)
-    // Als maand < augustus (7), dan zijn we in het tweede jaar van het seizoen
     if (month < 7) {
       return `${year - 1}-${year}`;
     } else {
@@ -53,18 +58,18 @@ export class WedstrijdDialogComponent implements OnInit {
   onSave(): void {
     if (this.wedstrijdForm.valid) {
       const formValue = this.wedstrijdForm.value;
-      
+
       const updatedWedstrijd: WedstrijdData = {
         ...this.data,
         seizoen: formValue.seizoen,
         datum: formValue.datum,
-        teamWit: formValue.teamWit || '',
-        teamRood: formValue.teamRood || '',
+        teamWit: formValue.teamWit || [],
+        teamRood: formValue.teamRood || [],
         teamGeneratie: formValue.teamGeneratie || '',
         scoreWit: formValue.scoreWit !== '' && formValue.scoreWit !== null ? Number(formValue.scoreWit) : null,
         scoreRood: formValue.scoreRood !== '' && formValue.scoreRood !== null ? Number(formValue.scoreRood) : null,
-        zlatan: formValue.zlatan || '',
-        ventiel: formValue.ventiel || ''
+        zlatanPlayerId: formValue.zlatanPlayerId ?? null,
+        ventielPlayerId: formValue.ventielPlayerId ?? null
       };
 
       this.dialogRef.close(updatedWedstrijd);

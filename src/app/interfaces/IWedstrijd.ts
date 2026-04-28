@@ -1,26 +1,25 @@
 export interface WedstrijdData {
   id?: number;
-  seizoen?: string | null; // Seizoen in formaat "2024-2025", null als datum niet parseerbaar is
-  seizoenWedstrijdNummer?: number; // Wedstrijdnummer binnen het seizoen (1, 2, 3, ...)
-  datum: Date | null; // Parsed date object, null if parsing fails
-  datumString?: string; // Original string for reference/debugging
-  teamWit: string;
-  teamRood: string;
-  teamGeneratie?: string; // "Handmatig" of "Automatisch"
+  seizoen?: string | null;
+  seizoenWedstrijdNummer?: number;
+  datum: Date | null;
+  datumString?: string;
+  /** Player-ids in team Wit. Sheets-adapter vertaalt namen ↔ ids intern. */
+  teamWit: number[];
+  /** Player-ids in team Rood. */
+  teamRood: number[];
+  teamGeneratie?: string;
   scoreWit: number | null;
   scoreRood: number | null;
-  zlatan: string;
-  ventiel: string;
+  zlatanPlayerId: number | null;
+  ventielPlayerId: number | null;
   locatie?: string;
-  voorbeschouwing?: string; // AI-gegenereerde voorbeschouwing (kolom K)
-  // Voor backwards compatibility
-  absoluteRowNumber?: number; // De werkelijke rijnummer in de sheet
+  voorbeschouwing?: string;
 }
 
 export interface WedstrijdFilter {
   seizoen?: string;
-  gespeeld?: boolean; // true = alleen gespeelde wedstrijden, false = alleen toekomstige, undefined = alle
-  teamFilter?: string; // filter op team naam
+  gespeeld?: boolean; // true = alleen gespeelde wedstrijden, false = alleen toekomstige
 }
 
 export interface SeizoenData {

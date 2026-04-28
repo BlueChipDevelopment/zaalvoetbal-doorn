@@ -3,6 +3,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { WedstrijdenService } from '../../../services/wedstrijden.service';
+import { PlayerService } from '../../../services/player.service';
+import { PlayerSheetData } from '../../../interfaces/IPlayerSheet';
 import { WedstrijdData } from '../../../interfaces/IWedstrijd';
 import { WedstrijdDialogComponent } from './wedstrijd-dialog/wedstrijd-dialog.component';
 
@@ -15,15 +17,22 @@ export class AdminWedstrijdenComponent implements OnInit {
   displayedColumns: string[] = ['seizoen', 'datum', 'teamWit', 'teamRood', 'scoreWit', 'scoreRood', 'zlatan', 'actions'];
   dataSource = new MatTableDataSource<WedstrijdData>();
   loading = true;
+  allPlayers: PlayerSheetData[] = [];
 
   private destroyRef = inject(DestroyRef);
 
   constructor(
     private wedstrijdenService: WedstrijdenService,
+    private playerService: PlayerService,
     private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
+    this.playerService.getPlayers()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(players => {
+        this.allPlayers = players;
+      });
     this.loadWedstrijden();
   }
 
@@ -111,8 +120,12 @@ export class AdminWedstrijdenComponent implements OnInit {
     return score !== null ? String(score) : '-';
   }
 
-  getTeamNames(teamString: string): string {
-    // Return first 50 characters if too long
-    return teamString.length > 50 ? teamString.substring(0, 50) + '...' : teamString;
+  getTeamNames(teamIds: number[]): string {
+    if (!teamIds || teamIds.length === 0) return '';
+    const names = teamIds
+      .map(id => this.allPlayers.find(p => p.id === id)?.name ?? '')
+      .filter(Boolean)
+      .join(', ');
+    return names.length > 50 ? names.substring(0, 50) + '...' : names;
   }
 }

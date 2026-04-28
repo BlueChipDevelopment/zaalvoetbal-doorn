@@ -5,26 +5,21 @@ export abstract class MatchDataSource {
   abstract getAll(): Observable<WedstrijdData[]>;
   abstract add(match: WedstrijdData): Observable<WedstrijdData>;
   abstract update(match: WedstrijdData): Observable<void>;
-  /** Schrijft alleen score-kolommen + zlatan (kolommen G:I) — match het huidige
-   * score.component-gedrag dat ventiel niet aanraakt. Ventiel wordt via de admin
-   * wedstrijd-dialog geüpdatet (volledige `update`). */
+  /** Schrijft alleen score-velden (`score_white`, `score_red`, `zlatan_player_id`).
+   *  Ventiel zit niet in deze flow — wordt via volledige `update()` gezet. */
   abstract updateScore(
     matchId: number,
     scoreWhite: number,
     scoreRed: number,
-    zlatan: string,
+    zlatanPlayerId: number | null,
   ): Observable<void>;
-  /** Schrijft team-namen + generatietype (kolommen D:F), en optioneel
-   * voorbeschouwing (kolom K). Gebruikt door team-generator.
-   *
-   * `voorbeschouwing` wordt alleen geschreven wanneer truthy (niet-leeg). Een
-   * lege string `''` of `undefined` zal een bestaande voorbeschouwing dus NIET
-   * wissen. Om een voorbeschouwing te wissen, gebruik de volledige
-   * `update(match)` met `voorbeschouwing: ''` in plaats van deze partial-update. */
+  /** Schrijft team-rosters + generation type, en optioneel voorbeschouwing.
+   *  `voorbeschouwing` wordt alleen geschreven wanneer truthy; om een bestaande
+   *  voorbeschouwing te wissen gebruik `update(match)` met `voorbeschouwing: undefined`. */
   abstract updateTeams(
     matchId: number,
-    teamWit: string,
-    teamRood: string,
+    teamWit: number[],
+    teamRood: number[],
     teamGeneration: string,
     voorbeschouwing?: string,
   ): Observable<void>;

@@ -110,9 +110,9 @@ export class WedstrijdenService {
     matchId: number,
     scoreWhite: number,
     scoreRed: number,
-    zlatan: string,
+    zlatanPlayerId: number | null,
   ): Observable<void> {
-    return this.dataSource.updateScore(matchId, scoreWhite, scoreRed, zlatan).pipe(
+    return this.dataSource.updateScore(matchId, scoreWhite, scoreRed, zlatanPlayerId).pipe(
       tap(() => {
         this.wedstrijdenCache$.next(null);
         this.cacheTimestamp = 0;
@@ -125,13 +125,13 @@ export class WedstrijdenService {
   }
 
   /**
-   * Update team-namen + generatietype + optionele voorbeschouwing.
+   * Update team-rosters (id-arrays) + generatietype + optionele voorbeschouwing.
    * Vervangt de directe `batchUpdateSheet`-aanroep in team-generator.component.
    */
   updateTeams(
     matchId: number,
-    teamWit: string,
-    teamRood: string,
+    teamWit: number[],
+    teamRood: number[],
     teamGeneration: string,
     voorbeschouwing?: string,
   ): Observable<void> {
@@ -177,13 +177,6 @@ export class WedstrijdenService {
         const isGespeeld = w.scoreWit !== null && w.scoreRood !== null;
         return filter.gespeeld ? isGespeeld : !isGespeeld;
       });
-    }
-    if (filter.teamFilter) {
-      const teamFilter = filter.teamFilter.toLowerCase();
-      filtered = filtered.filter(w =>
-        w.teamWit.toLowerCase().includes(teamFilter) ||
-        w.teamRood.toLowerCase().includes(teamFilter)
-      );
     }
     return filtered;
   }

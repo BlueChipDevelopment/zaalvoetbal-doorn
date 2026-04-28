@@ -23,18 +23,18 @@ interface Match {
   rowNumber?: number; // Make optional
   matchNumber: number;
   date: string;
-  teamWhitePlayers: string;
-  teamRedPlayers: string;
+  teamWhitePlayerIds: number[];
+  teamRedPlayerIds: number[];
   teamWhiteGoals?: number | string;
   teamRedGoals?: number | string;
-  zlatan?: string;
+  zlatanPlayerId?: number | null;
 }
 
 @Component({
   selector: 'app-score',
   templateUrl: './score.component.html',
   styleUrls: ['./score.component.scss'],
-  standalone: true, 
+  standalone: true,
   imports: [
     CommonModule,
     FormsModule,
@@ -54,10 +54,11 @@ export class ScoreComponent implements OnInit {
   nextMatchInfo: NextMatchInfo | null = null;
   teamWhitePlayers: Player[] = [];
   teamRedPlayers: Player[] = [];
-  participatingPlayers: string[] = [];
+  /** Spelers (Player objecten met id) die in beide teams zitten — gebruikt door de Zlatan-dropdown. */
+  participatingPlayers: Player[] = [];
   whiteGoals: number | null = null;
   redGoals: number | null = null;
-  selectedZlatan: string | null = null;
+  selectedZlatanId: number | null = null;
   isLoading: boolean = true;
   errorMessage: string | null = null;
 
@@ -81,7 +82,7 @@ export class ScoreComponent implements OnInit {
     this.nextMatch = null;
     this.whiteGoals = null;
     this.redGoals = null;
-    this.selectedZlatan = null;
+    this.selectedZlatanId = null;
     this.participatingPlayers = [];
 
     // Haal eerst alle spelersstats op via gameStatisticsService
@@ -99,22 +100,25 @@ export class ScoreComponent implements OnInit {
               this.nextMatch = {
                 matchNumber: wedstrijd.id ?? 0,
                 date: info.parsedDate ? getCurrentDateTimeISO() : info.date,
-                teamWhitePlayers: wedstrijd.teamWit ?? '',
-                teamRedPlayers: wedstrijd.teamRood ?? '',
+                teamWhitePlayerIds: wedstrijd.teamWit ?? [],
+                teamRedPlayerIds: wedstrijd.teamRood ?? [],
                 teamWhiteGoals: wedstrijd.scoreWit ?? undefined,
                 teamRedGoals: wedstrijd.scoreRood ?? undefined,
-                zlatan: wedstrijd.zlatan,
+                zlatanPlayerId: wedstrijd.zlatanPlayerId,
                 rowNumber: info.rowNumber // direct uit NextMatchInfo
               };
               // Bouw de player objecten voor de cards
               if (this.nextMatch) {
-                this.teamWhitePlayers = this.parsePlayers(this.nextMatch.teamWhitePlayers || '', playerStats);
-                this.teamRedPlayers = this.parsePlayers(this.nextMatch.teamRedPlayers || '', playerStats);
-                const combinedPlayers = [...new Set([
-                  ...this.teamWhitePlayers.map(p => p.name),
-                  ...this.teamRedPlayers.map(p => p.name)
-                ])];
-                this.participatingPlayers = combinedPlayers.filter(player => !!player);
+                this.teamWhitePlayers = this.parsePlayers(this.nextMatch.teamWhitePlayerIds, playerStats);
+                this.teamRedPlayers = this.parsePlayers(this.nextMatch.teamRedPlayerIds, playerStats);
+                // Combineer unieke spelers (op id) voor de dropdown
+                const seen = new Set<number>();
+                this.participatingPlayers = [...this.teamWhitePlayers, ...this.teamRedPlayers]
+                  .filter(p => {
+                    if (typeof p.id !== 'number' || seen.has(p.id)) return false;
+                    seen.add(p.id);
+                    return true;
+                  });
               }
               this.isLoading = false;
             } else {
@@ -136,25 +140,19 @@ export class ScoreComponent implements OnInit {
   }
 
   /**
-   * Zet een comma separated string van spelersnamen om naar een array van Player objecten
+   * Zet een array van player-ids om naar een array van Player objecten via playerStats lookup.
    */
-  private parsePlayers(playerString: string, playerStats: any[]): Player[] {
-    return (playerString ?? '')
-      .split(',')
-      .map((player: string) => player.trim())
-      .filter((trimmed: string) => !!trimmed) // Lege namen negeren
-      .map((trimmed: string) => {
-        const match = playerStats.find(p =>
-          (p.name && p.name.trim().toLowerCase() === trimmed.toLowerCase()) ||
-          (p.player && p.player.trim().toLowerCase() === trimmed.toLowerCase())
-        );
+  private parsePlayers(playerIds: number[], playerStats: Player[]): Player[] {
+    return (playerIds ?? [])
+      .map(id => {
+        const match = playerStats.find(p => p.id === id);
         if (!match) {
-          console.warn('No match for:', trimmed, 'in playerStats:', playerStats.map(p => p.name || p.player));
-        } else {
-          console.log('Match found for:', trimmed, match);
+          console.warn('No match for player id:', id, 'in playerStats');
+          return { id, name: '', position: '', rating: 0 } as Player;
         }
-        return match || { name: trimmed, position: '', rating: null };
-      });
+        return match;
+      })
+      .filter(p => !!p.name);
   }
 
   submitScores(): void {
@@ -173,7 +171,7 @@ export class ScoreComponent implements OnInit {
       const matchNumber = this.nextMatch.matchNumber;
       const seizoen = this.nextMatchInfo?.wedstrijd?.seizoen;
       const absoluteId = this.nextMatchInfo?.wedstrijd?.id; // Gebruik het absolute ID voor vergelijking
-      
+
       if (seizoen && absoluteId) {
         // Dubbele controle via wedstrijdenService
         this.nextMatchService.getNextMatchInfo()
@@ -181,7 +179,7 @@ export class ScoreComponent implements OnInit {
           .subscribe({
           next: (currentMatchInfo) => {
             // Vergelijk op seizoen + absolute ID (stabiel)
-            if (currentMatchInfo?.wedstrijd?.seizoen === seizoen && 
+            if (currentMatchInfo?.wedstrijd?.seizoen === seizoen &&
                 currentMatchInfo?.wedstrijd?.id === absoluteId) {
               // Veilig om scores op te slaan
               this.performScoreUpdate(rowIndexToUpdate);
@@ -230,7 +228,7 @@ export class ScoreComponent implements OnInit {
       matchId,
       this.whiteGoals!,
       this.redGoals!,
-      this.selectedZlatan || '',
+      this.selectedZlatanId,
     ).subscribe({
       next: () => {
         console.log(`✅ Scores succesvol opgeslagen voor ${seizoen || 'onbekend'} wedstrijd ${matchNumber}`);

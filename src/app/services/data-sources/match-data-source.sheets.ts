@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { Observable, combineLatest, of, throwError } from 'rxjs';
+import { map, switchMap, take } from 'rxjs/operators';
 import { GoogleSheetsService } from '../google-sheets-service';
 import { WedstrijdData } from '../../interfaces/IWedstrijd';
+import { PlayerSheetData } from '../../interfaces/IPlayerSheet';
 import { parseWedstrijdDateTime } from '../../utils/date-utils';
 import {
   WEDSTRIJD_COLUMNS,
@@ -10,64 +11,59 @@ import {
   SHEET_NAMES,
 } from '../../constants/sheet-columns';
 import { MatchDataSource } from './match-data-source';
+import { PlayerDataSource } from './player-data-source';
 
 @Injectable({ providedIn: 'root' })
 export class SheetsMatchDataSource extends MatchDataSource {
-  constructor(private sheets: GoogleSheetsService) {
+  constructor(
+    private sheets: GoogleSheetsService,
+    private players: PlayerDataSource,
+  ) {
     super();
   }
 
   getAll(): Observable<WedstrijdData[]> {
-    return this.sheets.getSheetData(SHEET_NAMES.WEDSTRIJDEN).pipe(
-      map(rows => this.transformRows(rows)),
+    return combineLatest([
+      this.sheets.getSheetData(SHEET_NAMES.WEDSTRIJDEN),
+      this.players.getAll().pipe(take(1)),
+    ]).pipe(
+      map(([rows, players]) => this.transformRows(rows, players)),
     );
   }
 
   add(match: WedstrijdData): Observable<WedstrijdData> {
-    const datumString = this.formatDate(match.datum);
-    return this.sheets.getSheetData(SHEET_NAMES.WEDSTRIJDEN).pipe(
-      switchMap(rows => {
-        const matches = this.transformRows(rows);
-        const maxId = matches.reduce((m, w) => Math.max(m, w.id || 0), 0);
-        const nextId = maxId + 1;
-        const row = [
-          nextId,
-          match.seizoen || '',
-          datumString,
-          match.teamWit || '',
-          match.teamRood || '',
-          match.teamGeneratie || '',
-          match.scoreWit !== null && match.scoreWit !== undefined ? match.scoreWit : '',
-          match.scoreRood !== null && match.scoreRood !== undefined ? match.scoreRood : '',
-          match.zlatan || '',
-          match.ventiel || '',
-        ];
-        return this.sheets.appendSheetRow(SHEET_NAMES.WEDSTRIJDEN, row).pipe(
-          map(() => ({ ...match, id: nextId, datumString })),
-        );
-      }),
+    return this.players.getAll().pipe(
+      take(1),
+      switchMap(players => this.sheets.getSheetData(SHEET_NAMES.WEDSTRIJDEN).pipe(
+        switchMap(rows => {
+          const matches = this.transformRows(rows, players);
+          const maxId = matches.reduce((m, w) => Math.max(m, w.id || 0), 0);
+          const nextId = maxId + 1;
+          const datumString = this.formatDate(match.datum);
+          const row = this.buildRow(match, nextId, datumString, players);
+          return this.sheets.appendSheetRow(SHEET_NAMES.WEDSTRIJDEN, row).pipe(
+            map(() => ({ ...match, id: nextId, datumString })),
+          );
+        }),
+      )),
     );
   }
 
   update(match: WedstrijdData): Observable<void> {
-    if (!match.absoluteRowNumber) {
-      return throwError(() => new Error('Cannot update match: absoluteRowNumber is missing'));
+    if (!match.id) {
+      return throwError(() => new Error('Cannot update match without id'));
     }
-    const datumString = this.formatDate(match.datum);
-    const row = [
-      match.id || '',
-      match.seizoen || '',
-      datumString,
-      match.teamWit || '',
-      match.teamRood || '',
-      match.teamGeneratie || '',
-      match.scoreWit !== null && match.scoreWit !== undefined ? match.scoreWit : '',
-      match.scoreRood !== null && match.scoreRood !== undefined ? match.scoreRood : '',
-      match.zlatan || '',
-      match.ventiel || '',
-    ];
-    return this.sheets.updateSheetRow(SHEET_NAMES.WEDSTRIJDEN, match.absoluteRowNumber, row).pipe(
-      map(() => undefined),
+    return this.players.getAll().pipe(
+      take(1),
+      switchMap(players => this.findRowNumberForMatch(match.id!).pipe(
+        switchMap(rowNumber => {
+          const datumString = this.formatDate(match.datum);
+          const row = this.buildRow(match, match.id!, datumString, players);
+          return this.sheets.updateSheetRow(SHEET_NAMES.WEDSTRIJDEN, rowNumber, row).pipe(
+            map(() => undefined),
+          );
+        }),
+      )),
     );
   }
 
@@ -75,13 +71,17 @@ export class SheetsMatchDataSource extends MatchDataSource {
     matchId: number,
     scoreWhite: number,
     scoreRed: number,
-    zlatan: string,
+    zlatanPlayerId: number | null,
   ): Observable<void> {
-    return this.findRowNumberForMatch(matchId).pipe(
-      switchMap(rowNumber => {
+    return combineLatest([
+      this.findRowNumberForMatch(matchId),
+      this.players.getAll().pipe(take(1)),
+    ]).pipe(
+      switchMap(([rowNumber, players]) => {
+        const zlatanName = zlatanPlayerId ? this.idToName(zlatanPlayerId, players) : '';
         const data = [{
           range: WEDSTRIJD_RANGES.SCORES_AND_ZLATAN(rowNumber),
-          values: [[scoreWhite, scoreRed, zlatan]],
+          values: [[scoreWhite, scoreRed, zlatanName]],
         }];
         return this.sheets.batchUpdateSheet(data).pipe(map(() => undefined));
       }),
@@ -90,16 +90,21 @@ export class SheetsMatchDataSource extends MatchDataSource {
 
   updateTeams(
     matchId: number,
-    teamWit: string,
-    teamRood: string,
+    teamWit: number[],
+    teamRood: number[],
     teamGeneration: string,
     voorbeschouwing?: string,
   ): Observable<void> {
-    return this.findRowNumberForMatch(matchId).pipe(
-      switchMap(rowNumber => {
+    return combineLatest([
+      this.findRowNumberForMatch(matchId),
+      this.players.getAll().pipe(take(1)),
+    ]).pipe(
+      switchMap(([rowNumber, players]) => {
+        const teamWitNames = teamWit.map(id => this.idToName(id, players)).filter(Boolean).join(',');
+        const teamRoodNames = teamRood.map(id => this.idToName(id, players)).filter(Boolean).join(',');
         const data: { range: string; values: any[][] }[] = [{
           range: WEDSTRIJD_RANGES.TEAMS_WITH_GENERATIE(rowNumber),
-          values: [[teamWit, teamRood, teamGeneration]],
+          values: [[teamWitNames, teamRoodNames, teamGeneration]],
         }];
         if (voorbeschouwing) {
           data.push({
@@ -119,12 +124,41 @@ export class SheetsMatchDataSource extends MatchDataSource {
           const cell = rows[i]?.[WEDSTRIJD_COLUMNS.ID];
           const id = typeof cell === 'number' ? cell : parseInt(String(cell), 10);
           if (id === matchId) {
-            return of(i + 1); // 1-based sheet row
+            return of(i + 1);
           }
         }
         return throwError(() => new Error(`Match not found: id=${matchId}`));
       }),
     );
+  }
+
+  private buildRow(match: WedstrijdData, id: number, datumString: string, players: PlayerSheetData[]): any[] {
+    const teamWitNames = match.teamWit.map(pid => this.idToName(pid, players)).filter(Boolean).join(',');
+    const teamRoodNames = match.teamRood.map(pid => this.idToName(pid, players)).filter(Boolean).join(',');
+    const zlatanName = match.zlatanPlayerId ? this.idToName(match.zlatanPlayerId, players) : '';
+    const ventielName = match.ventielPlayerId ? this.idToName(match.ventielPlayerId, players) : '';
+    return [
+      id,
+      match.seizoen || '',
+      datumString,
+      teamWitNames,
+      teamRoodNames,
+      match.teamGeneratie || '',
+      match.scoreWit !== null && match.scoreWit !== undefined ? match.scoreWit : '',
+      match.scoreRood !== null && match.scoreRood !== undefined ? match.scoreRood : '',
+      zlatanName,
+      ventielName,
+    ];
+  }
+
+  private idToName(id: number, players: PlayerSheetData[]): string {
+    return players.find(p => p.id === id)?.name ?? '';
+  }
+
+  private nameToId(name: string, players: PlayerSheetData[]): number | null {
+    if (!name) return null;
+    const trimmed = name.trim().toLowerCase();
+    return players.find(p => p.name.toLowerCase() === trimmed)?.id ?? null;
   }
 
   private formatDate(date: Date | null | undefined): string {
@@ -137,17 +171,16 @@ export class SheetsMatchDataSource extends MatchDataSource {
 
   private parseScore(value: any): number | null {
     if (value === null || value === undefined || value === '') return null;
-    const parsed = parseInt(value, 10);
+    const parsed = parseInt(String(value), 10);
     return isNaN(parsed) ? null : parsed;
   }
 
-  private transformRows(rawData: any[][]): WedstrijdData[] {
+  private transformRows(rawData: any[][], players: PlayerSheetData[]): WedstrijdData[] {
     if (!rawData || rawData.length <= 1) return [];
 
     const baseMatches = rawData.slice(1)
       .filter(row => row && row.length > 0)
       .map((row, index) => {
-        const absoluteRowNumber = index + 2;
         const seizoen = (row[WEDSTRIJD_COLUMNS.SEIZOEN] || '').toString().trim();
         const datumString = row[WEDSTRIJD_COLUMNS.DATUM] || '';
         const parsedDatum = parseWedstrijdDateTime(datumString);
@@ -158,31 +191,39 @@ export class SheetsMatchDataSource extends MatchDataSource {
           id = sheetId;
         } else {
           id = index + 1;
-          console.warn(`Wedstrijd rij ${absoluteRowNumber}: Geen geldig ID in kolom A (${row[WEDSTRIJD_COLUMNS.ID]}), gebruik fallback ${id}`);
+          console.warn(`Wedstrijd rij ${index + 2}: Geen geldig ID in kolom A, fallback ${id}`);
         }
+
+        const teamWitNames = (row[WEDSTRIJD_COLUMNS.TEAM_WIT] || '').toString();
+        const teamRoodNames = (row[WEDSTRIJD_COLUMNS.TEAM_ROOD] || '').toString();
+        const zlatanName = (row[WEDSTRIJD_COLUMNS.ZLATAN] || '').toString();
+        const ventielName = (row[WEDSTRIJD_COLUMNS.VENTIEL] || '').toString();
+
+        const teamWit = teamWitNames.split(',').map((n: string) => this.nameToId(n, players)).filter((x: number | null): x is number => x !== null);
+        const teamRood = teamRoodNames.split(',').map((n: string) => this.nameToId(n, players)).filter((x: number | null): x is number => x !== null);
+        const zlatanPlayerId = this.nameToId(zlatanName, players);
+        const ventielPlayerId = this.nameToId(ventielName, players);
 
         return {
           id,
           seizoen,
-          absoluteRowNumber,
           datum: parsedDatum,
           datumString,
-          teamWit: row[WEDSTRIJD_COLUMNS.TEAM_WIT] || '',
-          teamRood: row[WEDSTRIJD_COLUMNS.TEAM_ROOD] || '',
+          teamWit,
+          teamRood,
           teamGeneratie: row[WEDSTRIJD_COLUMNS.TEAM_GENERATIE] || '',
           scoreWit: this.parseScore(row[WEDSTRIJD_COLUMNS.SCORE_WIT]),
           scoreRood: this.parseScore(row[WEDSTRIJD_COLUMNS.SCORE_ROOD]),
-          zlatan: row[WEDSTRIJD_COLUMNS.ZLATAN] || '',
-          ventiel: row[WEDSTRIJD_COLUMNS.VENTIEL] || '',
+          zlatanPlayerId,
+          ventielPlayerId,
           voorbeschouwing: row[WEDSTRIJD_COLUMNS.VOORBESCHOUWING] || undefined,
           locatie: 'Sporthal Steinheim',
-        };
+        } as WedstrijdData;
       });
 
     const seizoenCounters = new Map<string, number>();
     return baseMatches.map(m => {
       if (!m.seizoen) {
-        console.warn(`Wedstrijd ${m.datumString}: Geen seizoen in kolom B gevonden`);
         return m;
       }
       const currentCount = seizoenCounters.get(m.seizoen) || 0;

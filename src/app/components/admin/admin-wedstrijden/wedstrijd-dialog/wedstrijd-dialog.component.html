@@ -3,7 +3,7 @@
 <mat-dialog-content>
   <form [formGroup]="wedstrijdForm">
     <div class="form-row">
-      
+
       <mat-form-field appearance="outline" class="half-width">
         <mat-label>Seizoen *</mat-label>
         <input matInput formControlName="seizoen" required>
@@ -25,12 +25,16 @@
 
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Team Wit</mat-label>
-      <textarea matInput formControlName="teamWit" rows="2"></textarea>
+      <mat-select formControlName="teamWit" multiple>
+        <mat-option *ngFor="let player of allPlayers$ | async" [value]="player.id">{{ player.name }}</mat-option>
+      </mat-select>
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Team Rood</mat-label>
-      <textarea matInput formControlName="teamRood" rows="2"></textarea>
+      <mat-select formControlName="teamRood" multiple>
+        <mat-option *ngFor="let player of allPlayers$ | async" [value]="player.id">{{ player.name }}</mat-option>
+      </mat-select>
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
@@ -64,12 +68,18 @@
     <div class="form-row">
       <mat-form-field appearance="outline" class="half-width">
         <mat-label>Zlatan</mat-label>
-        <input matInput formControlName="zlatan">
+        <mat-select formControlName="zlatanPlayerId">
+          <mat-option [value]="null">Geen</mat-option>
+          <mat-option *ngFor="let player of allPlayers$ | async" [value]="player.id">{{ player.name }}</mat-option>
+        </mat-select>
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="half-width">
         <mat-label>Ventiel</mat-label>
-        <input matInput formControlName="ventiel">
+        <mat-select formControlName="ventielPlayerId">
+          <mat-option [value]="null">Geen</mat-option>
+          <mat-option *ngFor="let player of allPlayers$ | async" [value]="player.id">{{ player.name }}</mat-option>
+        </mat-select>
       </mat-form-field>
     </div>
   </form>

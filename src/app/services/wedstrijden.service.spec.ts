@@ -15,14 +15,13 @@ describe('WedstrijdenService', () => {
       seizoenWedstrijdNummer: 1,
       datum: new Date('2025-09-15'),
       datumString: '15-09-2025',
-      teamWit: 'Wit',
-      teamRood: 'Rood',
+      teamWit: [1, 2],
+      teamRood: [3, 4],
       teamGeneratie: 'Automatisch',
       scoreWit: 3,
       scoreRood: 2,
-      zlatan: 'Bob',
-      ventiel: '',
-      absoluteRowNumber: 2,
+      zlatanPlayerId: 2,
+      ventielPlayerId: null,
       locatie: 'Sporthal Steinheim',
     },
     {
@@ -31,14 +30,13 @@ describe('WedstrijdenService', () => {
       seizoenWedstrijdNummer: 2,
       datum: new Date('2025-09-22'),
       datumString: '22-09-2025',
-      teamWit: 'Wit',
-      teamRood: 'Rood',
+      teamWit: [1, 2],
+      teamRood: [3, 4],
       teamGeneratie: 'Automatisch',
       scoreWit: null,
       scoreRood: null,
-      zlatan: '',
-      ventiel: '',
-      absoluteRowNumber: 3,
+      zlatanPlayerId: null,
+      ventielPlayerId: null,
       locatie: 'Sporthal Steinheim',
     },
   ];
@@ -72,18 +70,18 @@ describe('WedstrijdenService', () => {
     });
   });
 
-  it('updateScore delegeert naar de data-source en clear de cache', (done) => {
+  it('updateScore delegeert naar de data-source met playerId', (done) => {
     mockDataSource.updateScore.and.returnValue(of(undefined));
-    service.updateScore(1, 4, 1, 'Bob').subscribe(() => {
-      expect(mockDataSource.updateScore).toHaveBeenCalledWith(1, 4, 1, 'Bob');
+    service.updateScore(1, 4, 1, 2).subscribe(() => {
+      expect(mockDataSource.updateScore).toHaveBeenCalledWith(1, 4, 1, 2);
       done();
     });
   });
 
-  it('updateTeams delegeert naar de data-source met optionele voorbeschouwing', (done) => {
+  it('updateTeams delegeert naar de data-source met id-arrays', (done) => {
     mockDataSource.updateTeams.and.returnValue(of(undefined));
-    service.updateTeams(1, 'A,B', 'C,D', 'Handmatig', 'tactiek').subscribe(() => {
-      expect(mockDataSource.updateTeams).toHaveBeenCalledWith(1, 'A,B', 'C,D', 'Handmatig', 'tactiek');
+    service.updateTeams(1, [1, 2], [3, 4], 'Handmatig', 'tactiek').subscribe(() => {
+      expect(mockDataSource.updateTeams).toHaveBeenCalledWith(1, [1, 2], [3, 4], 'Handmatig', 'tactiek');
       done();
     });
   });
@@ -92,13 +90,13 @@ describe('WedstrijdenService', () => {
     const input: WedstrijdData = {
       seizoen: '2026-2027',
       datum: new Date('2026-08-30'),
-      teamWit: 'Wit',
-      teamRood: 'Rood',
+      teamWit: [1],
+      teamRood: [2],
       teamGeneratie: 'Automatisch',
       scoreWit: null,
       scoreRood: null,
-      zlatan: '',
-      ventiel: '',
+      zlatanPlayerId: null,
+      ventielPlayerId: null,
     };
     mockDataSource.add.and.returnValue(of({ ...input, id: 42, datumString: '30-08-2026' }));
     service.addWedstrijd(input).subscribe(result => {

@@ -42,24 +42,24 @@ describe('WedstrijdIdentifierService', () => {
       id: 1,
       seizoen: '2024-2025',
       datum: new Date(2024, 8, 1),
-      teamWit: 'Team A',
-      teamRood: 'Team B',
+      teamWit: [],
+      teamRood: [],
       scoreWit: null,
       scoreRood: null,
-      zlatan: '',
-      ventiel: ''
+      zlatanPlayerId: null,
+      ventielPlayerId: null
     };
 
     const wedstrijd2: WedstrijdData = {
       id: 1,
       seizoen: '2024-2025',
       datum: new Date(2024, 8, 1),
-      teamWit: 'Team A',
-      teamRood: 'Team B',
+      teamWit: [],
+      teamRood: [],
       scoreWit: null,
       scoreRood: null,
-      zlatan: '',
-      ventiel: ''
+      zlatanPlayerId: null,
+      ventielPlayerId: null
     };
 
     expect(service.isSameWedstrijd(wedstrijd1, wedstrijd2)).toBe(true);
@@ -70,24 +70,24 @@ describe('WedstrijdIdentifierService', () => {
       id: 1,
       seizoen: '2024-2025',
       datum: new Date(2024, 8, 1),
-      teamWit: 'Team A',
-      teamRood: 'Team B',
+      teamWit: [],
+      teamRood: [],
       scoreWit: null,
       scoreRood: null,
-      zlatan: '',
-      ventiel: ''
+      zlatanPlayerId: null,
+      ventielPlayerId: null
     };
 
     const wedstrijd2: WedstrijdData = {
       id: 2,
       seizoen: '2024-2025',
       datum: new Date(2024, 8, 8),
-      teamWit: 'Team C',
-      teamRood: 'Team D',
+      teamWit: [],
+      teamRood: [],
       scoreWit: null,
       scoreRood: null,
-      zlatan: '',
-      ventiel: ''
+      zlatanPlayerId: null,
+      ventielPlayerId: null
     };
 
     expect(service.isSameWedstrijd(wedstrijd1, wedstrijd2)).toBe(false);
@@ -99,12 +99,12 @@ describe('WedstrijdIdentifierService', () => {
       seizoen: '2024-2025',
       seizoenWedstrijdNummer: 5,
       datum: new Date(2024, 8, 1),
-      teamWit: 'Team A',
-      teamRood: 'Team B',
+      teamWit: [],
+      teamRood: [],
       scoreWit: null,
       scoreRood: null,
-      zlatan: '',
-      ventiel: ''
+      zlatanPlayerId: null,
+      ventielPlayerId: null
     };
 
     expect(service.getWedstrijdDisplayName(wedstrijd)).toBe('2024-2025 Wedstrijd #5');
@@ -114,26 +114,25 @@ describe('WedstrijdIdentifierService', () => {
     const safeWedstrijd: WedstrijdData = {
       id: 1,
       seizoen: '2024-2025',
-      absoluteRowNumber: 10,
       datum: new Date(2024, 8, 1),
-      teamWit: 'Team A',
-      teamRood: 'Team B',
+      teamWit: [],
+      teamRood: [],
       scoreWit: null,
       scoreRood: null,
-      zlatan: '',
-      ventiel: ''
+      zlatanPlayerId: null,
+      ventielPlayerId: null
     };
 
     const unsafeWedstrijd: WedstrijdData = {
       id: 1,
       seizoen: null,
       datum: new Date(2024, 8, 1),
-      teamWit: 'Team A',
-      teamRood: 'Team B',
+      teamWit: [],
+      teamRood: [],
       scoreWit: null,
       scoreRood: null,
-      zlatan: '',
-      ventiel: ''
+      zlatanPlayerId: null,
+      ventielPlayerId: null
     };
 
     expect(service.isSafeToUpdate(safeWedstrijd)).toBe(true);

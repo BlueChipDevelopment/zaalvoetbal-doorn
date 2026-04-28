@@ -66,9 +66,9 @@ export class WedstrijdIdentifierService {
 
   /**
    * Valideer of een wedstrijd veilig is om bij te werken
-   * (heeft seizoen en absolute row number)
+   * (heeft seizoen en id)
    */
   isSafeToUpdate(wedstrijd: WedstrijdData): boolean {
-    return !!(wedstrijd.seizoen && wedstrijd.absoluteRowNumber);
+    return !!(wedstrijd.seizoen && wedstrijd.id);
   }
 }

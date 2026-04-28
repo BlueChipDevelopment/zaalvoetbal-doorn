@@ -255,10 +255,16 @@ export class TeamGeneratorComponent implements OnInit {
 
     const results: { wedstrijd: WedstrijdData; score: number; isFlipped: boolean }[] = [];
 
+    // Resolve historic player-ids naar namen (lowercase) via fullPlayerStats voor naam-vergelijking.
+    const idToName = (id: number): string => {
+      const stat = this.fullPlayerStats.find(p => p.id === id);
+      return stat?.name?.toLowerCase().trim() ?? '';
+    };
+
     for (const w of this.historischeWedstrijden) {
-      if (!w.teamWit || !w.teamRood || !w.datum) continue;
-      const histWhite = new Set(w.teamWit.split(',').map(n => n.toLowerCase().trim()).filter(n => n));
-      const histRed   = new Set(w.teamRood.split(',').map(n => n.toLowerCase().trim()).filter(n => n));
+      if (!w.teamWit?.length || !w.teamRood?.length || !w.datum) continue;
+      const histWhite = new Set(w.teamWit.map(idToName).filter(n => n));
+      const histRed   = new Set(w.teamRood.map(idToName).filter(n => n));
       if (histWhite.size === 0 && histRed.size === 0) continue;
 
       // Normaal: wit vs wit + rood vs rood
@@ -741,9 +747,13 @@ export class TeamGeneratorComponent implements OnInit {
     this.loadingSubject.next(true);
     this.errorMessage = null;
 
-    // Save to Wedstrijden sheet as before
-    const teamWhiteNames = this.teams.teamWhite.squad.map(p => p.name).join(', ');
-    const teamRedNames = this.teams.teamRed.squad.map(p => p.name).join(', ');
+    // Save to Wedstrijden sheet — id-arrays aanleveren aan WedstrijdenService.
+    const teamWhitePlayerIds = this.teams.teamWhite.squad
+      .map(p => p.id)
+      .filter((id): id is number => typeof id === 'number');
+    const teamRedPlayerIds = this.teams.teamRed.squad
+      .map(p => p.id)
+      .filter((id): id is number => typeof id === 'number');
 
     // Extra validatie: controleer seizoen en wedstrijdnummer
     const seizoen = this.nextMatchInfo.seizoen;
@@ -768,8 +778,8 @@ export class TeamGeneratorComponent implements OnInit {
     // gebruiker wegnavigeert voor de response binnen is.
     this.wedstrijdenService.updateTeams(
       matchId,
-      teamWhiteNames,
-      teamRedNames,
+      teamWhitePlayerIds,
+      teamRedPlayerIds,
       'Handmatig',
       this.algorithmExplanation || undefined,
     ).subscribe({

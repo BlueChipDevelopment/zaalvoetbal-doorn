@@ -68,7 +68,7 @@ export class OpstellingComponent implements OnInit, OnDestroy {
       .subscribe({
       next: (info) => {
         this.nextMatchInfo = info;
-        if (info && info.wedstrijd && info.wedstrijd.teamWit && info.wedstrijd.teamRood) {
+        if (info && info.wedstrijd && info.wedstrijd.teamWit?.length && info.wedstrijd.teamRood?.length) {
           // Opstelling is bekend
           this.loadPlayerCards(info);
         } else {
@@ -114,18 +114,13 @@ export class OpstellingComponent implements OnInit, OnDestroy {
     });
   }
 
-  private parsePlayers(playerString: string, playerStats: any[]): any[] {
-    return (playerString ?? '')
-      .split(',')
-      .map((player: string) => player.trim())
-      .filter((trimmed: string) => !!trimmed)
-      .map((trimmed: string) => {
-        const match = playerStats.find((p: any) =>
-          (p.name && p.name.trim().toLowerCase() === trimmed.toLowerCase()) ||
-          (p.player && p.player.trim().toLowerCase() === trimmed.toLowerCase())
-        );
-        return match || { name: trimmed, position: '', rating: null };
-      });
+  private parsePlayers(playerIds: number[], playerStats: any[]): any[] {
+    return (playerIds ?? [])
+      .map((id: number) => {
+        const match = playerStats.find((p: any) => p.id === id);
+        return match || { id, name: '', position: '', rating: null };
+      })
+      .filter((p: any) => !!p.name);
   }
 
   private setCountdown(info: NextMatchInfo | null) {

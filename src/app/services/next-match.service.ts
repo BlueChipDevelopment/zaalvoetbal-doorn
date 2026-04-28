@@ -47,7 +47,7 @@ export class NextMatchService {
           location: nextWedstrijd.locatie || 'Sporthal Steinheim',
           time: '20:30',
           matchNumber: nextWedstrijd.seizoenWedstrijdNummer ?? nextWedstrijd.id ?? null,
-          rowNumber: nextWedstrijd.absoluteRowNumber || (nextWedstrijd.id ? Number(nextWedstrijd.id) + 1 : undefined),
+          rowNumber: nextWedstrijd.id ? Number(nextWedstrijd.id) + 1 : undefined,
           seizoen: nextWedstrijd.seizoen,
         };
       })
