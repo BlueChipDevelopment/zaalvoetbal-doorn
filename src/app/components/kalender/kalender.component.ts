@@ -17,7 +17,6 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { finalize, Observable, forkJoin } from 'rxjs';
-import { GoogleSheetsService } from '../../services/google-sheets-service';
 import { AttendanceService } from '../../services/attendance.service';
 import { PlayerService } from '../../services/player.service';
 import { PlayerSheetData } from '../../interfaces/IPlayerSheet';
@@ -118,7 +117,6 @@ export class KalenderComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
 
   constructor(
-    private googleSheetsService: GoogleSheetsService,
     private attendanceService: AttendanceService,
     private playerService: PlayerService,
     private nextMatchService: NextMatchService,

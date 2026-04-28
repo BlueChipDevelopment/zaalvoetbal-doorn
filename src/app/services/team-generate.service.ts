@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { Player } from '../interfaces/IPlayer';
 import { Positions } from '../enums/positions.enum';
 import { Team } from '../interfaces/ITeam';
-import { GoogleSheetsService } from './google-sheets-service';
 import { GameStatisticsService } from './game.statistics.service';
 import { Observable } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
@@ -31,7 +30,7 @@ export class TeamGenerateService {
   private generatedTeams: Team[] = [];
   private lastGenerationResult: TeamGenerationResult | null = null;
 
-  constructor(private googleSheetsService: GoogleSheetsService, private gameStatisticsService: GameStatisticsService) {}
+  constructor(private gameStatisticsService: GameStatisticsService) {}
 
   generateTeams(players: Player[]): TeamGenerationResult | null {
     if (!players || players.length === 0) {

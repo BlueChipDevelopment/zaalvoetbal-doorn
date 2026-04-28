@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { GameHistoryEntry, Player } from '../interfaces/IPlayer';
 import { Observable, forkJoin } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
-import { GoogleSheetsService } from './google-sheets-service';
 import { PlayerService } from './player.service';
 import { PlayerSheetData } from '../interfaces/IPlayerSheet';
 import { WedstrijdenService } from './wedstrijden.service';
@@ -16,7 +15,6 @@ export class GameStatisticsService {
   private cacheDurationMs = 5 * 60 * 1000; // 5 minuten
 
   constructor(
-    private googleSheetsService: GoogleSheetsService,
     private playerService: PlayerService,
     private wedstrijdenService: WedstrijdenService
   ) {}
