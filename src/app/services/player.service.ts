@@ -32,6 +32,12 @@ export class PlayerService {
     );
   }
 
+  getPlayerById(id: number): Observable<PlayerSheetData | undefined> {
+    return this.getCachedPlayers().pipe(
+      map(players => players.find(player => player.id === id))
+    );
+  }
+
   refreshPlayers(): Observable<PlayerSheetData[]> {
     this.clearCache();
     return this.getCachedPlayers();

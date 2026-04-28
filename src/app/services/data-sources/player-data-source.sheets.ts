@@ -23,19 +23,28 @@ export class SheetsPlayerDataSource extends PlayerDataSource {
     return this.sheets.appendSheetRow(SHEET_NAMES.SPELERS, row).pipe(map(() => undefined));
   }
 
-  update(name: string, player: PlayerSheetData): Observable<void> {
+  update(nameOrId: string | number, player: PlayerSheetData): Observable<void> {
     return this.sheets.getSheetData(SHEET_NAMES.SPELERS).pipe(
       switchMap(rows => {
         let foundRowIndex = -1;
         for (let i = 1; i < rows.length; i++) {
-          const cell = rows[i]?.[SPELER_COLUMNS.NAME];
-          if (typeof cell === 'string' && cell.toLowerCase().trim() === name.toLowerCase().trim()) {
-            foundRowIndex = i;
-            break;
+          if (typeof nameOrId === 'string') {
+            const cell = rows[i]?.[SPELER_COLUMNS.NAME];
+            if (typeof cell === 'string' && cell.toLowerCase().trim() === nameOrId.toLowerCase().trim()) {
+              foundRowIndex = i;
+              break;
+            }
+          } else {
+            // id = i (1-based dataRow-index = array-index omdat we vanaf i=1 starten,
+            // header op index 0 overgeslagen)
+            if (i === nameOrId) {
+              foundRowIndex = i;
+              break;
+            }
           }
         }
         if (foundRowIndex === -1) {
-          return throwError(() => new Error(`Player not found in sheet: ${name}`));
+          return throwError(() => new Error(`Player not found in sheet: ${nameOrId}`));
         }
         const updatedRow = [player.name, player.position, player.actief ? 'Ja' : 'Nee'];
         const sheetRowNumber = foundRowIndex + 1;
@@ -49,8 +58,10 @@ export class SheetsPlayerDataSource extends PlayerDataSource {
       return [];
     }
     return rows.slice(1)
-      .filter(row => row && row[SPELER_COLUMNS.NAME])
-      .map(row => ({
+      .map((row, idx) => ({ row, dataRowIndex: idx + 1 })) // 1-based, header overgeslagen
+      .filter(({ row }) => row && row[SPELER_COLUMNS.NAME])
+      .map(({ row, dataRowIndex }) => ({
+        id: dataRowIndex,
         name: this.sanitize(row[SPELER_COLUMNS.NAME]),
         position: this.sanitize(row[SPELER_COLUMNS.POSITION]) || '',
         actief: this.parseBoolean(row[SPELER_COLUMNS.ACTIEF]),

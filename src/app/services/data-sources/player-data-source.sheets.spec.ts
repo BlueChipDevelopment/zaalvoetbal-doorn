@@ -18,7 +18,7 @@ describe('SheetsPlayerDataSource', () => {
     dataSource = TestBed.inject(SheetsPlayerDataSource);
   });
 
-  it('mapt rauwe rijen naar PlayerSheetData en sorteert alfabetisch', async () => {
+  it('mapt rauwe rijen naar PlayerSheetData met id (1-based dataRow, header overgeslagen) en sorteert alfabetisch', async () => {
     sheets.getSheetData.and.returnValue(of([
       ['Naam', 'Positie', 'Actief'],
       ['  Bob  ', 'Speler', 'Ja'],
@@ -29,8 +29,8 @@ describe('SheetsPlayerDataSource', () => {
     const players = await lastValueFrom(dataSource.getAll());
 
     expect(players).toEqual([
-      { name: 'Alice', position: 'Keeper', actief: false },
-      { name: 'Bob',   position: 'Speler', actief: true },
+      { id: 2, name: 'Alice', position: 'Keeper', actief: false },
+      { id: 1, name: 'Bob',   position: 'Speler', actief: true },
     ]);
     expect(sheets.getSheetData).toHaveBeenCalledWith('Spelers');
   });
