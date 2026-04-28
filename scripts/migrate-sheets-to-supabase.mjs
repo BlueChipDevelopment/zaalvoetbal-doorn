@@ -174,6 +174,148 @@ async function writePlayers(supabase, players, args) {
   return players.length;
 }
 
+const WEDSTRIJD_COLUMNS = {
+  ID: 0, SEIZOEN: 1, DATUM: 2, TEAM_WIT: 3, TEAM_ROOD: 4,
+  TEAM_GENERATIE: 5, SCORE_WIT: 6, SCORE_ROOD: 7,
+  ZLATAN: 8, VENTIEL: 9, VOORBESCHOUWING: 10,
+};
+
+/**
+ * Convert "DD-MM-YYYY" naar ISO "YYYY-MM-DD". Returnt null bij parse-failure.
+ */
+function parseDateToIso(value) {
+  if (!value) return null;
+  const s = String(value).trim();
+  // Verwacht DD-MM-YYYY
+  const m = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (!m) return null;
+  const dd = m[1].padStart(2, '0');
+  const mm = m[2].padStart(2, '0');
+  const yyyy = m[3];
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function nameToId(name, players) {
+  if (!name) return null;
+  const trimmed = String(name).trim().toLowerCase();
+  if (!trimmed) return null;
+  const found = players.find(p => p.name.trim().toLowerCase() === trimmed);
+  return found ? found.id : null;
+}
+
+function transformMatches(rawWedstrijden, players) {
+  const warnings = [];
+  const matches = [];
+  rawWedstrijden.slice(1).forEach((row, idx) => {
+    if (!row || row.length === 0) return;
+    const id = parseScore(row[WEDSTRIJD_COLUMNS.ID]);
+    if (id === null || id <= 0) {
+      warnings.push(`rij ${idx + 2}: geen geldig id, geskipt`);
+      return;
+    }
+    const dateIso = parseDateToIso(row[WEDSTRIJD_COLUMNS.DATUM]);
+    if (!dateIso) {
+      warnings.push(`rij ${idx + 2} (id=${id}): geen geldige datum "${row[WEDSTRIJD_COLUMNS.DATUM]}", geskipt`);
+      return;
+    }
+
+    const zlatanName = sanitize(row[WEDSTRIJD_COLUMNS.ZLATAN]);
+    const ventielName = sanitize(row[WEDSTRIJD_COLUMNS.VENTIEL]);
+    const zlatanPlayerId = zlatanName ? nameToId(zlatanName, players) : null;
+    const ventielPlayerId = ventielName ? nameToId(ventielName, players) : null;
+    if (zlatanName && zlatanPlayerId === null) {
+      warnings.push(`match ${id}: zlatan-naam "${zlatanName}" niet gevonden in players`);
+    }
+    if (ventielName && ventielPlayerId === null) {
+      warnings.push(`match ${id}: ventiel-naam "${ventielName}" niet gevonden in players`);
+    }
+
+    matches.push({
+      id,
+      date: dateIso,
+      location: 'Sporthal Steinheim',
+      // season is GENERATED ALWAYS — niet meesturen
+      team_generation: sanitize(row[WEDSTRIJD_COLUMNS.TEAM_GENERATIE]) || null,
+      score_white: parseScore(row[WEDSTRIJD_COLUMNS.SCORE_WIT]),
+      score_red: parseScore(row[WEDSTRIJD_COLUMNS.SCORE_ROOD]),
+      zlatan_player_id: zlatanPlayerId,
+      ventiel_player_id: ventielPlayerId,
+      voorbeschouwing: sanitize(row[WEDSTRIJD_COLUMNS.VOORBESCHOUWING]) || null,
+      // Bewaar de raw team-strings tijdelijk voor lineup-extractie:
+      _teamWitNames: sanitize(row[WEDSTRIJD_COLUMNS.TEAM_WIT]),
+      _teamRoodNames: sanitize(row[WEDSTRIJD_COLUMNS.TEAM_ROOD]),
+    });
+  });
+  return { matches, warnings };
+}
+
+function buildMatchLineups(matches, players) {
+  const lineups = [];
+  const warnings = [];
+  for (const m of matches) {
+    const parseTeam = (raw, team) => {
+      if (!raw) return [];
+      const names = String(raw).split(',').map(n => n.trim()).filter(Boolean);
+      const ids = [];
+      for (const n of names) {
+        const pid = nameToId(n, players);
+        if (pid === null) {
+          warnings.push(`match ${m.id} ${team}: naam "${n}" niet gevonden in players`);
+        } else {
+          ids.push(pid);
+        }
+      }
+      return ids;
+    };
+    const witIds = parseTeam(m._teamWitNames, 'wit');
+    const roodIds = parseTeam(m._teamRoodNames, 'rood');
+    for (const pid of witIds) lineups.push({ match_id: m.id, player_id: pid, team: 'wit' });
+    for (const pid of roodIds) lineups.push({ match_id: m.id, player_id: pid, team: 'rood' });
+  }
+  return { lineups, warnings };
+}
+
+async function writeMatches(supabase, matches, args) {
+  if (!args.write) {
+    console.log(`  (dry-run) zou ${matches.length} matches inserten`);
+    return matches.length;
+  }
+  // Strip de _teamX velden uit het te-inserten object — supabase-js fail anders met kolom-niet-gevonden.
+  const cleaned = matches.map(m => {
+    const { _teamWitNames, _teamRoodNames, ...rest } = m;
+    return rest;
+  });
+  // Insert in chunks van 200 voor stabiliteit.
+  for (let i = 0; i < cleaned.length; i += 200) {
+    const chunk = cleaned.slice(i, i + 200);
+    const { error } = await supabase.from('matches').insert(chunk);
+    if (error) throw new Error(`Insert matches chunk ${i} failed: ${error.message}`);
+  }
+  // Sequence
+  const maxId = Math.max(...matches.map(m => m.id));
+  const { error: seqErr } = await supabase.rpc('setval_seq', { seq_name: 'matches_id_seq', new_value: maxId });
+  if (seqErr) {
+    console.warn(`  Sequence-update via RPC niet beschikbaar (${seqErr.message}).`);
+    console.warn(`  Run handmatig in Studio: SELECT setval('matches_id_seq', ${maxId});`);
+  } else {
+    console.log(`  Sequence matches_id_seq → ${maxId}`);
+  }
+  return matches.length;
+}
+
+async function writeMatchLineups(supabase, lineups, args) {
+  if (!args.write) {
+    console.log(`  (dry-run) zou ${lineups.length} lineup-rijen inserten`);
+    return lineups.length;
+  }
+  for (let i = 0; i < lineups.length; i += 500) {
+    const chunk = lineups.slice(i, i + 500);
+    const { error } = await supabase.from('match_lineups').insert(chunk);
+    if (error) throw new Error(`Insert match_lineups chunk ${i} failed: ${error.message}`);
+  }
+  return lineups.length;
+}
+
 async function main() {
   const args = parseArgs();
   const env = loadEnv();
@@ -214,6 +356,20 @@ async function main() {
   console.log(`  Getransformeerd: ${players.length} players`);
   const playersWritten = await writePlayers(supabase, players, args);
   console.log(`  Geschreven: ${playersWritten}`);
+
+  console.log('\n=== Matches ===');
+  const { matches, warnings: matchWarnings } = transformMatches(rawWedstrijden, players);
+  console.log(`  Getransformeerd: ${matches.length} matches`);
+  for (const w of matchWarnings) console.warn(`  WARN: ${w}`);
+  const matchesWritten = await writeMatches(supabase, matches, args);
+  console.log(`  Geschreven: ${matchesWritten}`);
+
+  console.log('\n=== Match lineups ===');
+  const { lineups, warnings: lineupWarnings } = buildMatchLineups(matches, players);
+  console.log(`  Getransformeerd: ${lineups.length} lineup-rijen`);
+  for (const w of lineupWarnings) console.warn(`  WARN: ${w}`);
+  const lineupsWritten = await writeMatchLineups(supabase, lineups, args);
+  console.log(`  Geschreven: ${lineupsWritten}`);
 }
 
 main().catch(err => {
