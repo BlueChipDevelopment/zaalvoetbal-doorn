@@ -48,6 +48,40 @@ function printBanner(args) {
   console.log(lines.join('\n'));
 }
 
+async function readSheet(env, sheetName) {
+  const url = `${env.FIREBASE_BASE_URL}/getSheetData?spreadsheetId=${env.SPREADSHEET_ID}&sheetName=${encodeURIComponent(sheetName)}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Sheet read failed for ${sheetName}: HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  if (!Array.isArray(data)) {
+    throw new Error(`Sheet read for ${sheetName} returned non-array: ${typeof data}`);
+  }
+  return data;
+}
+
+function sanitize(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).trim();
+}
+
+function parseBoolean(value) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const v = value.toLowerCase().trim();
+    return v === 'ja' || v === 'true' || v === '1';
+  }
+  if (typeof value === 'number') return value === 1;
+  return false;
+}
+
+function parseScore(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = parseInt(String(value), 10);
+  return isNaN(parsed) ? null : parsed;
+}
+
 async function main() {
   const args = parseArgs();
   const env = loadEnv();
@@ -68,7 +102,16 @@ async function main() {
   }
   console.log('Supabase connectivity OK.');
 
-  // Volgende tasks vullen hier de migratie-stappen in.
+  console.log('Reading source data from Sheets...');
+  const rawSpelers = await readSheet(env, 'Spelers');
+  const rawWedstrijden = await readSheet(env, 'Wedstrijden');
+  const rawAanwezigheid = await readSheet(env, 'Aanwezigheid');
+  const rawNotificaties = await readSheet(env, 'Notificaties');
+  console.log(`  Spelers:       ${rawSpelers.length - 1} rijen (excl. header)`);
+  console.log(`  Wedstrijden:   ${rawWedstrijden.length - 1} rijen (excl. header)`);
+  console.log(`  Aanwezigheid:  ${rawAanwezigheid.length - 1} rijen (excl. header)`);
+  console.log(`  Notificaties:  ${rawNotificaties.length - 1} rijen (excl. header)`);
+
   console.log('\n(stub: nog geen migratie-logica geïmplementeerd)');
 }
 
