@@ -82,6 +82,43 @@ function parseScore(value) {
   return isNaN(parsed) ? null : parsed;
 }
 
+async function tableCount(supabase, table) {
+  const { count, error } = await supabase.from(table).select('*', { count: 'exact', head: true });
+  if (error) throw new Error(`Could not count ${table}: ${error.message}`);
+  return count ?? 0;
+}
+
+async function preFlight(supabase, args) {
+  const tables = ['players', 'matches', 'match_lineups', 'attendance', 'push_subscriptions'];
+  const counts = {};
+  for (const t of tables) {
+    counts[t] = await tableCount(supabase, t);
+  }
+  const nonEmpty = tables.filter(t => counts[t] > 0);
+  console.log('Doel-tabellen huidige counts:');
+  for (const t of tables) {
+    console.log(`  ${t}: ${counts[t]}`);
+  }
+  if (args.write && nonEmpty.length > 0 && !args.wipeFirst) {
+    console.error('\nERROR: doel-tabellen niet leeg en --wipe-first niet meegegeven.');
+    console.error('Tabellen met data:', nonEmpty.join(', '));
+    console.error('Run met --wipe-first om eerst te wissen, of leeg ze handmatig in Studio.');
+    process.exit(1);
+  }
+}
+
+async function wipeAll(supabase) {
+  console.log('\nWipe: bestaande data verwijderen...');
+  // Volgorde respecteert FK's: kinderen eerst.
+  const order = ['attendance', 'match_lineups', 'push_subscriptions', 'matches', 'players'];
+  for (const t of order) {
+    const filterColumn = t === 'match_lineups' ? 'match_id' : 'id';
+    const { error } = await supabase.from(t).delete().not(filterColumn, 'is', null);
+    if (error) throw new Error(`Wipe ${t} failed: ${error.message}`);
+    console.log(`  ${t} gewist`);
+  }
+}
+
 async function main() {
   const args = parseArgs();
   const env = loadEnv();
@@ -101,6 +138,11 @@ async function main() {
     process.exit(1);
   }
   console.log('Supabase connectivity OK.');
+
+  await preFlight(supabase, args);
+  if (args.wipeFirst && args.write) {
+    await wipeAll(supabase);
+  }
 
   console.log('Reading source data from Sheets...');
   const rawSpelers = await readSheet(env, 'Spelers');
