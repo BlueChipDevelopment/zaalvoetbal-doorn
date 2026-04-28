@@ -32,6 +32,10 @@ Pas na Supabase-migratie, of als los project eerder.
    actief ja/nee, aangemeld sinds. Geeft direct inzicht in "wie kan ik bereiken".
 2. **Geschiedenis-tab**: log per `sendPushToAll`-call (datum, type, titel, verstuurd,
    geslaagd, expired). Vereist een kleine extra tabel en een extra write per broadcast.
+3. **Analytics-tab**: bereik over tijd (hoeveel spelers hebben push aanstaan,
+   trend per week/maand), conversie-funnel (zien melding → openen app →
+   reageren op aanwezigheid). Doel: zien welke spelers nog ontbreken en of
+   bereik groeit.
 
 Delivery-garantie is niet haalbaar zonder client-side ack-endpoint — alleen
 "opdracht gegeven aan pushservice".
@@ -50,6 +54,9 @@ klassement of in de aanwezigheid-lijst.
   wie wint vaker?".
 - Match history: laatste 10 wedstrijden met opstelling en uitslag.
 - Langste win-streak, huidige streak.
+- FIFA-style player card: kaartje per speler met foto, overall rating, sterke
+  punten en positie — als visuele samenvatting bovenaan de profielpagina,
+  deelbaar als afbeelding.
 
 **Dependencies**:
 - Makkelijker met echte SQL (Supabase) dan met Sheets — doe dit pas daarna.
@@ -72,3 +79,16 @@ Versterkt betrokkenheid zonder dat je extra data hoeft bij te houden.
 - Pre-match poll "wie wint?" met scorebord voor beste voorspeller.
 - Seizoen-rewind aan het eind van het seizoen: "jouw seizoen in cijfers",
   deelbaar via WhatsApp.
+
+## Stats & inzicht
+
+Extra inzichten bovenop het huidige klassement, afgeleid uit bestaande data.
+Makkelijker te bouwen na Supabase-migratie (echte SQL).
+
+- **Lifetime head-to-head / rivaliteiten**: voor elk spelerspaar W/V/G over
+  alle wedstrijden waarin ze tegenover elkaar stonden — "Chris vs Ward,
+  lifetime: 12-8-3". Eigen pagina of sectie op spelersprofiel.
+- **Onverwachte combos**: spelersgroepjes (2 of 3) met opvallende win%
+  ondanks weinig samenspeel-momenten — "deze 3 hebben samen 100% gewonnen
+  in 4 wedstrijden". Filter op minimaal aantal samen gespeelde wedstrijden
+  om ruis te vermijden.
