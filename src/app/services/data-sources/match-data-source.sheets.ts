@@ -158,7 +158,7 @@ export class SheetsMatchDataSource extends MatchDataSource {
   private nameToId(name: string, players: PlayerSheetData[]): number | null {
     if (!name) return null;
     const trimmed = name.trim().toLowerCase();
-    return players.find(p => p.name.toLowerCase() === trimmed)?.id ?? null;
+    return players.find(p => p.name.trim().toLowerCase() === trimmed)?.id ?? null;
   }
 
   private formatDate(date: Date | null | undefined): string {

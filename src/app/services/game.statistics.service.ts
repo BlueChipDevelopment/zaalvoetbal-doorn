@@ -103,7 +103,7 @@ export class GameStatisticsService {
             playerStats[pid].gameHistory.push({
               result: teamWhiteGoals > teamRedGoals ? 3 : teamWhiteGoals === teamRedGoals ? 2 : 1,
               date: match.datum,
-              playerIds: allNames,
+              playerNames: allNames,
               teammates: teamWhiteNames,
               opponents: teamRedNames
             });
@@ -125,7 +125,7 @@ export class GameStatisticsService {
             playerStats[pid].gameHistory.push({
               result: teamRedGoals > teamWhiteGoals ? 3 : teamRedGoals === teamWhiteGoals ? 2 : 1,
               date: match.datum,
-              playerIds: allNames,
+              playerNames: allNames,
               teammates: teamRedNames,
               opponents: teamWhiteNames
             });

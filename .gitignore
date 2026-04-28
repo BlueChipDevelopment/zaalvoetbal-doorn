@@ -4,6 +4,9 @@ dist
 .vs
 .env
 
+# Lokale Excel-werkbestanden (niet versioneren)
+*.xlsx
+
 # Firebase debug logs
 firebase-debug.log
 firebase-debug.*.log

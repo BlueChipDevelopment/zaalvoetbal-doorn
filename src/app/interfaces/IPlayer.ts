@@ -1,7 +1,7 @@
 export interface GameHistoryEntry {
   result: number; // 3=win, 2=tie, 1=loss
   date: Date | null;
-  playerIds: string[];
+  playerNames: string[];
   teammates: string[];
   opponents: string[];
 }
