@@ -29,6 +29,8 @@ import { ServiceWorkerModule } from '@angular/service-worker';
 import { environment } from '../environments/environment';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideAuth, getAuth } from '@angular/fire/auth';
+import { PlayerDataSource } from './services/data-sources/player-data-source';
+import { SheetsPlayerDataSource } from './services/data-sources/player-data-source.sheets';
 
 registerLocaleData(localeNl);
 
@@ -78,7 +80,8 @@ import { LoginComponent } from './components/login/login.component';
     TitleCasePipe, 
     { provide: LOCALE_ID, useValue: 'nl' },
     provideFirebaseApp(() => initializeApp(environment.firebase)),
-    provideAuth(() => getAuth())
+    provideAuth(() => getAuth()),
+    { provide: PlayerDataSource, useClass: SheetsPlayerDataSource }
   ]
 })
 export class AppModule {}
