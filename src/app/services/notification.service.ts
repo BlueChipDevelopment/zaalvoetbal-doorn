@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { GoogleSheetsService } from './google-sheets-service';
-import { NOTIFICATIES_COLUMNS, SHEET_NAMES } from '../constants/sheet-columns';
+import { NotificationDataSource } from './data-sources/notification-data-source';
+import { PushSubscriptionRecord } from '../interfaces/IPushSubscription';
 import { getCurrentDateTimeISO } from '../utils/date-utils';
 
 @Injectable({
@@ -15,7 +15,7 @@ export class NotificationService {
   // VAPID public key (from environment)
   private readonly vapidPublicKey = environment.vapidPublicKey;
 
-  constructor(private googleSheetsService: GoogleSheetsService) {
+  constructor(private dataSource: NotificationDataSource) {
     this.checkSupport();
     this.checkCurrentStatus();
   }
@@ -161,85 +161,36 @@ export class NotificationService {
 
   private async saveSubscriptionToServer(subscription: PushSubscription, playerName?: string): Promise<void> {
     try {
-      const subscriptionData = {
+      const record: PushSubscriptionRecord = {
         endpoint: subscription.endpoint,
-        keys: {
-          p256dh: this.arrayBufferToBase64(subscription.getKey('p256dh')),
-          auth: this.arrayBufferToBase64(subscription.getKey('auth'))
-        },
+        keysP256dh: this.arrayBufferToBase64(subscription.getKey('p256dh')),
+        keysAuth: this.arrayBufferToBase64(subscription.getKey('auth')),
         userAgent: navigator.userAgent,
         timestamp: getCurrentDateTimeISO(),
         active: true,
-        playerName: (playerName || '').trim()
+        playerName: (playerName || '').trim(),
       };
 
-      console.log('💾 Saving subscription to server:', subscriptionData);
-
-      const row = [
-        subscriptionData.endpoint,
-        subscriptionData.keys.p256dh,
-        subscriptionData.keys.auth,
-        subscriptionData.userAgent,
-        subscriptionData.timestamp,
-        subscriptionData.active,
-        subscriptionData.playerName
-      ];
-
-      const result = await firstValueFrom(this.googleSheetsService.appendSheetRow(SHEET_NAMES.NOTIFICATIES, row));
-      console.log('✅ Subscription saved to Google Sheets successfully:', result);
-      
+      console.log('💾 Saving subscription to server:', record);
+      await firstValueFrom(this.dataSource.addSubscription(record));
+      console.log('✅ Subscription saved successfully');
     } catch (error) {
       console.error('❌ Error saving subscription to server:', error);
       if (error instanceof TypeError) {
         console.error('Network error - check if backend is accessible');
       }
-      throw error; // Re-throw so calling code can handle it
+      throw error;
     }
   }
 
   private async removeSubscriptionFromServer(subscription: PushSubscription): Promise<void> {
     try {
       console.log('🗑️ Removing subscription from server:', subscription.endpoint);
-      
-      // 1. First find the row with this endpoint
-      const rows = await firstValueFrom(this.googleSheetsService.getSheetData(SHEET_NAMES.NOTIFICATIES));
-
-      if (!rows || rows.length === 0) {
-        console.warn('No notifications data found to remove');
-        return;
-      }
-
-      // 2. Find the matching row
-      let targetRowIndex = -1;
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (row[NOTIFICATIES_COLUMNS.ENDPOINT] === subscription.endpoint) {
-          targetRowIndex = i + 1; // +1 because Google Sheets is 1-indexed
-          break;
-        }
-      }
-
-      if (targetRowIndex === -1) {
-        console.warn('Could not find subscription to remove:', subscription.endpoint);
-        return;
-      }
-
-      // 3. Update the row to mark as inactive
-      const originalRow = rows[targetRowIndex - 1]; // Convert back to 0-indexed for array access
-      const updatedRow = [...originalRow];
-      updatedRow[NOTIFICATIES_COLUMNS.ACTIVE] = false;
-
-      const result = await this.googleSheetsService.updateSheetRow(
-        SHEET_NAMES.NOTIFICATIES, 
-        targetRowIndex, 
-        updatedRow
-      );
-
+      await firstValueFrom(this.dataSource.deactivateSubscription(subscription.endpoint));
       console.log('✅ Subscription marked as inactive on server');
-      
     } catch (error) {
       console.error('❌ Error removing subscription from server:', error);
-      // Don't throw the error - we still want to remove it locally even if server update fails
+      // Don't throw — local state already updated
     }
   }
 
@@ -289,47 +240,27 @@ export class NotificationService {
   async checkPlayerNotificationStatus(playerName: string): Promise<boolean> {
     const normalizedPlayerName = playerName.trim();
     try {
-      // 1. Check browser subscription
       if (!this.isSupported$.value) {
         return false;
       }
-
       const registration = await navigator.serviceWorker.ready;
       const browserSubscription = await registration.pushManager.getSubscription();
-
       if (!browserSubscription) {
         console.log(`❌ No browser subscription found for ${normalizedPlayerName}`);
         return false;
       }
-
-      // 2. Check Google Sheets Notificaties for this player.
-      // Endpoint-match alleen is voldoende (uniek per device). Als er toevallig
-      // een rij met lege/verkeerde naam was, was dat de reden dat dit eerder niet matchte.
-      const rows = await firstValueFrom(this.googleSheetsService.getSheetData(SHEET_NAMES.NOTIFICATIES));
-
-      if (!rows || rows.length === 0) {
-        console.log(`❌ No notification data found in Google Sheets for ${normalizedPlayerName}`);
-        return false;
+      const subs = await firstValueFrom(this.dataSource.getAllSubscriptions());
+      const match = subs.find(s =>
+        s.endpoint === browserSubscription.endpoint
+        && s.active
+        && s.playerName === normalizedPlayerName
+      );
+      if (match) {
+        console.log(`✅ Found active notification subscription for ${normalizedPlayerName}`);
+        return true;
       }
-
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        const endpoint = row[NOTIFICATIES_COLUMNS.ENDPOINT];
-        if (!endpoint) continue; // skip rijen zonder basale data
-
-        const activeValue = row[NOTIFICATIES_COLUMNS.ACTIVE];
-        const isActive = activeValue === 'true' || activeValue === true || activeValue === 'TRUE';
-        const sheetPlayerName = (row[NOTIFICATIES_COLUMNS.PLAYER_NAME] ?? '').toString().trim();
-
-        if (endpoint === browserSubscription.endpoint && isActive && sheetPlayerName === normalizedPlayerName) {
-          console.log(`✅ Found active notification subscription for ${normalizedPlayerName}`);
-          return true;
-        }
-      }
-
-      console.log(`❌ No active Google Sheets subscription found for ${normalizedPlayerName}`);
+      console.log(`❌ No active subscription found for ${normalizedPlayerName}`);
       return false;
-
     } catch (error) {
       console.error('Error checking player notification status:', error);
       return false;
