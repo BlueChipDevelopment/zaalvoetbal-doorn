@@ -4,3 +4,5 @@ export * from './match-data-source';
 export * from './match-data-source.sheets';
 export * from './attendance-data-source';
 export * from './attendance-data-source.sheets';
+export * from './notification-data-source';
+export * from './notification-data-source.sheets';

@@ -35,6 +35,8 @@ import { MatchDataSource } from './services/data-sources/match-data-source';
 import { SheetsMatchDataSource } from './services/data-sources/match-data-source.sheets';
 import { AttendanceDataSource } from './services/data-sources/attendance-data-source';
 import { SheetsAttendanceDataSource } from './services/data-sources/attendance-data-source.sheets';
+import { NotificationDataSource } from './services/data-sources/notification-data-source';
+import { SheetsNotificationDataSource } from './services/data-sources/notification-data-source.sheets';
 
 registerLocaleData(localeNl);
 
@@ -87,7 +89,8 @@ import { LoginComponent } from './components/login/login.component';
     provideAuth(() => getAuth()),
     { provide: PlayerDataSource, useClass: SheetsPlayerDataSource },
     { provide: MatchDataSource, useClass: SheetsMatchDataSource },
-    { provide: AttendanceDataSource, useClass: SheetsAttendanceDataSource }
+    { provide: AttendanceDataSource, useClass: SheetsAttendanceDataSource },
+    { provide: NotificationDataSource, useClass: SheetsNotificationDataSource }
   ]
 })
 export class AppModule {}
