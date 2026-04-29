@@ -1,229 +1,205 @@
 import * as logger from "firebase-functions/logger";
-import { getSheetsClient } from "../shared/sheets-client";
-import { SPREADSHEET_ID, SHEET_NAMES, SHEET_RANGES, COLUMN_INDICES } from "../config/constants";
+import { createSupabaseClient } from "../shared/supabase-client";
 import { sendTeamGenerationNotification } from "./team-notification";
-import { parseMatchDate, toISODateString } from "../shared/date-utils";
+
+interface PlayerLite { id: number; name: string; position: string; }
 
 /**
- * Core team generation logic
+ * Core team generation logic (Supabase port).
+ *
+ * Behaviour gepoort vanuit de oude Sheets-versie:
+ * - Vind de wedstrijd op `dateString`.
+ * - Skip als er al lineups bestaan (oud: skip als TeamWit/TeamRood al gevuld).
+ * - Lees aanwezigheid (status='Ja') + filter op actieve spelers.
+ * - Vereis minimaal 6 spelers (ongewijzigd t.o.v. oud).
+ * - Random shuffle + alternerend over twee teams (positie wordt niet meegenomen
+ *   in de verdeling, identiek aan de oude implementatie).
+ * - Schrijf match_lineups en update matches.team_generation
+ *   ('Automatisch' bij scheduled, 'Handmatig' bij manual — gelijk aan oud).
+ * - Verstuur push-notificatie (oud: altijd; we behouden dat — `trigger` wordt
+ *   doorgegeven zodat de notification-laag kan kiezen).
  */
 export async function performAutoTeamGeneration(dateString: string, trigger: string) {
-  const spreadsheetId = SPREADSHEET_ID;
-  const sheets = await getSheetsClient();
+  const supabase = createSupabaseClient();
 
   try {
-    // 1. Check if there's a match today
+    // 1. Vind de wedstrijd op deze datum.
     logger.info(`🔍 Checking for match on ${dateString}...`);
 
-    const wedstrijdenResult = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${SHEET_NAMES.WEDSTRIJDEN}!A:I`,
-    });
-    const wedstrijdenRows = wedstrijdenResult.data.values || [];
-
-    // Find today's match (skip header row)
-    let todaysMatch: any = null;
-    let matchRowNumber = -1;
-
-    for (let i = 1; i < wedstrijdenRows.length; i++) {
-      const row = wedstrijdenRows[i];
-      const seizoen = row[COLUMN_INDICES.SEIZOEN] || '';
-      const matchDateStr = row[COLUMN_INDICES.WEDSTRIJD_DATUM] || '';
-      const teamWit = row[COLUMN_INDICES.TEAM_WIT] || '';
-      const teamRood = row[COLUMN_INDICES.TEAM_ROOD] || '';
-
-      // Parse date to compare (handle Dutch dd-mm-yyyy format)
-      if (matchDateStr) {
-        const matchDate = parseMatchDate(matchDateStr);
-        if (!matchDate) {
-          logger.warn(`Invalid date found in sheet: "${matchDateStr}" - skipping`);
-          continue;
-        }
-
-        const matchDateString = toISODateString(matchDate);
-
-        if (matchDateString === dateString) {
-          // Check if teams are already generated
-          if (teamWit.trim() || teamRood.trim()) {
-            return {
-              success: false,
-              message: `Teams already generated for match on ${dateString}. Wit: "${teamWit}", Rood: "${teamRood}"`
-            };
-          }
-
-          todaysMatch = { row, seizoen, matchDate: matchDateStr, rowNumber: i + 1 }; // +1 for 1-based indexing
-          matchRowNumber = i + 1;
-          break;
-        }
-      }
+    const { data: matches, error: matchErr } = await supabase
+      .from('matches')
+      .select('id, date, team_generation')
+      .eq('date', dateString)
+      .limit(1);
+    if (matchErr) {
+      logger.error('team-logic: could not load match', matchErr);
+      throw new Error(`Cannot find match for date ${dateString}: ${matchErr.message}`);
     }
-
-    if (!todaysMatch) {
+    const match = matches?.[0];
+    if (!match) {
       return {
         success: false,
-        message: `No match found for ${dateString}`
+        message: `No match found for ${dateString}`,
       };
     }
 
-    logger.info(`✅ Match found for ${dateString} at row ${matchRowNumber}`);
-
-    // 2. Get present players for today
-    logger.info(`🔍 Getting present players for ${dateString}...`);
-
-    const aanwezigheidResult = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${SHEET_NAMES.AANWEZIGHEID}!A:D`,
-    });
-    const aanwezigheidRows = aanwezigheidResult.data.values || [];
-
-    const presentPlayerNames: string[] = [];
-    logger.info(`📅 Looking for attendance on date: ${dateString}`);
-
-    for (let i = 1; i < aanwezigheidRows.length; i++) {
-      const row = aanwezigheidRows[i];
-      const attendanceDate = row[COLUMN_INDICES.AANWEZIGHEID_DATUM] || '';
-      const playerName = row[COLUMN_INDICES.AANWEZIGHEID_NAAM] || '';
-      const status = row[COLUMN_INDICES.AANWEZIGHEID_STATUS] || '';
-
-      if (attendanceDate === dateString && status.toLowerCase() === 'ja') {
-        presentPlayerNames.push(playerName);
-      }
+    // Skip als er al lineups zijn (oud gedrag: skip als teams al ingevuld).
+    const { data: existingLineups, error: existErr } = await supabase
+      .from('match_lineups')
+      .select('player_id, team')
+      .eq('match_id', match.id);
+    if (existErr) {
+      logger.error('team-logic: could not check existing lineups', existErr);
+      throw new Error(`Cannot check existing lineups: ${existErr.message}`);
     }
-
-    logger.info(`👥 Total present players found: ${presentPlayerNames.length} - ${presentPlayerNames.join(', ')}`);
-
-    if (presentPlayerNames.length < 6) {
+    if ((existingLineups ?? []).length > 0) {
       return {
         success: false,
-        message: `Not enough players present (${presentPlayerNames.length}/6 minimum). Present: ${presentPlayerNames.join(', ')}`
+        message: `Teams already generated for match on ${dateString} (${existingLineups!.length} existing lineup rows).`,
       };
     }
 
-    logger.info(`✅ ${presentPlayerNames.length} players present:`, presentPlayerNames.join(', '));
+    logger.info(`✅ Match found for ${dateString} (id=${match.id})`);
 
-    // 3. Get player stats/ratings
-    logger.info(`📊 Getting player ratings...`);
+    // 2. Lees aanwezigheid voor deze match (alleen 'Ja').
+    logger.info(`🔍 Getting present players for match ${match.id}...`);
 
-    const spelersResult = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${SHEET_NAMES.SPELERS}!${SHEET_RANGES.ALL_COLUMNS}`,
-    });
-    const spelersRows = spelersResult.data.values || [];
+    const { data: attendanceRows, error: attErr } = await supabase
+      .from('attendance')
+      .select('player_id, status')
+      .eq('match_id', match.id)
+      .eq('status', 'Ja');
+    if (attErr) {
+      logger.error('team-logic: could not load attendance', attErr);
+      throw new Error(`Attendance load failed: ${attErr.message}`);
+    }
+    const attendingIds = new Set((attendanceRows ?? []).map(r => r.player_id));
 
-    // Map present players with their ratings/positions
-    const playersWithStats: any[] = [];
-
-    logger.info(`📊 Looking up stats for ${presentPlayerNames.length} present players in Spelers sheet...`);
-
-    for (const playerName of presentPlayerNames) {
-      // Find player in Spelers sheet
-      let playerData = null;
-      for (let i = 1; i < spelersRows.length; i++) {
-        const row = spelersRows[i];
-        const sheetPlayerName = row[COLUMN_INDICES.NAME] || '';
-
-        // Trim both names to handle extra spaces
-        if (sheetPlayerName.trim() === playerName.trim()) {
-          playerData = {
-            name: playerName.trim(),
-            position: row[COLUMN_INDICES.POSITION] || 'PLAYER',
-            rating: 5 // Default rating - we'll need to get this from statistics
-          };
-
-          logger.info(`✅ Found player "${playerName}": position="${playerData.position}"`);
-          break;
-        }
-      }
-
-      if (!playerData) {
-        logger.warn(`❌ Player "${playerName}" not found in Spelers sheet - adding with default stats`);
-        // Add player anyway with default stats - if they're present, they play!
-        playerData = {
-          name: playerName.trim(),
-          position: 'PLAYER',
-          rating: 5
-        };
-      }
-      
-      playersWithStats.push(playerData);
+    // 3. Lees alle spelers (voor naam/positie/actief).
+    const { data: allPlayers, error: playersErr } = await supabase
+      .from('players')
+      .select('id, name, position, actief');
+    if (playersErr) {
+      logger.error('team-logic: could not load players', playersErr);
+      throw new Error(`Players load failed: ${playersErr.message}`);
     }
 
-    logger.info(`📈 Players ready for team generation: ${playersWithStats.length} - ${playersWithStats.map(p => p.name).join(', ')}`);
+    // 4. Filter op aanwezig + actief.
+    const attendingPlayers: PlayerLite[] = (allPlayers ?? [])
+      .filter(p => p.actief && attendingIds.has(p.id))
+      .map(p => ({ id: p.id, name: (p.name ?? '').trim(), position: p.position ?? 'Speler' }));
 
-    // For now, use simplified team generation (we can enhance this later)
-    if (playersWithStats.length < 6) {
+    logger.info(`👥 Total present + active players: ${attendingPlayers.length} - ${attendingPlayers.map(p => p.name).join(', ')}`);
+
+    if (attendingPlayers.length < 6) {
       return {
         success: false,
-        message: `Not enough players (${playersWithStats.length}/6 minimum)`
+        message: `Not enough players present (${attendingPlayers.length}/6 minimum). Present: ${attendingPlayers.map(p => p.name).join(', ')}`,
       };
     }
 
-    // 4. Simple team generation algorithm
-    logger.info(`🎯 Generating teams with ${playersWithStats.length} players`);
+    // 5. Algoritme — port van oude logica: random shuffle + alternerende verdeling.
+    logger.info(`🎯 Generating teams with ${attendingPlayers.length} players`);
 
-    // Shuffle players for random distribution
-    const shuffledPlayers = [...playersWithStats].sort(() => Math.random() - 0.5);
+    const { teamWhite, teamRed } = balanceTeams(attendingPlayers);
 
-    const teamWhite: string[] = [];
-    const teamRed: string[] = [];
-
-    // Distribute players alternately
-    for (let i = 0; i < shuffledPlayers.length; i++) {
-      if (i % 2 === 0) {
-        teamWhite.push(shuffledPlayers[i].name);
-      } else {
-        teamRed.push(shuffledPlayers[i].name);
-      }
-    }
-
-    const teamWhiteStr = teamWhite.join(', ');
-    const teamRedStr = teamRed.join(', ');
+    const teamWhiteNames = teamWhite
+      .map(pid => attendingPlayers.find(p => p.id === pid)?.name ?? '')
+      .filter(Boolean);
+    const teamRedNames = teamRed
+      .map(pid => attendingPlayers.find(p => p.id === pid)?.name ?? '')
+      .filter(Boolean);
+    const teamWhiteStr = teamWhiteNames.join(', ');
+    const teamRedStr = teamRedNames.join(', ');
 
     logger.info(`✅ Teams generated: White (${teamWhite.length}): ${teamWhiteStr}`);
     logger.info(`✅ Teams generated: Red (${teamRed.length}): ${teamRedStr}`);
 
-    // 5. Save teams to Google Sheets
-    logger.info(`💾 Saving teams to row ${matchRowNumber}...`);
+    // 6. Schrijf naar Supabase.
+    const generatieMethode: 'Automatisch' | 'Handmatig' = trigger === 'scheduled' ? 'Automatisch' : 'Handmatig';
 
-    const generatieMethode = trigger === 'scheduled' ? 'Automatisch' : 'Handmatig';
+    const { error: updMatchErr } = await supabase
+      .from('matches')
+      .update({ team_generation: generatieMethode })
+      .eq('id', match.id);
+    if (updMatchErr) {
+      logger.error('team-logic: could not update match team_generation', updMatchErr);
+      throw new Error(`Match update failed: ${updMatchErr.message}`);
+    }
 
-    await sheets.spreadsheets.values.batchUpdate({
-      spreadsheetId,
-      requestBody: {
-        data: [{
-          range: SHEET_RANGES.WEDSTRIJDEN_TEAMS_ROW(matchRowNumber),
-          values: [[teamWhiteStr, teamRedStr, generatieMethode]]
-        }],
-        valueInputOption: 'RAW'
+    const { error: delErr } = await supabase
+      .from('match_lineups')
+      .delete()
+      .eq('match_id', match.id);
+    if (delErr) {
+      logger.error('team-logic: could not delete old lineups', delErr);
+      throw new Error(`Lineup delete failed: ${delErr.message}`);
+    }
+
+    const lineupRows = [
+      ...teamWhite.map(pid => ({ match_id: match.id, player_id: pid, team: 'wit' as const })),
+      ...teamRed.map(pid => ({ match_id: match.id, player_id: pid, team: 'rood' as const })),
+    ];
+    if (lineupRows.length > 0) {
+      const { error: insErr } = await supabase.from('match_lineups').insert(lineupRows);
+      if (insErr) {
+        logger.error('team-logic: could not insert lineups', insErr);
+        throw new Error(`Lineup insert failed: ${insErr.message}`);
       }
-    });
+    }
 
-    logger.info(`✅ Teams saved successfully to Google Sheets with generation method: ${generatieMethode}`);
+    logger.info(`✅ Teams saved successfully to Supabase with generation method: ${generatieMethode}`);
 
-    // 6. Send push notification
+    // 7. Push notification (oud gedrag: altijd verzenden).
     logger.info(`📧 Sending push notifications...`);
-
     try {
       await sendTeamGenerationNotification(teamWhiteStr, teamRedStr, trigger);
       logger.info(`✅ Push notifications sent successfully`);
     } catch (notifError) {
       logger.error(`⚠️ Failed to send push notifications:`, notifError);
-      // Don't fail the whole operation for notification errors
+      // Notification-fouten breken de operation niet.
     }
 
     return {
       success: true,
       message: `Teams automatically generated and saved! White: ${teamWhiteStr}. Red: ${teamRedStr}.`,
       teams: {
-        teamWhite: teamWhite,
-        teamRed: teamRed
+        teamWhite: teamWhiteNames,
+        teamRed: teamRedNames,
       },
-      playersCount: playersWithStats.length,
-      trigger: trigger
+      playersCount: attendingPlayers.length,
+      trigger: trigger,
     };
 
   } catch (error) {
     logger.error(`❌ Error in performAutoTeamGeneration:`, error);
     throw error;
   }
+}
+
+/**
+ * Port van het oude balansing-algoritme:
+ *   - Random shuffle van álle aanwezige spelers (positie wordt niet apart behandeld).
+ *   - Alternerende verdeling (i % 2 === 0 → wit, anders rood).
+ *
+ * Het oude algoritme las wel `position` uit Spelers, maar gebruikte het verder
+ * niet in de verdeling (zie commentaar "we can enhance this later" in de oude
+ * code). De `rating` was bovendien hardcoded op 5. We repliceren die simpele
+ * semantiek hier 1-op-1, maar dan op id-basis.
+ */
+function balanceTeams(players: PlayerLite[]): { teamWhite: number[]; teamRed: number[] } {
+  const shuffled = [...players].sort(() => Math.random() - 0.5);
+
+  const teamWhite: number[] = [];
+  const teamRed: number[] = [];
+
+  for (let i = 0; i < shuffled.length; i++) {
+    if (i % 2 === 0) {
+      teamWhite.push(shuffled[i].id);
+    } else {
+      teamRed.push(shuffled[i].id);
+    }
+  }
+
+  return { teamWhite, teamRed };
 }
