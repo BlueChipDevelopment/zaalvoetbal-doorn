@@ -1,3 +1,4 @@
+<app-page-header title="Team Generator"></app-page-header>
 <!-- Error message display -->
 @if (errorMessage) {
   <div class="error-banner mat-elevation-z2">
@@ -11,10 +12,7 @@
 
 <!-- Loading spinner -->
 @if (loading$ | async) {
-  <div class="loading-spinner">
-    <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
-    <p>Laden van spelers en teams...</p>
-  </div>
+  <app-loading-state message="Laden van spelers en teams..."></app-loading-state>
 }
 
 @if (!(loading$ | async)) {

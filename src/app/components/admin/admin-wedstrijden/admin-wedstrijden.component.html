@@ -57,7 +57,5 @@
     </table>
   </div>
 
-  <div class="loading-container" *ngIf="loading">
-    <p>Wedstrijden laden...</p>
-  </div>
+  <app-loading-state *ngIf="loading" message="Wedstrijden laden..."></app-loading-state>
 </div>

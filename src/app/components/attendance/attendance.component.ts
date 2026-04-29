@@ -11,6 +11,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { LoadingStateComponent } from '../loading-state/loading-state.component';
+import { PageHeaderComponent } from '../page-header/page-header.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
@@ -35,6 +37,8 @@ import { environment } from '../../../environments/environment';
     MatFormFieldModule,
     MatSelectModule,
     MatProgressSpinnerModule,
+    LoadingStateComponent,
+    PageHeaderComponent,
     MatButtonModule,
     MatIconModule,
     RouterModule,

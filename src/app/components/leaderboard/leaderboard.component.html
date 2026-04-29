@@ -1,10 +1,7 @@
 <div class="leaderboard-container">
 
   <!-- Loading Spinner -->
-  <div *ngIf="isLoading" class="loading-spinner">
-    <mat-spinner diameter="50"></mat-spinner>
-    <p>Klassement laden...</p>
-  </div>
+  <app-loading-state *ngIf="isLoading" message="Klassement laden..."></app-loading-state>
 
   <!-- Error Message -->
   <div *ngIf="errorMessage" class="error-banner mat-elevation-z2">

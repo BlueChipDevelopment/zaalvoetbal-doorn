@@ -4,6 +4,8 @@ import { WedstrijdenService } from '../../services/wedstrijden.service';
 import { WedstrijdData } from '../../interfaces/IWedstrijd';
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { LoadingStateComponent } from '../loading-state/loading-state.component';
+import { PageHeaderComponent } from '../page-header/page-header.component';
 import { MatError } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { PlayerNamePipe } from '../../pipes/player-name.pipe';
@@ -12,7 +14,7 @@ import { EmptyStateComponent } from '../empty-state/empty-state.component';
 @Component({
   selector: 'app-wedstrijden',
   standalone: true,
-  imports: [MatProgressSpinnerModule, CommonModule, MatError, MatIconModule, PlayerNamePipe, EmptyStateComponent],
+  imports: [MatProgressSpinnerModule, LoadingStateComponent, PageHeaderComponent, CommonModule, MatError, MatIconModule, PlayerNamePipe, EmptyStateComponent],
   templateUrl: './wedstrijden.component.html',
   styleUrl: './wedstrijden.component.scss'
 })

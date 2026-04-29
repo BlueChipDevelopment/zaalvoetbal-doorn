@@ -1,9 +1,7 @@
 <div class="score-container">
+  <app-page-header title="Score invoeren"></app-page-header>
 
-  <div *ngIf="isLoading" class="loading-spinner">
-    <mat-spinner diameter="50"></mat-spinner>
-    <p>Laden van volgende wedstrijd...</p>
-  </div>
+  <app-loading-state *ngIf="isLoading" message="Laden van volgende wedstrijd..."></app-loading-state>
 
   <div *ngIf="errorMessage" class="error-banner mat-elevation-z2">
     <mat-icon>error</mat-icon>

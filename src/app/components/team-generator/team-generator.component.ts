@@ -16,6 +16,8 @@ import { WedstrijdData } from '../../interfaces/IWedstrijd';
 import { NextMatchInfoComponent } from '../next-match-info/next-match-info.component';
 import { AsyncPipe, CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { LoadingStateComponent } from '../loading-state/loading-state.component';
+import { PageHeaderComponent } from '../page-header/page-header.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
@@ -43,6 +45,8 @@ import { CdkDragDrop, transferArrayItem } from '@angular/cdk/drag-drop';
     ReactiveFormsModule,
     NextMatchInfoComponent,
     MatProgressSpinnerModule,
+    LoadingStateComponent,
+    PageHeaderComponent,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,

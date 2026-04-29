@@ -37,7 +37,5 @@
     </table>
   </div>
 
-  <div class="loading-container" *ngIf="loading">
-    <p>Spelers laden...</p>
-  </div>
+  <app-loading-state *ngIf="loading" message="Spelers laden..."></app-loading-state>
 </div>

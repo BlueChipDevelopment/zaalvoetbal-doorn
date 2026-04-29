@@ -1,9 +1,7 @@
+<app-page-header title="Aanwezigheid"></app-page-header>
 <mat-card class="attendance-card">
   <mat-card-content>
-    <div *ngIf="isLoadingPlayers && !isLoadingStatus" class="loading-spinner">
-      <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
-      <p>Laden van aanwezigheid data...</p>
-    </div>
+    <app-loading-state *ngIf="isLoadingPlayers && !isLoadingStatus" message="Laden van aanwezigheid data..."></app-loading-state>
 
     <div *ngIf="!isLoadingPlayers">
       <app-next-match-info [nextMatchInfo]="nextMatchInfo"></app-next-match-info>

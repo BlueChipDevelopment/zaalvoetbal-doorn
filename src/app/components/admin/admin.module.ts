@@ -15,6 +15,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { PlayerNamePipe } from '../../pipes/player-name.pipe';
+import { LoadingStateComponent } from '../loading-state/loading-state.component';
 
 import { AdminRoutingModule } from './admin-routing.module';
 import { AdminComponent } from './admin.component';
@@ -52,7 +53,8 @@ import { TestBroadcastDialogComponent } from './admin-notificaties/test-broadcas
     MatNativeDateModule,
     MatCheckboxModule,
     MatSnackBarModule,
-    PlayerNamePipe
+    PlayerNamePipe,
+    LoadingStateComponent
   ]
 })
 export class AdminModule { }

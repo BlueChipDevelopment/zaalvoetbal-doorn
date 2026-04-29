@@ -10,6 +10,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { LoadingStateComponent } from '../loading-state/loading-state.component';
+import { PageHeaderComponent } from '../page-header/page-header.component';
 import { MatIconModule } from '@angular/material/icon';
 import { SnackbarService } from '../../services/snackbar.service';
 import { EmptyStateComponent } from '../empty-state/empty-state.component';
@@ -77,6 +79,8 @@ interface ExtendedFutureMatchInfo extends FutureMatchInfo {
     MatFormFieldModule,
     MatSelectModule,
     MatProgressSpinnerModule,
+    LoadingStateComponent,
+    PageHeaderComponent,
     MatIconModule,
     MatChipsModule,
     MatExpansionModule,

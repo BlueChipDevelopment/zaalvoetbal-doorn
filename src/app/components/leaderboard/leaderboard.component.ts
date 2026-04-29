@@ -11,6 +11,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { LoadingStateComponent } from '../loading-state/loading-state.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { FormsModule } from '@angular/forms';
@@ -29,6 +30,7 @@ import { RouterModule } from '@angular/router';
     CommonModule, 
     MatCardModule,
     MatProgressSpinnerModule,
+    LoadingStateComponent,
     MatFormFieldModule,
     MatSelectModule,
     FormsModule,

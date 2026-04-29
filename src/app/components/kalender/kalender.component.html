@@ -1,9 +1,7 @@
 <div class="kalender-container">
+  <app-page-header title="Kalender"></app-page-header>
   <!-- Loading spinner voor initiële data -->
-  <div *ngIf="isLoading" class="loading-spinner">
-    <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
-    <p>Laden van wedstrijden en spelers...</p>
-  </div>
+  <app-loading-state *ngIf="isLoading" message="Laden van wedstrijden en spelers..."></app-loading-state>
 
   <!-- Error message -->
   <div *ngIf="errorMessage" class="error-banner mat-elevation-z2">
