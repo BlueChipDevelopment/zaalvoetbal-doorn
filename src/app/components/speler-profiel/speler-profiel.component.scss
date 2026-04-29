@@ -42,6 +42,15 @@
 
 .teammates {
   margin-bottom: 1.5rem;
+  .chemistry-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    @media (min-width: 600px) {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  .chemistry-block h3 { margin-top: 0; }
   ul {
     list-style: none;
     padding: 0;

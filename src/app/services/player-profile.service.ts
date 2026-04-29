@@ -232,6 +232,22 @@ export class PlayerProfileService {
   }
 
   getTopTeammates(playerId: number, limit = 5): Observable<TopTeammate[]> {
+    return this.buildTeammates(playerId).pipe(
+      map(list => list
+        .sort((a, b) => b.winRate - a.winRate || b.played - a.played)
+        .slice(0, limit)),
+    );
+  }
+
+  getWorstTeammates(playerId: number, limit = 5): Observable<TopTeammate[]> {
+    return this.buildTeammates(playerId).pipe(
+      map(list => list
+        .sort((a, b) => a.winRate - b.winRate || b.played - a.played)
+        .slice(0, limit)),
+    );
+  }
+
+  private buildTeammates(playerId: number): Observable<TopTeammate[]> {
     return forkJoin({
       spelers: this.playerService.getPlayers(),
       wedstrijden: this.wedstrijdenService.getGespeeldeWedstrijden(),
@@ -277,9 +293,7 @@ export class PlayerProfileService {
               winRate: s.played > 0 ? s.wins / s.played : 0,
             } as TopTeammate;
           })
-          .filter((t): t is TopTeammate => t !== null)
-          .sort((a, b) => b.winRate - a.winRate || b.played - a.played)
-          .slice(0, limit);
+          .filter((t): t is TopTeammate => t !== null);
       })
     );
   }

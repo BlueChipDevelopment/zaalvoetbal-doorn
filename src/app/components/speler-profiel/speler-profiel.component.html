@@ -32,14 +32,28 @@
     </section>
 
     <section class="teammates">
-      <h3>Top-5 teammates</h3>
-      <ul *ngIf="vm.teammates.length > 0; else noTeammates">
-        <li *ngFor="let t of vm.teammates">
-          <a [routerLink]="['/speler', t.teammate.id]">{{ t.teammate.name }}</a>
-          — {{ t.wins }}/{{ t.played }} ({{ t.winRate * 100 | number:'1.0-0' }}%)
-        </li>
-      </ul>
-      <ng-template #noTeammates><p class="empty">Nog te weinig samen-wedstrijden.</p></ng-template>
+      <div class="chemistry-grid">
+        <div class="chemistry-block">
+          <h3>Beste-5 teammates</h3>
+          <ul *ngIf="vm.teammates.length > 0; else noBest">
+            <li *ngFor="let t of vm.teammates">
+              <a [routerLink]="['/speler', t.teammate.id]">{{ t.teammate.name }}</a>
+              — {{ t.wins }}/{{ t.played }} ({{ t.winRate * 100 | number:'1.0-0' }}%)
+            </li>
+          </ul>
+          <ng-template #noBest><p class="empty">Nog te weinig samen-wedstrijden.</p></ng-template>
+        </div>
+        <div class="chemistry-block">
+          <h3>Slechtste-5 teammates</h3>
+          <ul *ngIf="vm.worstTeammates.length > 0; else noWorst">
+            <li *ngFor="let t of vm.worstTeammates">
+              <a [routerLink]="['/speler', t.teammate.id]">{{ t.teammate.name }}</a>
+              — {{ t.wins }}/{{ t.played }} ({{ t.winRate * 100 | number:'1.0-0' }}%)
+            </li>
+          </ul>
+          <ng-template #noWorst><p class="empty">Nog te weinig samen-wedstrijden.</p></ng-template>
+        </div>
+      </div>
     </section>
 
     <section class="history">

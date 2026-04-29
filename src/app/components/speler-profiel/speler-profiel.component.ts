@@ -17,6 +17,7 @@ interface ProfileVm {
   stats: PlayerProfileStats;
   trend: RatingPoint[];
   teammates: TopTeammate[];
+  worstTeammates: TopTeammate[];
   history: MatchHistoryEntry[];
 }
 
@@ -46,10 +47,11 @@ export class SpelerProfielComponent implements OnInit {
           this.profileService.getStats(id),
           this.profileService.getRatingTrend(id, range),
           this.profileService.getTopTeammates(id, 5),
+          this.profileService.getWorstTeammates(id, 5),
           this.profileService.getMatchHistory(id, 10),
         ]).pipe(
-          map(([player, stats, trend, teammates, history]) =>
-            player ? { player, stats, trend, teammates, history } : null,
+          map(([player, stats, trend, teammates, worstTeammates, history]) =>
+            player ? { player, stats, trend, teammates, worstTeammates, history } : null,
           ),
         );
       }),
