@@ -12,6 +12,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { PlayerNamePipe } from '../../pipes/player-name.pipe';
 
 import { AdminRoutingModule } from './admin-routing.module';
@@ -20,6 +22,8 @@ import { AdminSpelersComponent } from './admin-spelers/admin-spelers.component';
 import { AdminWedstrijdenComponent } from './admin-wedstrijden/admin-wedstrijden.component';
 import { SpelerDialogComponent } from './admin-spelers/speler-dialog/speler-dialog.component';
 import { WedstrijdDialogComponent } from './admin-wedstrijden/wedstrijd-dialog/wedstrijd-dialog.component';
+import { AdminNotificatiesComponent } from './admin-notificaties/admin-notificaties.component';
+import { TestBroadcastDialogComponent } from './admin-notificaties/test-broadcast-dialog.component';
 
 @NgModule({
   declarations: [
@@ -27,7 +31,9 @@ import { WedstrijdDialogComponent } from './admin-wedstrijden/wedstrijd-dialog/w
     AdminSpelersComponent,
     AdminWedstrijdenComponent,
     SpelerDialogComponent,
-    WedstrijdDialogComponent
+    WedstrijdDialogComponent,
+    AdminNotificatiesComponent,
+    TestBroadcastDialogComponent
   ],
   imports: [
     CommonModule,
@@ -44,6 +50,8 @@ import { WedstrijdDialogComponent } from './admin-wedstrijden/wedstrijd-dialog/w
     MatSlideToggleModule,
     MatDatepickerModule,
     MatNativeDateModule,
+    MatCheckboxModule,
+    MatSnackBarModule,
     PlayerNamePipe
   ]
 })
