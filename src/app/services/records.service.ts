@@ -47,15 +47,20 @@ export class RecordsService {
   }
 
   /**
-   * Bereken seizoen-MVP's: per seizoen de speler met de hoogste totalPoints.
-   * Bij gelijke top-waarde alle holders gedeeld.
+   * Bereken seizoen-MVP's: per AFGEROND seizoen de speler met de hoogste
+   * totalPoints. Het lopende seizoen (getCurrentSeason) wordt overgeslagen —
+   * MVP staat pas vast als het seizoen klaar is.
    */
   getSeasonMVPs(): Observable<RecordCategory[]> {
-    return this.statsService.getAvailableSeasons().pipe(
-      switchMap(seasons => {
-        if (!seasons || seasons.length === 0) return of([] as RecordCategory[]);
+    return forkJoin({
+      seasons: this.statsService.getAvailableSeasons(),
+      current: this.statsService.getCurrentSeason(),
+    }).pipe(
+      switchMap(({ seasons, current }) => {
+        const completed = (seasons ?? []).filter(s => s !== current);
+        if (completed.length === 0) return of([] as RecordCategory[]);
         return forkJoin(
-          seasons.map(season =>
+          completed.map(season =>
             this.statsService.getFullPlayerStats(season).pipe(
               map(stats => this.buildSeasonMvp(season, stats)),
             ),
