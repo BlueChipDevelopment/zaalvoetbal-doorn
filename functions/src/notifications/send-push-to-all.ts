@@ -1,16 +1,17 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as webpush from 'web-push';
-import { getSheetsClient } from "../shared/sheets-client";
 import { setCorsHeaders } from "../shared/cors";
-import { SPREADSHEET_ID, FIREBASE_CONFIG, SHEET_NAMES, SHEET_RANGES, COLUMN_INDICES } from "../config/constants";
-import { parseMatchDate } from "../shared/date-utils";
+import { FIREBASE_CONFIG } from "../config/constants";
+import { createSupabaseClient, SUPABASE_SERVICE_ROLE_KEY } from "../shared/supabase-client";
 
 /**
- * Push notification functie: stuurt een bericht naar alle spelers met toestemming
+ * Push notification functie: stuurt een bericht naar alle spelers met toestemming.
+ * Reminder-mode (req.body.type === 'attendance-reminder') stuurt alleen naar
+ * actieve spelers die nog NIET hebben gereageerd op de eerstvolgende wedstrijd.
  */
 export const sendPushToAll = onRequest(
-  { region: FIREBASE_CONFIG.region },
+  { region: FIREBASE_CONFIG.region, secrets: [SUPABASE_SERVICE_ROLE_KEY] },
   async (req, res) => {
     setCorsHeaders(res, req);
     if (req.method === 'OPTIONS') {
@@ -22,176 +23,156 @@ export const sendPushToAll = onRequest(
       const isTestMessage = req.body.type === 'test' || !req.body.type;
       logger.info(`📧 Push request: type=${req.body.type ?? '(broadcast)'}, title=${req.body.title}`);
 
-      const spreadsheetId = SPREADSHEET_ID;
-      const sheets = await getSheetsClient();
+      const supabase = createSupabaseClient();
 
-      // Alle sheets parallel ophalen — scheelt 200-500ms per call.
-      const spelersRangePromise = sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: `${SHEET_NAMES.SPELERS}!${SHEET_RANGES.FIRST_COLUMNS}`,
-      });
-      const notificatiesRangePromise = sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: `${SHEET_NAMES.NOTIFICATIES}!${SHEET_RANGES.FIRST_COLUMNS}`,
-      });
-      const aanwezigheidRangePromise = isReminder
-        ? sheets.spreadsheets.values.get({
-            spreadsheetId,
-            range: `${SHEET_NAMES.AANWEZIGHEID}!${SHEET_RANGES.FIRST_COLUMNS}`,
-          })
+      // Read parallel: active players, push subscriptions, optional next-match attendance.
+      const playersPromise = supabase
+        .from('players')
+        .select('id, name, actief')
+        .eq('actief', true);
+
+      const subscriptionsPromise = supabase
+        .from('push_subscriptions')
+        .select('endpoint, keys_p256dh, keys_auth, active, player_id')
+        .eq('active', true);
+
+      type NextMatchAttendance = {
+        nextMatchId: number | null;
+        respondedPlayerIds: Set<number>;
+      } | null;
+
+      const nextMatchAttendancePromise: Promise<NextMatchAttendance> = isReminder
+        ? (async () => {
+            const today = new Date();
+            const todayIso = today.toISOString().slice(0, 10);
+            const { data: nextMatches, error: matchErr } = await supabase
+              .from('matches')
+              .select('id, date')
+              .gte('date', todayIso)
+              .order('date', { ascending: true })
+              .limit(1);
+            if (matchErr) {
+              logger.error('Could not load next match', matchErr);
+              return { nextMatchId: null, respondedPlayerIds: new Set<number>() };
+            }
+            const nextMatch = nextMatches?.[0];
+            if (!nextMatch) {
+              return { nextMatchId: null, respondedPlayerIds: new Set<number>() };
+            }
+            const { data: attendanceRows, error: attErr } = await supabase
+              .from('attendance')
+              .select('player_id')
+              .eq('match_id', nextMatch.id);
+            if (attErr) {
+              logger.error('Could not load attendance', attErr);
+              return { nextMatchId: nextMatch.id, respondedPlayerIds: new Set<number>() };
+            }
+            return {
+              nextMatchId: nextMatch.id,
+              respondedPlayerIds: new Set((attendanceRows ?? []).map(r => r.player_id)),
+            };
+          })()
         : Promise.resolve(null);
 
-      const [spelersResult, notificatiesResult, aanwezigheidResult] = await Promise.all([
-        spelersRangePromise,
-        notificatiesRangePromise,
-        aanwezigheidRangePromise,
+      const [playersResult, subsResult, nextMatchAtt] = await Promise.all([
+        playersPromise,
+        subscriptionsPromise,
+        nextMatchAttendancePromise,
       ]);
 
-      const rows = spelersResult.data.values || [];
-      const notificatiesRows = notificatiesResult.data.values || [];
-      const actiefCol = COLUMN_INDICES.ACTIEF;
-      const nameCol = COLUMN_INDICES.NAME;
+      if (playersResult.error) throw playersResult.error;
+      if (subsResult.error) throw subsResult.error;
 
-      let targetRows = rows;
-      if (isReminder && aanwezigheidResult) {
-        const aanwezigheidRows = aanwezigheidResult.data.values || [];
-        const today = new Date();
-        let nextDate: string | null = null;
-        for (let i = 1; i < aanwezigheidRows.length; i++) {
-          const row = aanwezigheidRows[i];
-          const dateStr = row[COLUMN_INDICES.AANWEZIGHEID_DATUM];
-          if (dateStr) {
-            const rowDate = parseMatchDate(dateStr);
-            if (rowDate && rowDate >= today) {
-              nextDate = dateStr;
-              break;
-            }
-          }
-        }
-        // Trim namen zodat "Ruben " in de sheet matcht met "Ruben" in de spelerslijst.
-        const respondedNames = new Set(
-          aanwezigheidRows
-            .filter(r => r[COLUMN_INDICES.AANWEZIGHEID_DATUM] === nextDate)
-            .map(r => (r[COLUMN_INDICES.AANWEZIGHEID_NAAM] ?? '').toString().trim())
-            .filter(Boolean)
-        );
-        targetRows = rows.filter((row, i) =>
-          i > 0 &&
-          (row[actiefCol] === 'TRUE' || row[actiefCol] === 'Ja') &&
-          !respondedNames.has((row[nameCol] ?? '').toString().trim())
+      const activePlayers = playersResult.data ?? [];
+      const subscriptions = subsResult.data ?? [];
+
+      let targetPlayerIds: Set<number>;
+      if (isReminder && nextMatchAtt) {
+        targetPlayerIds = new Set(
+          activePlayers
+            .filter(p => !nextMatchAtt.respondedPlayerIds.has(p.id))
+            .map(p => p.id),
         );
       } else {
-        targetRows = rows.filter((row, i) =>
-          i > 0 && (row[actiefCol] === 'TRUE' || row[actiefCol] === 'Ja')
-        );
+        targetPlayerIds = new Set(activePlayers.map(p => p.id));
       }
 
-      const targetPlayerNames = new Set(
-        targetRows.map(row => (row[nameCol] ?? '').toString().trim()).filter(Boolean)
-      );
-      logger.info(`📧 Target players: ${targetPlayerNames.size}, notification rows: ${notificatiesRows.length - 1}`);
+      logger.info(`📧 Target players: ${targetPlayerIds.size}, subscriptions: ${subscriptions.length}`);
 
-      const notifications: Promise<any>[] = [];
-      // Houd per notification-promise de bijbehorende sheet-rij bij voor cleanup
-      const notificationRowIndices: number[] = [];
-      let skippedMissingData = 0;
-      let skippedInactive = 0;
-      let skippedNotTargeted = 0;
+      const notifications: Promise<unknown>[] = [];
+      const notificationEndpoints: string[] = [];
+      let skippedInactivePlayer = 0;
 
-      for (let i = 1; i < notificatiesRows.length; i++) {
-        const row = notificatiesRows[i];
-
-        // Valideer alleen de essentiële subscription-velden i.p.v. row-lengte.
-        // Google Sheets API strikt trailing lege cellen, dus row.length < 7 sloot stil rijen uit
-        // waar playerName leeg was.
-        const endpoint = row[COLUMN_INDICES.NOTIFICATIES_ENDPOINT];
-        const p256dh = row[COLUMN_INDICES.NOTIFICATIES_P256DH];
-        const auth = row[COLUMN_INDICES.NOTIFICATIES_AUTH];
-        if (!endpoint || !p256dh || !auth) {
-          skippedMissingData++;
-          continue;
-        }
-
-        const rawActive = row[COLUMN_INDICES.NOTIFICATIES_ACTIVE];
-        const active = rawActive === true
-          || rawActive === 'TRUE'
-          || rawActive === 'true'
-          || (typeof rawActive === 'string' && rawActive.toLowerCase() === 'true');
-        if (!active) {
-          skippedInactive++;
-          continue;
-        }
-
-        const playerName = (row[COLUMN_INDICES.NOTIFICATIES_PLAYER_NAME] ?? '').toString().trim();
-
-        // Reminder: player-name is verplicht én moet in de target-set zitten.
-        // Broadcast/test: stuur naar alle actieve subscriptions ook zonder bekende playerName,
-        //   omdat oudere subscripties soms geen naam hebben.
+      for (const sub of subscriptions) {
         let shouldSend: boolean;
         if (isReminder) {
-          shouldSend = !!playerName && targetPlayerNames.has(playerName);
-          if (!shouldSend) skippedNotTargeted++;
+          shouldSend = sub.player_id !== null && targetPlayerIds.has(sub.player_id);
         } else if (isTestMessage) {
           shouldSend = true;
         } else {
-          shouldSend = !playerName || targetPlayerNames.has(playerName);
-          if (!shouldSend) skippedNotTargeted++;
+          shouldSend = sub.player_id === null || targetPlayerIds.has(sub.player_id);
+        }
+        if (!shouldSend) {
+          skippedInactivePlayer++;
+          continue;
         }
 
-        if (shouldSend) {
-          try {
-            const subscription = { endpoint, keys: { p256dh, auth } };
-            const payload = JSON.stringify({
-              title: req.body.title || 'Zaalvoetbal Doorn',
-              body: req.body.body || 'Er is nieuws van Zaalvoetbal Doorn!',
-              url: req.body.url || undefined
-            });
-            notifications.push(webpush.sendNotification(subscription, payload));
-            notificationRowIndices.push(i); // sheet-rij = i + 1 (1-based)
-          } catch (err) {
-            logger.error(`Invalid subscription (row ${i + 1}, player=${playerName || '(none)'})`, err);
-          }
+        try {
+          const subscription = {
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth },
+          };
+          const payload = JSON.stringify({
+            title: req.body.title || 'Zaalvoetbal Doorn',
+            body: req.body.body || 'Er is nieuws van Zaalvoetbal Doorn!',
+            url: req.body.url || undefined,
+          });
+          notifications.push(webpush.sendNotification(subscription, payload));
+          notificationEndpoints.push(sub.endpoint);
+        } catch (err) {
+          logger.error(`Invalid subscription endpoint=${sub.endpoint}`, err);
         }
       }
 
-      logger.info(`📧 Sending ${notifications.length} — skipped: ${skippedMissingData} missing data, ${skippedInactive} inactive, ${skippedNotTargeted} not targeted`);
+      logger.info(`📧 Sending ${notifications.length} — skipped: ${skippedInactivePlayer} not targeted`);
 
       const results = await Promise.allSettled(notifications);
       const succeeded = results.filter(r => r.status === 'fulfilled').length;
       const failed = results.filter(r => r.status === 'rejected').length;
 
-      // Verzamel expired subscriptions (HTTP 404/410) en deactiveer ze in de sheet
-      const expiredRowIndices: number[] = [];
+      const expiredEndpoints: string[] = [];
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
           const reason = result.reason as { statusCode?: number } | undefined;
           const statusCode = reason?.statusCode;
           if (statusCode === 404 || statusCode === 410) {
-            expiredRowIndices.push(notificationRowIndices[index]);
+            expiredEndpoints.push(notificationEndpoints[index]);
           } else {
-            logger.error(`Push failed (row ${notificationRowIndices[index] + 1}, status ${statusCode ?? 'unknown'})`);
+            logger.error(`Push failed (endpoint ${notificationEndpoints[index]}, status ${statusCode ?? 'unknown'})`);
           }
         }
       });
 
-      if (expiredRowIndices.length > 0) {
-        const batchData = expiredRowIndices.map(rowIndex => ({
-          range: `${SHEET_NAMES.NOTIFICATIES}!F${rowIndex + 1}`, // 1-based
-          values: [[false]]
-        }));
-        try {
-          await sheets.spreadsheets.values.batchUpdate({
-            spreadsheetId,
-            requestBody: { data: batchData, valueInputOption: 'RAW' }
-          });
-          logger.info(`🧹 Deactivated ${expiredRowIndices.length} expired push subscription(s)`);
-        } catch (cleanupErr) {
-          logger.error('Failed to deactivate expired subscriptions', cleanupErr);
+      if (expiredEndpoints.length > 0) {
+        const { error: deactivateErr } = await supabase
+          .from('push_subscriptions')
+          .update({ active: false })
+          .in('endpoint', expiredEndpoints);
+        if (deactivateErr) {
+          logger.error('Failed to deactivate expired subscriptions', deactivateErr);
+        } else {
+          logger.info(`🧹 Deactivated ${expiredEndpoints.length} expired push subscription(s)`);
         }
       }
 
-      logger.info(`📧 Sent ${succeeded}/${notifications.length} push notifications (${failed} failed, ${expiredRowIndices.length} deactivated)`);
-      res.json({ success: true, sent: succeeded, failed: failed, deactivated: expiredRowIndices.length, total: notifications.length });
+      logger.info(`📧 Sent ${succeeded}/${notifications.length} push notifications (${failed} failed, ${expiredEndpoints.length} deactivated)`);
+      res.json({
+        success: true,
+        sent: succeeded,
+        failed: failed,
+        deactivated: expiredEndpoints.length,
+        total: notifications.length,
+      });
     } catch (error) {
       logger.error('sendPushToAll failed', error);
       res.status(500).json({ success: false, message: 'Error sending push notifications' });
