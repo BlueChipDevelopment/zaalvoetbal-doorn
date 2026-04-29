@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { Observable, BehaviorSubject, combineLatest, of } from 'rxjs';
-import { switchMap, map } from 'rxjs/operators';
+import { switchMap, map, tap } from 'rxjs/operators';
 import { PlayerService } from '../../services/player.service';
 import {
   PlayerProfileService,
@@ -26,7 +27,7 @@ interface ProfileVm {
   templateUrl: './speler-profiel.component.html',
   styleUrls: ['./speler-profiel.component.scss'],
 })
-export class SpelerProfielComponent implements OnInit {
+export class SpelerProfielComponent implements OnInit, OnDestroy {
   vm$!: Observable<ProfileVm | null>;
   trendRange$ = new BehaviorSubject<'12m' | 'all'>('12m');
   readonly historyColumns = ['date', 'ownTeam', 'opponents', 'score', 'outcome'];
@@ -35,6 +36,7 @@ export class SpelerProfielComponent implements OnInit {
     private route: ActivatedRoute,
     private playerService: PlayerService,
     private profileService: PlayerProfileService,
+    private titleService: Title,
   ) {}
 
   ngOnInit(): void {
@@ -53,9 +55,18 @@ export class SpelerProfielComponent implements OnInit {
           map(([player, stats, trend, teammates, worstTeammates, history]) =>
             player ? { player, stats, trend, teammates, worstTeammates, history } : null,
           ),
+          tap(vm => {
+            if (vm?.player?.name) {
+              this.titleService.setTitle(`${vm.player.name} — Zaalvoetbal Doorn`);
+            }
+          }),
         );
       }),
     );
+  }
+
+  ngOnDestroy(): void {
+    this.titleService.setTitle('Zaalvoetbal Doorn');
   }
 
   onRangeChange(range: '12m' | 'all'): void {

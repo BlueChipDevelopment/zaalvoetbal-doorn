@@ -1,5 +1,7 @@
 import { NgModule } from '@angular/core';
+import { TitleStrategy } from '@angular/router';
 import { BrowserModule } from '@angular/platform-browser';
+import { PageTitleStrategy } from './services/page-title-strategy';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -93,6 +95,7 @@ import { LoginComponent } from './components/login/login.component';
     { provide: MatchDataSource, useClass: SupabaseMatchDataSource },
     { provide: AttendanceDataSource, useClass: SupabaseAttendanceDataSource },
     { provide: NotificationDataSource, useClass: SupabaseNotificationDataSource },
+    { provide: TitleStrategy, useClass: PageTitleStrategy },
   ]
 })
 export class AppModule {}

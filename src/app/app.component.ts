@@ -1,5 +1,6 @@
 import { Component, DestroyRef, OnInit, OnDestroy, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Location } from '@angular/common';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { SwPush } from '@angular/service-worker';
@@ -7,7 +8,8 @@ import { PwaInstallService } from './services/pwa-install.service';
 import { PwaInstallGuideComponent } from './components/pwa-install-guide/pwa-install-guide.component';
 import { UpdateService } from './services/update.service';
 import { AuthService } from './services/auth.service';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -18,6 +20,7 @@ export class AppComponent implements OnInit, OnDestroy {
   title = 'Zaalvoetbal-Doorn';
   showInstallButton = false;
   isInstalled = false;
+  showBackButton = false;
 
   private destroyRef = inject(DestroyRef);
 
@@ -29,6 +32,7 @@ export class AppComponent implements OnInit, OnDestroy {
     public authService: AuthService,
     private router: Router,
     private swPush: SwPush,
+    private location: Location,
   ) {}
 
   ngOnInit() {
@@ -54,6 +58,16 @@ export class AppComponent implements OnInit, OnDestroy {
           if (url) window.open(url, '_blank');
         });
     }
+
+    // Track route changes to show/hide back button
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(event => {
+        this.showBackButton = /^\/speler\//.test(event.urlAfterRedirects);
+      });
 
     // Setup PWA install functionality
     this.pwaInstallService.canInstall
@@ -133,6 +147,10 @@ export class AppComponent implements OnInit, OnDestroy {
     dialogRef.componentInstance.close.subscribe(() => {
       dialogRef.close();
     });
+  }
+
+  goBack(): void {
+    this.location.back();
   }
 
   async installPWA() {
