@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1777496436535,
+  "timestamp": 1777496592037,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -11,7 +11,7 @@
         "ignoreVary": true
       },
       "urls": [
-        "/256.67bce2f6f2f12b9f.js",
+        "/256.b98a076239437739.js",
         "/444.7acfd447d6ddf918.js",
         "/466.e6c1c0092244d6dc.js",
         "/521.4c1f17a7e255bc7d.js",
@@ -31,7 +31,7 @@
         "/main.60e03599b97c981b.js",
         "/manifest.webmanifest",
         "/polyfills.99185e01a8611993.js",
-        "/runtime.196d7b7ede555c78.js",
+        "/runtime.ad998793196adaa5.js",
         "/styles.72b7cf6aed1194e1.css"
       ],
       "patterns": []
@@ -63,7 +63,7 @@
   ],
   "dataGroups": [],
   "hashTable": {
-    "/256.67bce2f6f2f12b9f.js": "df0c6dc101da780365eb1a55a27f5c1d236d68ac",
+    "/256.b98a076239437739.js": "13ae226c20971c378dc873c032d9894f09f54c3d",
     "/444.7acfd447d6ddf918.js": "74453bf261a710b6f912a97311e2fe5f7a250dbf",
     "/466.e6c1c0092244d6dc.js": "9043444846d92905091ca891efbb386b2728128d",
     "/521.4c1f17a7e255bc7d.js": "7570b6ab0a7be5a4678132a7abf7962ed32320d7",
@@ -92,11 +92,11 @@
     "/favicon.ico": "43528d083572386b5f788141a0a2d6619d1409cd",
     "/football-shirt-red.2fabd340d484d4cb.png": "0df1723bfe98a67e423479be18fee4e7cde55834",
     "/football-shirt-white.dfa9a8ea30f39956.png": "b18ac6d8f00e6f5e00cb440b80a2a72b0e1658f3",
-    "/index.html": "d9a9ede096b7f16fd6662f1cc27bcb091fcfadb4",
+    "/index.html": "1d2833bad4cbc84a7e0564f83375573c7403b6c2",
     "/main.60e03599b97c981b.js": "be5e884b525deb8141e7ee73e0344108f6edfce5",
     "/manifest.webmanifest": "f55078249defc81f0f13e2d5bb6e9e899577ec1c",
     "/polyfills.99185e01a8611993.js": "f11a301410e8f7479935b4934ce08e4623529fd4",
-    "/runtime.196d7b7ede555c78.js": "ae27ea238c0b68b10a5be842eaf48c3a62228ceb",
+    "/runtime.ad998793196adaa5.js": "f94ac47c5bbdd9991a7a7b4e32588d630e89f398",
     "/styles.72b7cf6aed1194e1.css": "1f7eadaaa9962ddfa9eb37127670c9de9bbc093f"
   },
   "navigationUrls": [
