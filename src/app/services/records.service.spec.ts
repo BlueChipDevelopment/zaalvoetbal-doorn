@@ -37,6 +37,7 @@ describe('RecordsService', () => {
         { provide: GameStatisticsService, useValue: {
           getFullPlayerStats: () => of(fullStats),
           getCurrentSeason: () => of(null),
+          getAvailableSeasons: () => of([]),
         } },
       ],
     });

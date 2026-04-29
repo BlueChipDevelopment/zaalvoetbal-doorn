@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable, forkJoin } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, forkJoin, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { PlayerService } from './player.service';
 import { WedstrijdenService } from './wedstrijden.service';
 import { GameStatisticsService } from './game.statistics.service';
@@ -47,12 +47,53 @@ export class RecordsService {
   }
 
   /**
+   * Bereken seizoen-MVP's: per seizoen de speler met de hoogste totalPoints.
+   * Bij gelijke top-waarde alle holders gedeeld.
+   */
+  getSeasonMVPs(): Observable<RecordCategory[]> {
+    return this.statsService.getAvailableSeasons().pipe(
+      switchMap(seasons => {
+        if (!seasons || seasons.length === 0) return of([] as RecordCategory[]);
+        return forkJoin(
+          seasons.map(season =>
+            this.statsService.getFullPlayerStats(season).pipe(
+              map(stats => this.buildSeasonMvp(season, stats)),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  /**
+   * Combineer all-time records + seizoen-MVP's tot één lijst.
+   */
+  getAllRecords(): Observable<RecordCategory[]> {
+    return forkJoin([this.getRecords(), this.getSeasonMVPs()]).pipe(
+      map(([records, mvps]) => [...records, ...mvps]),
+    );
+  }
+
+  /**
    * Filter records waarvan deze speler een holder is (single of shared).
+   * Inclusief seizoen-MVP's.
    */
   getRecordsForPlayer(playerId: number): Observable<RecordCategory[]> {
-    return this.getRecords().pipe(
+    return this.getAllRecords().pipe(
       map(records => records.filter(r => r.holders.some(h => h.playerId === playerId))),
     );
+  }
+
+  private buildSeasonMvp(season: string, stats: Player[]): RecordCategory {
+    return this.buildTopRecord({
+      key: `mvp-${season}`,
+      title: `MVP seizoen ${season}`,
+      icon: 'workspace_premium',
+      unit: 'punten',
+      higherIsBetter: true,
+      stats,
+      valueFn: p => p.totalPoints,
+    });
   }
 
   private computeRecords(

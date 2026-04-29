@@ -19,4 +19,26 @@
     </mat-card>
   </section>
 </ng-container>
+
+<ng-container *ngIf="mvps$ | async as mvps">
+  <section class="mvp-section" *ngIf="mvps.length > 0">
+    <h2 class="section-title">Seizoen-MVP's</h2>
+    <ul class="mvp-list">
+      <li *ngFor="let mvp of mvps" class="mvp-row">
+        <mat-icon>{{ mvp.icon }}</mat-icon>
+        <span class="season">{{ mvp.title }}</span>
+        <span class="holders">
+          <ng-container *ngIf="mvp.holders.length > 0; else noMvp">
+            <a *ngFor="let h of mvp.holders; let last = last" [routerLink]="['/speler', h.playerId]">
+              {{ h.name }}<span *ngIf="!last">, </span>
+            </a>
+            <span class="value">— {{ mvp.holders[0].value | number:'1.0-0' }} {{ mvp.unit }}</span>
+          </ng-container>
+          <ng-template #noMvp><span class="empty">geen data</span></ng-template>
+        </span>
+      </li>
+    </ul>
+  </section>
+</ng-container>
+
 <ng-template #loading><app-loading-state message="Records laden..."></app-loading-state></ng-template>
