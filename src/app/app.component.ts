@@ -2,6 +2,7 @@ import { Component, DestroyRef, OnInit, OnDestroy, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
+import { SwPush } from '@angular/service-worker';
 import { PwaInstallService } from './services/pwa-install.service';
 import { PwaInstallGuideComponent } from './components/pwa-install-guide/pwa-install-guide.component';
 import { UpdateService } from './services/update.service';
@@ -26,7 +27,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private pwaInstallService: PwaInstallService,
     private updateService: UpdateService,
     public authService: AuthService,
-    private router: Router
+    private router: Router,
+    private swPush: SwPush,
   ) {}
 
   ngOnInit() {
@@ -36,15 +38,21 @@ export class AppComponent implements OnInit, OnDestroy {
     // Initialize update service for automatic updates
     this.updateService.initializeUpdateService();
 
-    // Listen for messages from the service worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        console.log('📨 Received message from service worker:', event.data);
-        
-        if (event.data && event.data.type === 'PUSH_NOTIFICATION') {
-          this.handleInAppNotification(event.data);
-        }
-      });
+    // Push notifications via Angular's SwPush. ngsw toont zelf de OS-notificatie
+    // (payload bevat een `notification`-key); we abonneren op messages om óók
+    // een in-app snackbar te tonen wanneer de app op de voorgrond staat, en op
+    // notificationClicks om navigatie af te handelen na een klik op de OS-toast.
+    if (this.swPush.isEnabled) {
+      this.swPush.messages
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((msg: any) => this.handleInAppNotification(msg?.notification ?? msg));
+
+      this.swPush.notificationClicks
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(({ notification }) => {
+          const url = (notification as any)?.data?.url;
+          if (url) window.open(url, '_blank');
+        });
     }
 
     // Setup PWA install functionality
@@ -67,88 +75,45 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Clean up old service workers from previous versions
-   * This prevents conflicts with the new ngsw-worker.js + push-handler-sw.js setup
+   * Verwijder verouderde firebase-messaging-sw.js-registratie van pre-Supabase
+   * gebruikers. Bij een match wordt de pagina herladen zodat ngsw verse
+   * registratie pakt.
    */
   private async cleanupOldServiceWorkers(): Promise<void> {
-    if (!('serviceWorker' in navigator)) {
-      return;
-    }
-
+    if (!('serviceWorker' in navigator)) return;
     try {
       const registrations = await navigator.serviceWorker.getRegistrations();
-      console.log(`🔍 Found ${registrations.length} service worker registration(s)`);
-
       for (const registration of registrations) {
         const scriptURL = registration.active?.scriptURL || '';
-        
-        // Check for old Firebase Messaging service worker
         if (scriptURL.includes('firebase-messaging-sw.js')) {
-          console.log('🗑️ Found old firebase-messaging-sw.js, unregistering...');
           const success = await registration.unregister();
-          
           if (success) {
-            console.log('✅ Successfully unregistered old firebase-messaging-sw.js');
             this.snackBar.open(
-              'Oude notificatie service verwijderd. Pagina wordt vernieuwd...', 
+              'Oude notificatie service verwijderd. Pagina wordt vernieuwd...',
               'OK',
-              { duration: 3000 }
+              { duration: 3000 },
             );
-            
-            // Reload to register new service worker
             setTimeout(() => window.location.reload(), 3000);
-          } else {
-            console.warn('⚠️ Failed to unregister old service worker');
           }
-        } else {
-          console.log(`✅ Service worker OK: ${scriptURL}`);
         }
       }
     } catch (error) {
-      console.error('❌ Error during service worker cleanup:', error);
+      console.error('Service worker cleanup mislukt:', error);
     }
   }
 
-  private handleInAppNotification(data: any) {
-    console.log('🔔 Handling in-app notification:', data);
-    
-    // Create message for snackbar
-    const message = `${data.title}: ${data.body}`;
-    
-    // Define action based on whether there's a URL
-    const action = data.data?.url ? 'Bekijk' : 'OK';
-    
-    // Show elegant MatSnackBar notification
-    const snackBarRef = this.snackBar.open(message, action, {
-      duration: 8000, // 8 seconds auto-dismiss
+  private handleInAppNotification(notification: { title?: string; body?: string; data?: { url?: string } }) {
+    const message = `${notification.title ?? 'Zaalvoetbal Doorn'}: ${notification.body ?? ''}`;
+    const url = notification.data?.url;
+    const snackBarRef = this.snackBar.open(message, url ? 'Bekijk' : 'OK', {
+      duration: 8000,
       panelClass: ['futsal-notification', 'futsal-notification-info'],
       horizontalPosition: 'center',
       verticalPosition: 'bottom',
     });
-
-    // Handle action button click
-    snackBarRef.onAction().subscribe(() => {
-      console.log('🔗 User clicked snackbar action');
-      
-      // If there's a URL, navigate to it
-      if (data.data?.url) {
-        console.log('🔗 Navigating to:', data.data.url);
-        window.open(data.data.url, '_blank');
-      }
-      
-      console.log('✅ User acknowledged notification via SnackBar');
-    });
-
-    // Log when dismissed
-    snackBarRef.afterDismissed().subscribe((info) => {
-      if (info.dismissedByAction) {
-        console.log('📤 SnackBar dismissed by action');
-      } else {
-        console.log('⏰ SnackBar auto-dismissed');
-      }
-    });
-    
-    console.log('✅ Elegant in-app notification displayed to user');
+    if (url) {
+      snackBarRef.onAction().subscribe(() => window.open(url, '_blank'));
+    }
   }
 
   showInstallGuide() {

@@ -123,9 +123,13 @@ export const sendPushToAll = onRequest(
             keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth },
           };
           const payload = JSON.stringify({
-            title: req.body.title || 'Zaalvoetbal Doorn',
-            body: req.body.body || 'Er is nieuws van Zaalvoetbal Doorn!',
-            url: req.body.url || undefined,
+            notification: {
+              title: req.body.title || 'Zaalvoetbal Doorn',
+              body: req.body.body || 'Er is nieuws van Zaalvoetbal Doorn!',
+              icon: '/assets/icons/icon-192x192.png',
+              badge: '/assets/icons/icon-72x72.png',
+              data: { url: req.body.url || '/' },
+            },
           });
           notifications.push(webpush.sendNotification(subscription, payload, { TTL: 60, urgency: 'high' }));
           notificationEndpoints.push(sub.endpoint);

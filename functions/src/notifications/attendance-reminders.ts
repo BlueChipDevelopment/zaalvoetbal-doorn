@@ -128,8 +128,16 @@ export const scheduledAttendanceReminders = onSchedule(
 
     const sends = eligible.map(s => {
       const sub = { endpoint: s.endpoint, keys: { p256dh: s.keys_p256dh, auth: s.keys_auth } };
-      const payload = JSON.stringify({ title, body, url });
-      return webpush.sendNotification(sub, payload);
+      const payload = JSON.stringify({
+        notification: {
+          title,
+          body,
+          icon: '/assets/icons/icon-192x192.png',
+          badge: '/assets/icons/icon-72x72.png',
+          data: { url },
+        },
+      });
+      return webpush.sendNotification(sub, payload, { TTL: 60, urgency: 'high' });
     });
     const results = await Promise.allSettled(sends);
     const succeeded = results.filter(r => r.status === 'fulfilled').length;
