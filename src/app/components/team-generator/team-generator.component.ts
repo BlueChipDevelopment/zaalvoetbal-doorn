@@ -25,6 +25,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { SnackbarService } from '../../services/snackbar.service';
 import { environment } from '../../../environments/environment';
 import { PlayerCardComponent } from '../player-card/player-card.component';
 import { DragDropModule } from '@angular/cdk/drag-drop';
@@ -93,6 +94,7 @@ export class TeamGeneratorComponent implements OnInit {
     private attendanceService: AttendanceService,
     private playerService: PlayerService,
     private snackBar: MatSnackBar,
+    private snackbar: SnackbarService,
   ) {
   }
 
@@ -626,7 +628,7 @@ export class TeamGeneratorComponent implements OnInit {
           .subscribe({
           next: (matchInfo) => {
             if (!matchInfo) {
-              this.snackBar.open('Geen aankomende wedstrijd gevonden.', 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
+              this.snackbar.error('Geen aankomende wedstrijd gevonden.');
               return;
             }
 
@@ -640,7 +642,7 @@ export class TeamGeneratorComponent implements OnInit {
               .subscribe({
               next: (presentPlayers) => {
                 if (presentPlayers.length === 0) {
-                  this.snackBar.open('Geen aanwezige spelers gevonden voor de volgende wedstrijd.', 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
+                  this.snackbar.error('Geen aanwezige spelers gevonden voor de volgende wedstrijd.');
                   return;
                 }
                 
@@ -662,17 +664,17 @@ export class TeamGeneratorComponent implements OnInit {
                 this.errorMessage = null;
               },
               error: (err) => {
-                this.snackBar.open('Fout bij ophalen aanwezigheid: ' + (err.message || err), 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
+                this.snackbar.error('Fout bij ophalen aanwezigheid: ' + (err.message || err));
               }
             });
           },
           error: (err) => {
-            this.snackBar.open('Fout bij ophalen wedstrijden: ' + (err.message || err), 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
+            this.snackbar.error('Fout bij ophalen wedstrijden: ' + (err.message || err));
           }
         });
       },
       error: (err) => {
-        this.snackBar.open('Fout bij ophalen spelersstatistieken: ' + (err.message || err), 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
+        this.snackbar.error('Fout bij ophalen spelersstatistieken: ' + (err.message || err));
       }
     });
   }
@@ -698,10 +700,7 @@ export class TeamGeneratorComponent implements OnInit {
           }
         },
         error: (error) => {
-          this.snackBar.open(error.message || 'Fout bij ophalen spelers.', 'Sluiten', { 
-            duration: 5000, 
-            panelClass: ['futsal-notification', 'futsal-notification-error'] 
-          });
+          this.snackbar.error(error.message || 'Fout bij ophalen spelers.');
         }
       });
   }
@@ -733,7 +732,7 @@ export class TeamGeneratorComponent implements OnInit {
 
   saveTeamsToSheet(): void {
     if (!this.nextMatchInfo || !this.teams.teamWhite || !this.teams.teamRed) {
-      this.snackBar.open('Kan teams niet opslaan: ontbrekende gegevens.', 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
+      this.snackbar.error('Kan teams niet opslaan: ontbrekende gegevens.');
       return;
     }
 
@@ -767,10 +766,7 @@ export class TeamGeneratorComponent implements OnInit {
       console.error('❌ Geen match-id beschikbaar voor team-update');
       this.isSavingTeams = false;
       this.loadingSubject.next(false);
-      this.snackBar.open('Fout: kon wedstrijd niet identificeren.', 'Sluiten', {
-        duration: 5000,
-        panelClass: ['futsal-notification', 'futsal-notification-error'],
-      });
+      this.snackbar.error('Fout: kon wedstrijd niet identificeren.');
       return;
     }
 
@@ -788,7 +784,7 @@ export class TeamGeneratorComponent implements OnInit {
         this.isTeamsSaved = true;
         this.isSavingTeams = false;
         this.loadingSubject.next(false);
-        this.snackBar.open('Teams opgeslagen!', 'Sluiten', { duration: 3000, panelClass: ['futsal-notification', 'futsal-notification-success'] });
+        this.snackbar.success('Teams opgeslagen!');
         this.sendPushNotificationToAll(
           'Opstelling bekend ⚽',
           'Bekijk de teams voor de volgende wedstrijd.',
@@ -799,7 +795,7 @@ export class TeamGeneratorComponent implements OnInit {
         console.error(`❌ Fout bij opslaan teams voor ${seizoen || 'onbekend'} wedstrijd ${matchNumber}:`, err);
         this.isSavingTeams = false;
         this.loadingSubject.next(false);
-        this.snackBar.open('Fout bij opslaan teams: ' + (err.message || err), 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
+        this.snackbar.error('Fout bij opslaan teams: ' + (err.message || err));
       },
     });
   }
@@ -856,11 +852,11 @@ export class TeamGeneratorComponent implements OnInit {
           }
           throw new Error(message || `HTTP ${res.status}`);
         }
-        this.snackBar.open('Push notificatie verstuurd!', 'Sluiten', { duration: 3000, panelClass: ['futsal-notification', 'futsal-notification-success'] });
+        this.snackbar.success('Push notificatie verstuurd!');
       })
       .catch(err => {
         const message = err instanceof Error ? err.message : String(err);
-        this.snackBar.open('Fout bij versturen push notificatie: ' + message, 'Sluiten', { duration: 5000, panelClass: ['futsal-notification', 'futsal-notification-error'] });
+        this.snackbar.error('Fout bij versturen push notificatie: ' + message);
       });
   }
 

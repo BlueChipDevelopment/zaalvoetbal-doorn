@@ -133,14 +133,17 @@ app-top-bar {
 }
 
 .error-banner {
-  background: #ffebee;
-  color: #b71c1c;
-  padding: 12px;
-  border-radius: 4px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 0.5rem;
+  padding: 12px 16px;
+  margin: 8px 0;
+  background-color: $error-light-bg;
+  color: $error-dark;
+  border-left: 4px solid $error-dark;
+  border-radius: 4px;
+  font-size: $font-size-sm;
+  mat-icon { color: $error-dark; }
 }
 
 .loading-spinner {

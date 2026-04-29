@@ -1,13 +1,13 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableDataSource } from '@angular/material/table';
 import { WedstrijdenService } from '../../../services/wedstrijden.service';
 import { PlayerService } from '../../../services/player.service';
 import { PlayerSheetData } from '../../../interfaces/IPlayerSheet';
 import { WedstrijdData } from '../../../interfaces/IWedstrijd';
 import { WedstrijdDialogComponent } from './wedstrijd-dialog/wedstrijd-dialog.component';
+import { SnackbarService } from '../../../services/snackbar.service';
 
 @Component({
   selector: 'app-admin-wedstrijden',
@@ -26,7 +26,7 @@ export class AdminWedstrijdenComponent implements OnInit {
     private wedstrijdenService: WedstrijdenService,
     private playerService: PlayerService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackbar: SnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -78,12 +78,7 @@ export class AdminWedstrijdenComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error adding wedstrijd:', error);
-            this.snackBar.open('Fout bij toevoegen wedstrijd: ' + error.message, 'Sluiten', {
-              duration: 5000,
-              panelClass: ['futsal-notification', 'futsal-notification-error'],
-              horizontalPosition: 'center',
-              verticalPosition: 'bottom',
-            });
+            this.snackbar.error('Fout bij toevoegen wedstrijd: ' + error.message);
           }
         });
       }
@@ -108,12 +103,7 @@ export class AdminWedstrijdenComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error updating wedstrijd:', error);
-            this.snackBar.open('Fout bij wijzigen wedstrijd: ' + error.message, 'Sluiten', {
-              duration: 5000,
-              panelClass: ['futsal-notification', 'futsal-notification-error'],
-              horizontalPosition: 'center',
-              verticalPosition: 'bottom',
-            });
+            this.snackbar.error('Fout bij wijzigen wedstrijd: ' + error.message);
           }
         });
       }

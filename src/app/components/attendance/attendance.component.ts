@@ -5,7 +5,7 @@ import { PlayerService } from '../../services/player.service';
 import { NotificationService } from '../../services/notification.service';
 import { PlayerSheetData } from '../../interfaces/IPlayerSheet';
 import { formatDateISO } from '../../utils/date-utils';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { SnackbarService } from '../../services/snackbar.service';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -82,10 +82,10 @@ export class AttendanceComponent implements OnInit {
   constructor(
     private attendanceService: AttendanceService,
     private playerService: PlayerService,
-    private snackBar: MatSnackBar,
     private nextMatchService: NextMatchService,
     private notificationService: NotificationService,
-    private pwaInstallService: PwaInstallService
+    private pwaInstallService: PwaInstallService,
+    private snackbar: SnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -342,10 +342,7 @@ export class AttendanceComponent implements OnInit {
           console.error(`Error fetching attendance status for ${currentPlayer}:`, err);
           if (this.selectedPlayer === currentPlayer) {
             this.attendanceStatus = null;
-            this.snackBar.open('Fout bij ophalen aanwezigheid status.', 'Sluiten', { 
-              duration: 5000, 
-              panelClass: ['snackbar-error'] 
-            });
+            this.snackbar.error('Fout bij ophalen aanwezigheid status.');
           }
         }
       });
@@ -376,19 +373,14 @@ export class AttendanceComponent implements OnInit {
         console.log('Attendance saved:', response);
         if (this.selectedPlayer === currentPlayer) {
           this.attendanceStatus = status;
-          this.snackBar.open(`Aanwezigheid (${status}) voor ${currentPlayer} opgeslagen!`, 'Ok', { 
-            duration: 3000 
-          });
+          this.snackbar.success(`Aanwezigheid (${status}) voor ${currentPlayer} opgeslagen!`);
         }
         this.loadAttendanceList(); // Refresh de lijst na opslaan
       },
       error: (err) => {
         console.error('Error saving attendance:', err);
         const message = (err instanceof Error) ? err.message : 'Fout bij opslaan aanwezigheid.';
-        this.snackBar.open(message, 'Sluiten', { 
-          duration: 5000, 
-          panelClass: ['snackbar-error'] 
-        });
+        this.snackbar.error(message);
       }
     });
   }
@@ -464,10 +456,7 @@ export class AttendanceComponent implements OnInit {
       const success = await this.notificationService.requestPermission(this.selectedPlayer || undefined);
 
       if (success) {
-        this.snackBar.open('Notificaties succesvol ingeschakeld.', 'OK', {
-          duration: 3000,
-          panelClass: ['futsal-notification', 'futsal-notification-success']
-        });
+        this.snackbar.success('Notificaties succesvol ingeschakeld.');
 
         // Check updated player notification status
         await this.checkPlayerNotificationStatus();
@@ -479,17 +468,11 @@ export class AttendanceComponent implements OnInit {
           this.showPwaInstallGuide = true;
         }
       } else {
-        this.snackBar.open('Kon notificaties niet inschakelen', 'OK', {
-          duration: 5000,
-          panelClass: ['futsal-notification', 'futsal-notification-warning']
-        });
+        this.snackbar.error('Kon notificaties niet inschakelen');
       }
     } catch (error) {
       console.error('Error enabling notifications:', error);
-      this.snackBar.open('Fout bij inschakelen notificaties', 'OK', {
-        duration: 5000,
-        panelClass: ['futsal-notification', 'futsal-notification-warning']
-      });
+      this.snackbar.error('Fout bij inschakelen notificaties');
     } finally {
       this.notificationLoading = false;
     }
@@ -532,10 +515,7 @@ export class AttendanceComponent implements OnInit {
   }
 
   public onPwaInstalled(): void {
-    this.snackBar.open('App geïnstalleerd. Notificaties zijn nu actief.', 'OK', {
-      duration: 4000,
-      panelClass: ['futsal-notification', 'futsal-notification-success']
-    });
+    this.snackbar.success('App geïnstalleerd. Notificaties zijn nu actief.');
   }
 
   private formatDate(date: Date): string {

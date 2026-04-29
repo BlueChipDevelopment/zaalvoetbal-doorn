@@ -10,7 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { SnackbarService } from '../../services/snackbar.service';
 import { switchMap } from 'rxjs/operators';
 import { Player } from '../../interfaces/IPlayer';
 import { Team } from '../../interfaces/ITeam';
@@ -51,7 +51,7 @@ export class OpstellingComponent implements OnInit, OnDestroy {
     private nextMatchService: NextMatchService,
     private gameStatisticsService: GameStatisticsService,
     private teamGenerateService: TeamGenerateService,
-    private snackBar: MatSnackBar
+    private snackbar: SnackbarService
   ) {}
 
   ngOnDestroy(): void {
@@ -160,7 +160,7 @@ export class OpstellingComponent implements OnInit, OnDestroy {
 
   copyOpstellingLink() {
     navigator.clipboard.writeText(this.opstellingUrl);
-    this.snackBar.open('Link naar de opstelling gekopieerd!', 'Sluiten', { duration: 2500, panelClass: ['futsal-notification', 'futsal-notification-success'] });
+    this.snackbar.success('Link naar de opstelling gekopieerd!');
   }
 
   getTeamRating(team: any[]): number {

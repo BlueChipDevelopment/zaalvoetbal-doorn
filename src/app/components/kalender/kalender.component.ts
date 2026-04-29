@@ -11,7 +11,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { SnackbarService } from '../../services/snackbar.service';
+import { EmptyStateComponent } from '../empty-state/empty-state.component';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -80,7 +81,8 @@ interface ExtendedFutureMatchInfo extends FutureMatchInfo {
     MatChipsModule,
     MatExpansionModule,
     MatTooltipModule,
-    MatDividerModule
+    MatDividerModule,
+    EmptyStateComponent,
   ],
   templateUrl: './kalender.component.html',
   styleUrl: './kalender.component.scss'
@@ -120,7 +122,7 @@ export class KalenderComponent implements OnInit {
     private attendanceService: AttendanceService,
     private playerService: PlayerService,
     private nextMatchService: NextMatchService,
-    private snackBar: MatSnackBar
+    private snackbar: SnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -232,10 +234,7 @@ export class KalenderComponent implements OnInit {
         error: (err) => {
           console.error('Error loading attendance data:', err);
           this.matchPresenceCounts = [];
-          this.snackBar.open('Fout bij ophalen aanwezigheid aantallen.', 'Sluiten', { 
-            duration: 5000, 
-            panelClass: ['futsal-notification', 'futsal-notification-error'] 
-          });
+          this.snackbar.error('Fout bij ophalen aanwezigheid aantallen.');
         }
       });
   }
@@ -349,10 +348,7 @@ export class KalenderComponent implements OnInit {
           console.error('Error loading attendance status:', err);
           if (this.selectedPlayer === currentPlayer) {
             this.playerAttendanceStatus = [];
-            this.snackBar.open('Fout bij ophalen aanwezigheid status.', 'Sluiten', { 
-              duration: 5000, 
-              panelClass: ['futsal-notification', 'futsal-notification-error'] 
-            });
+            this.snackbar.error('Fout bij ophalen aanwezigheid status.');
           }
         }
       });
@@ -470,20 +466,13 @@ export class KalenderComponent implements OnInit {
           this.updateMatchPresenceCount(matchDate);
           this.updateMatchAttendanceDetails(matchDate);
 
-          this.snackBar.open(
-            `Aanwezigheid (${dbStatus === 'Ja' ? 'Aanwezig' : 'Afwezig'}) voor ${currentPlayer} opgeslagen!`, 
-            'Ok', 
-            { duration: 3000 }
-          );
+          this.snackbar.success(`Aanwezigheid (${dbStatus === 'Ja' ? 'Aanwezig' : 'Afwezig'}) voor ${currentPlayer} opgeslagen!`);
         }
       },
       error: (err) => {
         console.error('Error saving attendance:', err);
         const message = (err instanceof Error) ? err.message : 'Fout bij opslaan aanwezigheid.';
-        this.snackBar.open(message, 'Sluiten', { 
-          duration: 5000, 
-          panelClass: ['futsal-notification', 'futsal-notification-error'] 
-        });
+        this.snackbar.error(message);
       }
     });
   }

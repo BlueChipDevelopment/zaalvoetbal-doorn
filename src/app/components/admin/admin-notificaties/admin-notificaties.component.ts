@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { SnackbarService } from '../../../services/snackbar.service';
 import {
   AdminSubscription,
   BeheerNotificatiesService,
@@ -29,7 +29,7 @@ export class AdminNotificatiesComponent implements OnInit {
   constructor(
     private beheer: BeheerNotificatiesService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar,
+    private snackbar: SnackbarService,
   ) {}
 
   ngOnInit(): void {
@@ -48,16 +48,12 @@ export class AdminNotificatiesComponent implements OnInit {
       if (!result) return;
       this.beheer.sendTestBroadcast(result.title, result.body).subscribe({
         next: r => {
-          this.snackBar.open(
-            `Verstuurd: ${r.sent}/${r.total} (verlopen: ${r.deactivated})`,
-            'OK',
-            { duration: 4000 },
-          );
+          this.snackbar.info(`Verstuurd: ${r.sent}/${r.total} (verlopen: ${r.deactivated})`);
           setTimeout(() => this.refreshAll(), 1500);
         },
         error: err => {
           console.error('Test-broadcast failed:', err);
-          this.snackBar.open('Versturen mislukt — check console.', 'Sluiten', { duration: 5000 });
+          this.snackbar.error('Versturen mislukt — check console.');
         },
       });
     });

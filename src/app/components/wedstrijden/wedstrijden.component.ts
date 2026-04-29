@@ -7,11 +7,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatError } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { PlayerNamePipe } from '../../pipes/player-name.pipe';
+import { EmptyStateComponent } from '../empty-state/empty-state.component';
 
 @Component({
   selector: 'app-wedstrijden',
   standalone: true,
-  imports: [MatProgressSpinnerModule, CommonModule, MatError, MatIconModule, PlayerNamePipe],
+  imports: [MatProgressSpinnerModule, CommonModule, MatError, MatIconModule, PlayerNamePipe, EmptyStateComponent],
   templateUrl: './wedstrijden.component.html',
   styleUrl: './wedstrijden.component.scss'
 })

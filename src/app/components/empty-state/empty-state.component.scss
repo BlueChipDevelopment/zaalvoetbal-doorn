@@ -1,0 +1,13 @@
+@import '../../../styles_variables';
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem 1rem;
+  color: $text-secondary;
+  .icon { font-size: 3rem; height: 3rem; width: 3rem; margin-bottom: 0.5rem; opacity: 0.5; }
+  .message { margin: 0; font-size: $font-size-lg; }
+  .hint { margin: 0.25rem 0 0; font-size: $font-size-sm; }
+}

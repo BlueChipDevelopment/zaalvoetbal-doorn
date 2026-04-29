@@ -1,11 +1,11 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableDataSource } from '@angular/material/table';
 import { PlayerService } from '../../../services/player.service';
 import { PlayerSheetData } from '../../../interfaces/IPlayerSheet';
 import { SpelerDialogComponent } from './speler-dialog/speler-dialog.component';
+import { SnackbarService } from '../../../services/snackbar.service';
 
 @Component({
   selector: 'app-admin-spelers',
@@ -22,7 +22,7 @@ export class AdminSpelersComponent implements OnInit {
   constructor(
     private playerService: PlayerService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackbar: SnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -63,12 +63,7 @@ export class AdminSpelersComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error adding player:', error);
-            this.snackBar.open('Fout bij toevoegen speler: ' + error.message, 'Sluiten', {
-              duration: 5000,
-              panelClass: ['futsal-notification', 'futsal-notification-error'],
-              horizontalPosition: 'center',
-              verticalPosition: 'bottom',
-            });
+            this.snackbar.error('Fout bij toevoegen speler: ' + error.message);
           }
         });
       }
@@ -93,12 +88,7 @@ export class AdminSpelersComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error updating player:', error);
-            this.snackBar.open('Fout bij wijzigen speler: ' + error.message, 'Sluiten', {
-              duration: 5000,
-              panelClass: ['futsal-notification', 'futsal-notification-error'],
-              horizontalPosition: 'center',
-              verticalPosition: 'bottom',
-            });
+            this.snackbar.error('Fout bij wijzigen speler: ' + error.message);
           }
         });
       }

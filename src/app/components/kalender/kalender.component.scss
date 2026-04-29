@@ -17,29 +17,6 @@
   }
 }
 
-.error-banner {
-  background-color: $error-light-bg;
-  border: 1px solid #e57373;
-  border-radius: 4px;
-  padding: 12px 16px;
-  margin: 16px 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  
-  mat-icon {
-    color: $error-dark;
-  }
-  
-  span {
-    flex: 1;
-    color: $error-dark;
-  }
-  
-  button {
-    color: $error-dark;
-  }
-}
 
 .kalender-card {
   h2 {

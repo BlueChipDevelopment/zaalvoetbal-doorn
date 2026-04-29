@@ -34,17 +34,18 @@
       </div>
 
       <!-- No players found -->
-      <div *ngIf="players.length === 0">
-        <p>Geen spelers gevonden.</p>
-      </div>
+      <app-empty-state
+        *ngIf="players.length === 0"
+        icon="group_off"
+        message="Geen spelers gevonden."
+      ></app-empty-state>
 
       <!-- No future matches -->
-      <div *ngIf="selectedPlayer && futureMatches.length === 0 && !isLoadingStatus">
-        <div class="info-message">
-          <mat-icon>info</mat-icon>
-          <p>Er zijn momenteel geen toekomstige wedstrijden gepland.</p>
-        </div>
-      </div>
+      <app-empty-state
+        *ngIf="selectedPlayer && futureMatches.length === 0 && !isLoadingStatus"
+        icon="event_busy"
+        message="Geen toekomstige wedstrijden gepland."
+      ></app-empty-state>
 
       <!-- Future matches list -->
       <div *ngIf="selectedPlayer && futureMatches.length > 0" class="matches-container">

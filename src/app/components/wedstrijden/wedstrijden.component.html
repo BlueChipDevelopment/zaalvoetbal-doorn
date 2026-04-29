@@ -40,8 +40,10 @@
         <span *ngIf="wedstrijd.ventielPlayerId" style="margin-left:1rem;">Ventiel: <b>{{ wedstrijd.ventielPlayerId | playerName | async }}</b></span>
       </div>
     </div>
-    <div *ngIf="wedstrijden.length === 0" class="geen-wedstrijden">
-      <p>Er zijn nog geen gespeelde wedstrijden met uitslag.</p>
-    </div>
+    <app-empty-state
+      *ngIf="wedstrijden.length === 0"
+      icon="sports_soccer"
+      message="Nog geen gespeelde wedstrijden met uitslag."
+    ></app-empty-state>
   </ng-container>
 </div>

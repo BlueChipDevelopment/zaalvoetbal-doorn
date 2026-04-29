@@ -1,6 +1,7 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { SnackbarService } from '../../services/snackbar.service';
 import { Router } from '@angular/router';
 import { NextMatchService, NextMatchInfo } from '../../services/next-match.service';
 import { getCurrentDateTimeISO } from '../../utils/date-utils';
@@ -69,7 +70,8 @@ export class ScoreComponent implements OnInit {
     private router: Router,
     private nextMatchService: NextMatchService,
     private gameStatisticsService: GameStatisticsService,
-    private wedstrijdenService: WedstrijdenService
+    private wedstrijdenService: WedstrijdenService,
+    private snackbar: SnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -160,10 +162,7 @@ export class ScoreComponent implements OnInit {
       const rowIndexToUpdate = this.nextMatch.rowNumber;
 
       if (!rowIndexToUpdate) {
-        this._snackBar.open('Kan wedstrijd niet identificeren voor het opslaan van scores.', 'OK', {
-          duration: 5000,
-          panelClass: ['futsal-notification', 'futsal-notification-error']
-        });
+        this.snackbar.error('Kan wedstrijd niet identificeren voor het opslaan van scores.');
         return;
       }
 
@@ -184,10 +183,7 @@ export class ScoreComponent implements OnInit {
               // Veilig om scores op te slaan
               this.performScoreUpdate(rowIndexToUpdate);
             } else {
-              this._snackBar.open('Wedstrijdgegevens zijn veranderd. Herlaad de pagina.', 'OK', {
-                duration: 5000,
-                panelClass: ['futsal-notification', 'futsal-notification-warning']
-              });
+              this.snackbar.info('Wedstrijdgegevens zijn veranderd. Herlaad de pagina.');
             }
           },
           error: () => {
@@ -200,10 +196,7 @@ export class ScoreComponent implements OnInit {
         this.performScoreUpdate(rowIndexToUpdate);
       }
     } else {
-      this._snackBar.open('Vul eerst beide scores in.', 'OK', {
-        duration: 3000,
-        panelClass: ['futsal-notification', 'futsal-notification-warning']
-      });
+      this.snackbar.info('Vul eerst beide scores in.');
     }
   }
 
@@ -215,10 +208,7 @@ export class ScoreComponent implements OnInit {
 
     if (!matchId) {
       console.error('❌ Geen match-id beschikbaar voor score-update');
-      this._snackBar.open('Fout: kon wedstrijd niet identificeren.', 'Sluiten', {
-        duration: 5000,
-        panelClass: ['futsal-notification', 'futsal-notification-error']
-      });
+      this.snackbar.error('Fout: kon wedstrijd niet identificeren.');
       return;
     }
 
@@ -241,10 +231,7 @@ export class ScoreComponent implements OnInit {
       },
       error: error => {
         console.error(`❌ Fout bij opslaan scores voor ${seizoen || 'onbekend'} wedstrijd ${matchNumber}:`, error);
-        this._snackBar.open('Fout bij opslaan. Probeer het opnieuw.', 'Sluiten', {
-          duration: 5000,
-          panelClass: ['futsal-notification', 'futsal-notification-error']
-        });
+        this.snackbar.error('Fout bij opslaan. Probeer het opnieuw.');
       }
     });
   }
