@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, forkJoin } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, switchMap } from 'rxjs/operators';
 import { PlayerService } from './player.service';
 import { WedstrijdenService } from './wedstrijden.service';
 import { GameStatisticsService } from './game.statistics.service';
@@ -113,11 +113,15 @@ export class PlayerProfileService {
   ) {}
 
   getStats(playerId: number): Observable<PlayerProfileStats> {
-    return forkJoin({
-      spelers: this.playerService.getPlayers(),
-      wedstrijden: this.wedstrijdenService.getGespeeldeWedstrijden(),
-      fullStats: this.statsService.getFullPlayerStats(),
-    }).pipe(
+    // Rating wordt seizoens-relatief berekend (zie GameStatisticsService);
+    // we gebruiken het huidige seizoen zodat de profiel-rating overeenkomt
+    // met wat het klassement default toont.
+    return this.statsService.getCurrentSeason().pipe(
+      switchMap(season => forkJoin({
+        spelers: this.playerService.getPlayers(),
+        wedstrijden: this.wedstrijdenService.getGespeeldeWedstrijden(),
+        fullStats: this.statsService.getFullPlayerStats(season),
+      })),
       map(({ spelers, wedstrijden, fullStats }) => {
         // Filter wedstrijden voor deze speler
         const playerMatches = wedstrijden.filter(
@@ -165,7 +169,7 @@ export class PlayerProfileService {
         });
 
         // Rating uit fullStats
-        const playerStat: Player | undefined = fullStats.find(p => p.id === playerId);
+        const playerStat: Player | undefined = fullStats.find((p: Player) => p.id === playerId);
         const rating = playerStat?.rating ?? 1;
 
         // attendanceRate: matchesPlayed / totalGespeeldeWedstrijden

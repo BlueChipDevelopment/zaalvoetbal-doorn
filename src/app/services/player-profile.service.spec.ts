@@ -79,7 +79,10 @@ describe('PlayerProfileService', () => {
         PlayerProfileService,
         { provide: PlayerService, useValue: { getPlayers: () => of(players) } },
         { provide: WedstrijdenService, useValue: { getGespeeldeWedstrijden: () => of(matches) } },
-        { provide: GameStatisticsService, useValue: { getFullPlayerStats: () => of(fullStats) } },
+        { provide: GameStatisticsService, useValue: {
+          getFullPlayerStats: () => of(fullStats),
+          getCurrentSeason: () => of(null),
+        } },
       ],
     });
     service = TestBed.inject(PlayerProfileService);
