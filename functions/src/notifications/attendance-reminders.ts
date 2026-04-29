@@ -1,192 +1,157 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import * as webpush from 'web-push';
-import { getSheetsClient } from "../shared/sheets-client";
-import { SPREADSHEET_ID, APP_URLS, FIREBASE_CONFIG, SCHEDULE_PATTERNS, SHEET_NAMES, SHEET_RANGES, COLUMN_INDICES } from "../config/constants";
-import { parseMatchDateToISO, parseMatchDateWithTime, toISODateString } from "../shared/date-utils";
+import { FIREBASE_CONFIG, SCHEDULE_PATTERNS } from "../config/constants";
+import { createSupabaseClient, SUPABASE_SERVICE_ROLE_KEY } from "../shared/supabase-client";
+
+const REMINDER_HOURS = [24, 12, 4];
 
 /**
- * Scheduled function: stuur automatisch reminders 24u, 12u en 4u voor de eerstvolgende wedstrijd.
- * Houdt bij in een 'ReminderLog' sheet of een reminder al is verstuurd.
+ * Scheduled: stuur reminders 24u, 12u en 4u voor de eerstvolgende wedstrijd.
+ * Houdt bij in `reminder_log` of een reminder al is verstuurd.
  */
 export const scheduledAttendanceReminders = onSchedule(
-  { schedule: SCHEDULE_PATTERNS.HOURLY, region: FIREBASE_CONFIG.region, timeZone: FIREBASE_CONFIG.timeZone },
-  async (_event) => {
-    const spreadsheetId = SPREADSHEET_ID;
-    const sheets = await getSheetsClient();
-    const REMINDER_HOURS = [24, 12, 4];
-
-    // Lees alle benodigde sheets één keer, parallel. Dat scheelt 4-5 sequentiële API-calls.
-    const [aanwezigheidResult, wedstrijdenResult, reminderLogResult, spelersResult, notificatiesResult] =
-      await Promise.all([
-        sheets.spreadsheets.values.get({
-          spreadsheetId,
-          range: `${SHEET_NAMES.AANWEZIGHEID}!${SHEET_RANGES.FIRST_COLUMNS}`,
-        }),
-        sheets.spreadsheets.values.get({
-          spreadsheetId,
-          range: `${SHEET_NAMES.WEDSTRIJDEN}!A:F`,
-        }),
-        sheets.spreadsheets.values
-          .get({
-            spreadsheetId,
-            range: `${SHEET_NAMES.REMINDER_LOG}!A2:C`,
-          })
-          .catch(() => ({ data: { values: [] as any[][] } })),
-        sheets.spreadsheets.values.get({
-          spreadsheetId,
-          range: `${SHEET_NAMES.SPELERS}!${SHEET_RANGES.FIRST_COLUMNS}`,
-        }),
-        sheets.spreadsheets.values.get({
-          spreadsheetId,
-          range: `${SHEET_NAMES.NOTIFICATIES}!${SHEET_RANGES.FIRST_COLUMNS}`,
-        }),
-      ]);
-
-    const aanwezigheidRows = aanwezigheidResult.data.values || [];
-    const wedstrijdenRows = wedstrijdenResult.data.values || [];
-    const reminderLogRows = reminderLogResult.data.values || [];
-    const spelersRows = spelersResult.data.values || [];
-    const notificatiesRows = notificatiesResult.data.values || [];
-
-    // 1. Map van wedstrijddatums die al teams hebben
-    const matchesWithTeams = new Set<string>();
-    for (let i = 1; i < wedstrijdenRows.length; i++) {
-      const row = wedstrijdenRows[i];
-      const matchDateStr = row[COLUMN_INDICES.WEDSTRIJD_DATUM] || '';
-      const teamWit = row[COLUMN_INDICES.TEAM_WIT] || '';
-      const teamRood = row[COLUMN_INDICES.TEAM_ROOD] || '';
-      if (matchDateStr && (teamWit.trim() || teamRood.trim())) {
-        const isoDateStr = parseMatchDateToISO(matchDateStr);
-        if (isoDateStr) matchesWithTeams.add(isoDateStr);
-        matchesWithTeams.add(matchDateStr);
-      }
-    }
-
-    // 2. Zoek eerste toekomstige wedstrijd ZONDER teams
-    const dates = aanwezigheidRows.slice(1).map(r => r[COLUMN_INDICES.AANWEZIGHEID_DATUM]).filter(Boolean);
+  {
+    schedule: SCHEDULE_PATTERNS.HOURLY,
+    region: FIREBASE_CONFIG.region,
+    timeZone: FIREBASE_CONFIG.timeZone,
+    secrets: [SUPABASE_SERVICE_ROLE_KEY],
+  },
+  async () => {
+    const supabase = createSupabaseClient();
     const now = new Date();
-    let nextMatchDate: Date | null = null;
-    let nextMatchDateStr: string | null = null;
 
-    for (const dateStr of dates) {
-      const d = parseMatchDateWithTime(dateStr, '20:30:00');
-      if (!d) {
-        logger.warn(`Could not parse date: ${dateStr}`);
-        continue;
-      }
-      if (d > now) {
-        const isoDateStr = toISODateString(d);
-        if (!matchesWithTeams.has(dateStr) && !matchesWithTeams.has(isoDateStr)) {
-          nextMatchDate = d;
-          nextMatchDateStr = dateStr;
-          break;
-        }
-      }
+    // Vind de eerstvolgende wedstrijd (date >= today).
+    const todayIso = now.toISOString().slice(0, 10);
+    const { data: nextMatches, error: matchErr } = await supabase
+      .from('matches')
+      .select('id, date')
+      .gte('date', todayIso)
+      .order('date', { ascending: true })
+      .limit(1);
+    if (matchErr) {
+      logger.error('attendance-reminders: could not load next match', matchErr);
+      return;
     }
-
-    if (!nextMatchDate || !nextMatchDateStr) {
-      logger.info('No upcoming matches without teams found');
+    const nextMatch = nextMatches?.[0];
+    if (!nextMatch) {
+      logger.info('attendance-reminders: no upcoming match');
       return;
     }
 
-    logger.info(`📧 Next match: ${nextMatchDateStr} at ${nextMatchDate.toISOString()}`);
+    // Wedstrijd-tijd: assume 21:00 lokale tijd (zaalvoetbal). Pas aan als time-of-day in matches komt.
+    const matchDateTime = new Date(`${nextMatch.date}T21:00:00`);
+    const hoursUntilMatch = (matchDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-    // 3. Pre-compute "wie moet een reminder krijgen?" éénmalig — dit is hetzelfde voor 24/12/4u.
-    // Trim namen: historische records bevatten soms trailing spaces ("Ruben ")
-    // die anders nooit zouden matchen met de speler-lijst.
-    const respondedNames = new Set(
-      aanwezigheidRows
-        .filter(r => r[COLUMN_INDICES.AANWEZIGHEID_DATUM] === nextMatchDateStr)
-        .map(r => (r[COLUMN_INDICES.AANWEZIGHEID_NAAM] ?? '').toString().trim())
-        .filter(Boolean)
+    // Bepaal welk reminder-slot we nu zouden moeten versturen (als 'ie nog niet gestuurd is).
+    const slot = REMINDER_HOURS.find(h => Math.abs(hoursUntilMatch - h) <= 0.5);
+    if (!slot) {
+      logger.info(`attendance-reminders: no reminder slot active (hoursUntilMatch=${hoursUntilMatch.toFixed(2)})`);
+      return;
+    }
+
+    const reminderType = `attendance-reminder-${slot}h`;
+
+    // Check of we deze al hebben verstuurd voor deze match (binnen laatste 7 dagen).
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: existingLogs, error: logErr } = await supabase
+      .from('reminder_log')
+      .select('id')
+      .eq('type', reminderType)
+      .gte('sent_at', sevenDaysAgo)
+      .ilike('body', `%match=${nextMatch.id}%`);
+    if (logErr) {
+      logger.error('attendance-reminders: could not check reminder_log', logErr);
+      return;
+    }
+    if (existingLogs && existingLogs.length > 0) {
+      logger.info(`attendance-reminders: ${reminderType} already sent for match ${nextMatch.id}`);
+      return;
+    }
+
+    // Active players die nog niet hebben gereageerd op deze match.
+    const { data: activePlayers, error: playersErr } = await supabase
+      .from('players')
+      .select('id')
+      .eq('actief', true);
+    if (playersErr) {
+      logger.error('attendance-reminders: could not load players', playersErr);
+      return;
+    }
+    const { data: respondedRows, error: respErr } = await supabase
+      .from('attendance')
+      .select('player_id')
+      .eq('match_id', nextMatch.id);
+    if (respErr) {
+      logger.error('attendance-reminders: could not load attendance', respErr);
+      return;
+    }
+    const respondedIds = new Set((respondedRows ?? []).map(r => r.player_id));
+    const targetPlayerIds = new Set(
+      (activePlayers ?? []).filter(p => !respondedIds.has(p.id)).map(p => p.id),
     );
 
-    const activeNotificationPlayers = new Set<string>();
-    for (let i = 1; i < spelersRows.length; i++) {
-      const row = spelersRows[i];
-      const playerName = (row[COLUMN_INDICES.NAME] ?? '').toString().trim();
-      const isActive = row[COLUMN_INDICES.ACTIEF] === 'TRUE' || row[COLUMN_INDICES.ACTIEF] === 'Ja';
-      if (isActive && playerName && !respondedNames.has(playerName)) {
-        activeNotificationPlayers.add(playerName);
-      }
+    // Vind active push_subscriptions voor target players.
+    const { data: subs, error: subsErr } = await supabase
+      .from('push_subscriptions')
+      .select('endpoint, keys_p256dh, keys_auth, player_id')
+      .eq('active', true);
+    if (subsErr) {
+      logger.error('attendance-reminders: could not load subscriptions', subsErr);
+      return;
     }
 
-    logger.info(`📧 ${activeNotificationPlayers.size} actieve spelers nog zonder reactie voor ${nextMatchDateStr}`);
+    const eligible = (subs ?? []).filter(s => s.player_id !== null && targetPlayerIds.has(s.player_id));
+    logger.info(`attendance-reminders: slot=${slot}h, match=${nextMatch.id}, target=${targetPlayerIds.size}, subs=${eligible.length}`);
 
-    // 4. Voor elk reminder-moment: check of het tijd is én nog niet verstuurd
-    for (const hoursBefore of REMINDER_HOURS) {
-      const msBefore = hoursBefore * 60 * 60 * 1000;
-      const reminderType = `${hoursBefore}u`;
-      const alreadySent = reminderLogRows.some(
-        row => row[COLUMN_INDICES.REMINDER_LOG_DATUM] === nextMatchDateStr
-            && row[COLUMN_INDICES.REMINDER_LOG_TYPE] === reminderType
-      );
-      const msUntilMatch = nextMatchDate.getTime() - now.getTime();
-
-      if (alreadySent) continue;
-      if (msUntilMatch > msBefore) continue; // nog niet binnen target-window
-
-      // 5. Stuur reminders
-      const title = 'Aanwezigheidsreminder';
-      const body = 'Laat even weten of je er bent bij de volgende wedstrijd.';
-      const url = APP_URLS.AANWEZIGHEID;
-
-      const notifications: Promise<any>[] = [];
-      let skippedMissingData = 0;
-      let skippedInactive = 0;
-      let skippedNotTargeted = 0;
-
-      for (let i = 1; i < notificatiesRows.length; i++) {
-        const row = notificatiesRows[i];
-        const endpoint = row[COLUMN_INDICES.NOTIFICATIES_ENDPOINT];
-        const p256dh = row[COLUMN_INDICES.NOTIFICATIES_P256DH];
-        const auth = row[COLUMN_INDICES.NOTIFICATIES_AUTH];
-        if (!endpoint || !p256dh || !auth) {
-          skippedMissingData++;
-          continue;
-        }
-
-        const rawActive = row[COLUMN_INDICES.NOTIFICATIES_ACTIVE];
-        const active = rawActive === true
-          || rawActive === 'TRUE'
-          || rawActive === 'true'
-          || (typeof rawActive === 'string' && rawActive.toLowerCase() === 'true');
-        if (!active) {
-          skippedInactive++;
-          continue;
-        }
-
-        const playerName = (row[COLUMN_INDICES.NOTIFICATIES_PLAYER_NAME] ?? '').toString().trim();
-        if (!playerName || !activeNotificationPlayers.has(playerName)) {
-          skippedNotTargeted++;
-          continue;
-        }
-
-        try {
-          const subscription = { endpoint, keys: { p256dh, auth } };
-          const payload = JSON.stringify({ title, body, url });
-          notifications.push(webpush.sendNotification(subscription, payload));
-        } catch (err) {
-          logger.error(`Invalid subscription for player ${playerName}`, err);
-        }
-      }
-
-      logger.info(`📧 ${reminderType}-reminder: sturen naar ${notifications.length} (skipped: ${skippedMissingData} missing, ${skippedInactive} inactive, ${skippedNotTargeted} not targeted)`);
-
-      try {
-        await Promise.allSettled(notifications);
-      } catch (error) {
-        logger.error('Failed while sending reminder notifications', error);
-      }
-
-      // 6. Log reminder in ReminderLog
-      await sheets.spreadsheets.values.append({
-        spreadsheetId,
-        range: `${SHEET_NAMES.REMINDER_LOG}!A:C`,
-        valueInputOption: 'RAW',
-        requestBody: { values: [[nextMatchDateStr, reminderType, new Date().toISOString()]] },
+    if (eligible.length === 0) {
+      logger.info('attendance-reminders: no eligible subscriptions, skipping send');
+      // Toch loggen zodat we niet over een uur opnieuw proberen.
+      await supabase.from('reminder_log').insert({
+        type: reminderType,
+        title: `Reminder ${slot}u`,
+        body: `match=${nextMatch.id} (no eligible)`,
+        recipients_count: 0,
+        succeeded_count: 0,
+        expired_count: 0,
       });
+      return;
     }
+
+    const title = `Aanwezigheid bevestigen ⏰`;
+    const body = `Speel je over ${slot} uur mee?`;
+    const url = `${FIREBASE_CONFIG.baseUrl.replace(/-cloudfunctions\.net.*$/, '.web.app')}/kalender`;
+
+    const sends = eligible.map(s => {
+      const sub = { endpoint: s.endpoint, keys: { p256dh: s.keys_p256dh, auth: s.keys_auth } };
+      const payload = JSON.stringify({ title, body, url });
+      return webpush.sendNotification(sub, payload);
+    });
+    const results = await Promise.allSettled(sends);
+    const succeeded = results.filter(r => r.status === 'fulfilled').length;
+    const expired: string[] = [];
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') {
+        const reason = r.reason as { statusCode?: number } | undefined;
+        if (reason?.statusCode === 404 || reason?.statusCode === 410) {
+          expired.push(eligible[i].endpoint);
+        }
+      }
+    });
+
+    if (expired.length > 0) {
+      await supabase.from('push_subscriptions').update({ active: false }).in('endpoint', expired);
+    }
+
+    await supabase.from('reminder_log').insert({
+      type: reminderType,
+      title,
+      body: `${body} (match=${nextMatch.id})`,
+      recipients_count: eligible.length,
+      succeeded_count: succeeded,
+      expired_count: expired.length,
+    });
+
+    logger.info(`attendance-reminders: sent ${succeeded}/${eligible.length} (expired: ${expired.length})`);
   }
 );
