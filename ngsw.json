@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1777495369879,
+  "timestamp": 1777496149230,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -11,6 +11,7 @@
         "ignoreVary": true
       },
       "urls": [
+        "/256.552f78df686e30c3.js",
         "/444.7acfd447d6ddf918.js",
         "/466.e6c1c0092244d6dc.js",
         "/521.4c1f17a7e255bc7d.js",
@@ -19,17 +20,18 @@
         "/597.0b412f2bf3e1aedc.js",
         "/629.c46e007555603e7e.js",
         "/747.f3515a6af3372881.js",
+        "/782.1e886dd90571c49d.js",
         "/857.b0ec0adde094abc7.js",
         "/87.4096e41a21dc889a.js",
         "/901.c72372a46f3f0630.js",
-        "/981.5e5f144374db5243.js",
+        "/981.0f76f4332985a980.js",
         "/common.0e39c4f984b360ee.js",
         "/favicon.ico",
         "/index.html",
-        "/main.7aa06ce91cc9bd0b.js",
+        "/main.60e03599b97c981b.js",
         "/manifest.webmanifest",
         "/polyfills.99185e01a8611993.js",
-        "/runtime.4be2505853489401.js",
+        "/runtime.b403b2b02561a81c.js",
         "/styles.72b7cf6aed1194e1.css"
       ],
       "patterns": []
@@ -61,6 +63,7 @@
   ],
   "dataGroups": [],
   "hashTable": {
+    "/256.552f78df686e30c3.js": "5618eb02a0523ef8aa44a0d1bdc00830f09f2470",
     "/444.7acfd447d6ddf918.js": "74453bf261a710b6f912a97311e2fe5f7a250dbf",
     "/466.e6c1c0092244d6dc.js": "9043444846d92905091ca891efbb386b2728128d",
     "/521.4c1f17a7e255bc7d.js": "7570b6ab0a7be5a4678132a7abf7962ed32320d7",
@@ -69,10 +72,11 @@
     "/597.0b412f2bf3e1aedc.js": "cdadf6d758cddef0cab23783520b8df4370e0a2d",
     "/629.c46e007555603e7e.js": "c49e70788d20c63f626b96ea72bfd094a4423ba5",
     "/747.f3515a6af3372881.js": "28cd54d07e4c9e1291cdc63b8f9e0ab22fc28781",
+    "/782.1e886dd90571c49d.js": "aa5b0fa29a0055f62c27c201b4a9f2db4b088cb1",
     "/857.b0ec0adde094abc7.js": "196c6f380e88fda5704d1ee80381924ed53bd2c8",
     "/87.4096e41a21dc889a.js": "2c7255b0770a69934655593fceff5b9ff987436b",
     "/901.c72372a46f3f0630.js": "27165e09122c527b948ff69acb6075e21f680c11",
-    "/981.5e5f144374db5243.js": "97f7ce0e4d1f742490ab1bd8c6e710a495b478a9",
+    "/981.0f76f4332985a980.js": "20d23e9f50e66663360a46fa566a11cc9451b25f",
     "/assets/icons/icon-128x128.png": "9229dd4ba94aada5d4f6b3c548172ea95369f499",
     "/assets/icons/icon-144x144.png": "b825660f4844720c113f3fb2822b3fbdcdb752b5",
     "/assets/icons/icon-152x152.png": "efb497d1eee470c7369bb073350a16b89ebe7e5c",
@@ -88,11 +92,11 @@
     "/favicon.ico": "43528d083572386b5f788141a0a2d6619d1409cd",
     "/football-shirt-red.2fabd340d484d4cb.png": "0df1723bfe98a67e423479be18fee4e7cde55834",
     "/football-shirt-white.dfa9a8ea30f39956.png": "b18ac6d8f00e6f5e00cb440b80a2a72b0e1658f3",
-    "/index.html": "7bad36ed9bb8d7c07a46458009a28a11f9588448",
-    "/main.7aa06ce91cc9bd0b.js": "233cfacce8fd92241fe3182fa259d1b39aa6abf5",
+    "/index.html": "e0bebcf8b47907726854f0a23a38ddfb6893c940",
+    "/main.60e03599b97c981b.js": "be5e884b525deb8141e7ee73e0344108f6edfce5",
     "/manifest.webmanifest": "f55078249defc81f0f13e2d5bb6e9e899577ec1c",
     "/polyfills.99185e01a8611993.js": "f11a301410e8f7479935b4934ce08e4623529fd4",
-    "/runtime.4be2505853489401.js": "f634b02cfb58081ebda711ed8bbc4ddf76c59811",
+    "/runtime.b403b2b02561a81c.js": "4199f06479fee4ea8361382b5afcacf7057e95f3",
     "/styles.72b7cf6aed1194e1.css": "1f7eadaaa9962ddfa9eb37127670c9de9bbc093f"
   },
   "navigationUrls": [
