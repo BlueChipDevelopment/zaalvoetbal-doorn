@@ -61,6 +61,11 @@ const routes: Routes = [
     loadChildren: () =>
       import('./components/speler-profiel/speler-profiel.module').then(m => m.SpelerProfielModule),
   },
+  {
+    path: 'records',
+    title: 'Records',
+    loadChildren: () => import('./components/records/records.module').then(m => m.RecordsModule),
+  },
   { path: '', redirectTo: '/klassement', pathMatch: 'full' },
   { path: '**', redirectTo: '/klassement' },
 ];

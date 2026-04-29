@@ -1,0 +1,22 @@
+<app-page-header title="Records" subtitle="All-time records voor de futsal-club"></app-page-header>
+
+<ng-container *ngIf="records$ | async as records; else loading">
+  <section class="records-grid">
+    <mat-card *ngFor="let r of records" class="record-card">
+      <div class="header">
+        <mat-icon>{{ r.icon }}</mat-icon>
+        <h3>{{ r.title }}</h3>
+      </div>
+      <ul class="holders" *ngIf="r.holders.length > 0; else noHolder">
+        <li *ngFor="let h of r.holders">
+          <a [routerLink]="['/speler', h.playerId]">{{ h.name }}</a>
+          <span class="value">{{ h.value | number:'1.0-1' }}<span class="unit" *ngIf="r.unit"> {{ r.unit }}</span></span>
+        </li>
+      </ul>
+      <ng-template #noHolder>
+        <p class="empty">Nog geen record gevestigd.</p>
+      </ng-template>
+    </mat-card>
+  </section>
+</ng-container>
+<ng-template #loading><app-loading-state message="Records laden..."></app-loading-state></ng-template>

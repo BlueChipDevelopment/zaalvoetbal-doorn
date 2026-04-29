@@ -21,6 +21,7 @@ export interface PlayerProfileStats {
   attendanceRate: number;     // 0..1 -- vereenvoudigd: matchesPlayed / totalGespeeldeWedstrijden (actieve speler assumed)
   currentWinStreak: number;
   longestWinStreak: number;
+  longestLossStreak: number;
 }
 
 export interface RatingPoint {
@@ -162,10 +163,19 @@ export class PlayerProfileService {
           else break;
         }
         let longestWinStreak = 0;
-        let tempStreak = 0;
+        let longestLossStreak = 0;
+        let winRun = 0;
+        let lossRun = 0;
         outcomes.forEach(o => {
-          if (o === 'W') { tempStreak++; longestWinStreak = Math.max(longestWinStreak, tempStreak); }
-          else tempStreak = 0;
+          if (o === 'W') {
+            winRun++; lossRun = 0;
+            longestWinStreak = Math.max(longestWinStreak, winRun);
+          } else if (o === 'L') {
+            lossRun++; winRun = 0;
+            longestLossStreak = Math.max(longestLossStreak, lossRun);
+          } else {
+            winRun = 0; lossRun = 0;
+          }
         });
 
         // Rating uit fullStats
@@ -190,6 +200,7 @@ export class PlayerProfileService {
           attendanceRate,
           currentWinStreak,
           longestWinStreak,
+          longestLossStreak,
         } as PlayerProfileStats;
       })
     );

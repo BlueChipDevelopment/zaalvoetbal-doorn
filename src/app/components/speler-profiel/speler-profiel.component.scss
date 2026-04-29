@@ -15,6 +15,56 @@
   margin-bottom: 1.5rem;
 }
 
+.records-held {
+  margin-bottom: 1.5rem;
+
+  h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $text-color;
+  }
+
+  .record-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .record-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ffe27a 0%, #f9c846 50%, #c69214 100%);
+    color: #2a2310;
+    text-decoration: none;
+    font-weight: $font-weight-medium;
+    box-shadow: $card-shadow;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+    mat-icon {
+      font-size: 1.1rem;
+      height: 1.1rem;
+      width: 1.1rem;
+      color: #5a4400;
+    }
+
+    .title { font-size: $font-size-sm; }
+
+    .value {
+      font-weight: $font-weight-semibold;
+      margin-left: 0.25rem;
+    }
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: $card-shadow-hover;
+    }
+  }
+}
+
 .quick-stats {
   display: flex;
   flex-wrap: wrap;

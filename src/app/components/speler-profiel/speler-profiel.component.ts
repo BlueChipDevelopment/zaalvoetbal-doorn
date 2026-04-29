@@ -12,6 +12,7 @@ import {
   MatchHistoryEntry,
 } from '../../services/player-profile.service';
 import { PlayerSheetData } from '../../interfaces/IPlayerSheet';
+import { RecordCategory, RecordsService } from '../../services/records.service';
 
 interface ProfileVm {
   player: PlayerSheetData;
@@ -20,6 +21,7 @@ interface ProfileVm {
   teammates: TopTeammate[];
   worstTeammates: TopTeammate[];
   history: MatchHistoryEntry[];
+  recordsHeld: RecordCategory[];
 }
 
 @Component({
@@ -36,6 +38,7 @@ export class SpelerProfielComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private playerService: PlayerService,
     private profileService: PlayerProfileService,
+    private recordsService: RecordsService,
     private titleService: Title,
   ) {}
 
@@ -51,9 +54,10 @@ export class SpelerProfielComponent implements OnInit, OnDestroy {
           this.profileService.getTopTeammates(id, 5),
           this.profileService.getWorstTeammates(id, 5),
           this.profileService.getMatchHistory(id, 10),
+          this.recordsService.getRecordsForPlayer(id),
         ]).pipe(
-          map(([player, stats, trend, teammates, worstTeammates, history]) =>
-            player ? { player, stats, trend, teammates, worstTeammates, history } : null,
+          map(([player, stats, trend, teammates, worstTeammates, history, recordsHeld]) =>
+            player ? { player, stats, trend, teammates, worstTeammates, history, recordsHeld } : null,
           ),
           tap(vm => {
             if (vm?.player?.name) {
@@ -71,5 +75,12 @@ export class SpelerProfielComponent implements OnInit, OnDestroy {
 
   onRangeChange(range: '12m' | 'all'): void {
     this.trendRange$.next(range);
+  }
+
+  getHolderValue(record: RecordCategory, playerId: number): string {
+    const holder = record.holders.find(h => h.playerId === playerId);
+    if (!holder) return '';
+    const value = Math.round(holder.value * 10) / 10;
+    return record.unit ? `${value} ${record.unit}` : `${value}`;
   }
 }

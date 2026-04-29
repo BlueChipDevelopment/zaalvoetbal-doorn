@@ -104,6 +104,15 @@ describe('PlayerProfileService', () => {
         done();
       });
     });
+
+    it('berekent longestLossStreak correct', (done: DoneFn) => {
+      // Sequence WWL voor speler 1 in mockMatchesWinsLosses → longestLossStreak = 1
+      service.getStats(1).subscribe(stats => {
+        expect(stats.longestLossStreak).toBe(1);
+        expect(stats.longestWinStreak).toBe(2);
+        done();
+      });
+    });
   });
 
   describe('getRatingTrend', () => {

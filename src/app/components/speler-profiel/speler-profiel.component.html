@@ -11,6 +11,17 @@
       ></app-fifa-card>
     </section>
 
+    <section class="records-held" *ngIf="vm.recordsHeld.length > 0">
+      <h3>Records die {{ vm.player.name }} houdt</h3>
+      <div class="record-chips">
+        <a *ngFor="let r of vm.recordsHeld" routerLink="/records" class="record-chip">
+          <mat-icon>{{ r.icon }}</mat-icon>
+          <span class="title">{{ r.title }}</span>
+          <span class="value">{{ getHolderValue(r, vm.player.id!) }}</span>
+        </a>
+      </div>
+    </section>
+
     <app-form-indicator [history]="vm.history"></app-form-indicator>
 
     <section class="quick-stats">
@@ -18,6 +29,7 @@
       <mat-card class="stat-tile"><span class="value">{{ vm.stats.wins }}-{{ vm.stats.draws }}-{{ vm.stats.losses }}</span><span class="label">W-G-V</span></mat-card>
       <mat-card class="stat-tile"><span class="value" [appCountUp]="vm.stats.currentWinStreak"></span><span class="label">Huidige streak</span></mat-card>
       <mat-card class="stat-tile"><span class="value" [appCountUp]="vm.stats.longestWinStreak"></span><span class="label">Langste streak</span></mat-card>
+      <mat-card class="stat-tile"><span class="value" [appCountUp]="vm.stats.longestLossStreak"></span><span class="label">Langste verlies-streak</span></mat-card>
       <mat-card class="stat-tile"><span class="value" [appCountUp]="vm.stats.zlatanCount"></span><span class="label">Zlatan</span></mat-card>
       <mat-card class="stat-tile"><span class="value" [appCountUp]="vm.stats.ventielCount"></span><span class="label">Ventiel</span></mat-card>
     </section>
