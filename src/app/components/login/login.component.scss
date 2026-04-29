@@ -80,7 +80,7 @@
   color: $secondary-color;
 }
 
-@media (max-width: 600px) {
+@media (max-width: $bp-mobile) {
   .login-container {
     padding: 1rem;
   }

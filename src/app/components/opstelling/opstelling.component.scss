@@ -16,7 +16,7 @@
   padding: 0 16px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: $bp-tablet) {
   .opstelling-container {
     padding: 0 16px;
   }
@@ -103,7 +103,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: $bp-tablet) {
   .team-analysis-quote {
     margin: 8px auto 16px auto;
     padding: 0 8px;
@@ -241,7 +241,7 @@
 }
 
 // Hide share link on mobile
-@media (max-width: 768px) {
+@media (max-width: $bp-tablet) {
   .share-link-container {
     display: none !important;
   }
@@ -288,7 +288,7 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: $bp-mobile) {
   .countdown-container {
     margin-top: 24px;
 

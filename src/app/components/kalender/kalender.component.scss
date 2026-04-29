@@ -103,7 +103,7 @@
   width: 100%;
   gap: 24px;
   
-  @media (max-width: 768px) {
+  @media (max-width: $bp-tablet) {
     flex-direction: column;
     align-items: stretch;
     gap: 16px;
@@ -129,7 +129,7 @@
     font-size: $font-size-sm;
     margin-bottom: 8px;
     
-    @media (max-width: 768px) {
+    @media (max-width: $bp-tablet) {
       gap: 12px;
       font-size: $font-size-xs;
       flex-wrap: wrap;
@@ -237,7 +237,7 @@
       opacity: 0.4;
     }
     
-    @media (min-width: 768px) {
+    @media (min-width: $bp-tablet) {
       gap: 6px;
       
       mat-divider {
@@ -401,7 +401,7 @@
   align-items: center;
   gap: 16px;
   
-  @media (max-width: 768px) {
+  @media (max-width: $bp-tablet) {
     justify-content: center;
   }
 }
@@ -495,7 +495,7 @@
 }
 
 // Mobile optimizations
-@media (max-width: 480px) {
+@media (max-width: 480px) { // custom breakpoint
   .kalender-container {
     margin: 10px;
   }

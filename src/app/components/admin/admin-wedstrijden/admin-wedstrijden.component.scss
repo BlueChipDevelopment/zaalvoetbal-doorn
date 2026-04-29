@@ -1,7 +1,5 @@
 @import '../../../../styles_variables.scss';
 
-$mobile-breakpoint: 767px;
-
 .wedstrijden-container {
   .fab-add {
     position: fixed;
@@ -24,7 +22,7 @@ $mobile-breakpoint: 767px;
     color: $secondary-color;
   }
 
-  @media screen and (max-width: $mobile-breakpoint) {
+  @media screen and (max-width: $bp-tablet) {
     .wedstrijden-table {
       .hide-mobile { display: none; }
     }

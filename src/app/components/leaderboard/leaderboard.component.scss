@@ -1,7 +1,5 @@
 @import '../../../styles_variables';
 
-$mobile-breakpoint: 767px;
-
 // Season header with integrated filter
 .season-header-container {
   margin-bottom: 20px;
@@ -107,7 +105,7 @@ th, td {
 }
 
 // Mobiele stijlen
-@media screen and (max-width: $mobile-breakpoint) {
+@media screen and (max-width: $bp-tablet) {
   .full-header {
     display: none;
   }
@@ -238,7 +236,7 @@ th, td {
 
 // Extra regel om de flexbox layout direct te overschrijven
 ::ng-deep .mat-mdc-table .mat-mdc-row, ::ng-deep .mat-mdc-table .mat-mdc-header-row {
-  @media screen and (max-width: $mobile-breakpoint) {
+  @media screen and (max-width: $bp-tablet) {
     height: auto;
   }
 }

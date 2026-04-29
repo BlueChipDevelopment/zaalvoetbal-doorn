@@ -28,7 +28,7 @@
 }
 
 // Mobile specific override
-@media (max-width: 768px) {
+@media (max-width: $bp-tablet) {
   .player-card {
     min-width: auto;
     max-width: none;

@@ -26,7 +26,7 @@
 }
 
 // Media query for smaller screens
-@media (max-width: 600px) { // Adjust breakpoint as needed
+@media (max-width: $bp-mobile) {
   .score-inputs {
     flex-direction: column; // Stack items vertically
     align-items: center; // Center items in the column

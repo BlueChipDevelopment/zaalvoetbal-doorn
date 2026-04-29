@@ -97,7 +97,7 @@ $score: #333;
 }
 
 // Responsive verbeteringen
-@media (max-width: 500px) {
+@media (max-width: 500px) { // custom breakpoint
   .wedstrijden-container {
     padding: 0.5rem;
   }

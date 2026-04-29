@@ -1,3 +1,5 @@
+@import '../styles_variables.scss';
+
 .sidenav-container {
   height: 100%;
 }
@@ -34,7 +36,7 @@
   gap: 8px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: $bp-tablet) {
   mat-toolbar {
     position: relative;
   }
@@ -72,7 +74,7 @@
 }
 
 /* Media Query voor grotere schermen */
-@media (min-width: 768px) { /* Pas breakpoint aan indien nodig */
+@media (min-width: $bp-tablet) { /* Pas breakpoint aan indien nodig */
   .menu-button {
     display: none; /* Verberg menu knop */
   }
@@ -121,8 +123,6 @@
     min-height: 48px !important;
   }
 }
-
-@import '../styles_variables.scss';
 
 /* Info notification styling (default) */
 ::ng-deep .futsal-notification-info {
@@ -181,7 +181,7 @@
 }
 
 /* Mobile responsive styling */
-@media (max-width: 600px) {
+@media (max-width: $bp-mobile) {
   ::ng-deep .futsal-notification {
     .mat-mdc-snack-bar-container {
       max-width: calc(100vw - 32px);
@@ -197,7 +197,7 @@
 .install-button {
   margin-right: 8px;
   
-  @media (max-width: 768px) {
+  @media (max-width: $bp-tablet) {
     margin-right: 4px;
   }
 }
@@ -211,9 +211,9 @@
     max-width: 400px !important;
   }
   
-  @media (max-width: 600px) {
+  @media (max-width: $bp-mobile) {
     max-width: calc(100vw - 32px) !important;
-    
+
     .mat-mdc-snack-bar-container {
       max-width: calc(100vw - 32px) !important;
     }

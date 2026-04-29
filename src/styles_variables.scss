@@ -21,8 +21,11 @@ $trophy-bronze: #ce8946;
 $card-shadow:       0 2px 8px rgba(0, 0, 0, 0.1);
 $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
 
-// Breakpoints
-$bp-mobile:  640px;
+// Breakpoints — Material-aligned. Gebruik via @media (max-width: $bp-...).
+// - mobile  : phone-portrait + small phone-landscape
+// - tablet  : tablet-portrait
+// - desktop : tablet-landscape + desktop
+$bp-mobile:  600px;
 $bp-tablet:  768px;
 $bp-desktop: 1024px;
 

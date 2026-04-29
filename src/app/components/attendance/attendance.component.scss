@@ -19,14 +19,14 @@
   box-sizing: border-box;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 900px) { // custom breakpoint
   .attendance-card {
     max-width: 98vw;
     padding: 10px;
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: $bp-mobile) {
   .attendance-card {
     max-width: 100vw;
     margin: 10px 0;
@@ -100,7 +100,7 @@ mat-card-header {
     }
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: $bp-mobile) {
     .banner-content {
       padding: 10px 12px;
       gap: 8px;
@@ -269,7 +269,7 @@ mat-card-header {
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px) { // custom breakpoint
   .attendance-overview {
     gap: 0.5rem; // Smaller gap on mobile
   }
