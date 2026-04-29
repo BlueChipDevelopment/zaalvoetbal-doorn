@@ -1,0 +1,17 @@
+<article class="player-card" [style.background]="tier.gradient" [style.color]="tier.textColor">
+  <header class="top-row">
+    <span class="position">{{ player.position || 'Speler' }}</span>
+    <span class="rating">{{ rating | number:'1.1-1' }}</span>
+  </header>
+  <div class="avatar">
+    <img *ngIf="photoUrl" [src]="photoUrl" [alt]="player.name" />
+    <span *ngIf="!photoUrl" class="initials">{{ initials }}</span>
+  </div>
+  <h2 class="name">{{ player.name }}</h2>
+  <ul class="sub-attrs">
+    <li><span class="value">{{ matchesPlayed }}</span><span class="label">WED</span></li>
+    <li><span class="value">{{ winRate * 100 | number:'1.0-0' }}%</span><span class="label">WIN</span></li>
+    <li><span class="value">{{ zlatanPerMatch | number:'1.2-2' }}</span><span class="label">ZLA/W</span></li>
+    <li><span class="value">{{ attendanceRate * 100 | number:'1.0-0' }}%</span><span class="label">AANW</span></li>
+  </ul>
+</article>

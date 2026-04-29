@@ -1,0 +1,64 @@
+.player-card {
+  width: 240px;
+  height: 360px;
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  box-sizing: border-box;
+
+  .top-row {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    .position {
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.35);
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .rating { font-size: 2.5rem; font-weight: 700; line-height: 1; }
+  }
+
+  .avatar {
+    margin-top: 12px;
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    img { width: 100%; height: 100%; object-fit: cover; }
+    .initials { font-size: 2rem; font-weight: 700; }
+  }
+
+  .name {
+    margin: 12px 0 0;
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+    line-height: 1.1;
+  }
+
+  .sub-attrs {
+    margin: auto 0 0;
+    list-style: none;
+    padding: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 16px;
+    li {
+      display: flex; flex-direction: column; align-items: center;
+      .value { font-size: 1.1rem; font-weight: 700; }
+      .label { font-size: 0.7rem; opacity: 0.85; letter-spacing: 0.05em; }
+    }
+  }
+}
