@@ -4,10 +4,8 @@ export const environment = {
   enableServiceWorker: true,
   skipAdminAuth: false,
   firebaseBaseUrl: 'https://your-region-your-project.cloudfunctions.net',
-  spreadsheetId: 'YOUR_SPREADSHEET_ID',
   supabaseUrl: 'https://YOUR_PROJECT_REF.supabase.co',
   supabaseAnonKey: 'YOUR_SUPABASE_ANON_KEY',
-  dataSource: 'sheets', // 'sheets' | 'supabase'
   vapidPublicKey: 'YOUR_VAPID_PUBLIC_KEY',
   firebase: {
     apiKey: 'YOUR_FIREBASE_API_KEY',

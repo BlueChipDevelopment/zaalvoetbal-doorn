@@ -30,14 +30,9 @@ import { environment } from '../environments/environment';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideAuth, getAuth } from '@angular/fire/auth';
 import { PlayerDataSource } from './services/data-sources/player-data-source';
-import { SheetsPlayerDataSource } from './services/data-sources/player-data-source.sheets';
 import { MatchDataSource } from './services/data-sources/match-data-source';
-import { SheetsMatchDataSource } from './services/data-sources/match-data-source.sheets';
 import { AttendanceDataSource } from './services/data-sources/attendance-data-source';
-import { SheetsAttendanceDataSource } from './services/data-sources/attendance-data-source.sheets';
 import { NotificationDataSource } from './services/data-sources/notification-data-source';
-import { SheetsNotificationDataSource } from './services/data-sources/notification-data-source.sheets';
-import { ActiveBackendService } from './services/data-sources/active-backend.service';
 import { SupabasePlayerDataSource } from './services/data-sources/player-data-source.supabase';
 import { SupabaseMatchDataSource } from './services/data-sources/match-data-source.supabase';
 import { SupabaseAttendanceDataSource } from './services/data-sources/attendance-data-source.supabase';
@@ -94,30 +89,10 @@ import { LoginComponent } from './components/login/login.component';
     { provide: LOCALE_ID, useValue: 'nl' },
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideAuth(() => getAuth()),
-    {
-      provide: PlayerDataSource,
-      useFactory: (sheets: SheetsPlayerDataSource, supabase: SupabasePlayerDataSource, backend: ActiveBackendService) =>
-        backend.current === 'supabase' ? supabase : sheets,
-      deps: [SheetsPlayerDataSource, SupabasePlayerDataSource, ActiveBackendService],
-    },
-    {
-      provide: MatchDataSource,
-      useFactory: (sheets: SheetsMatchDataSource, supabase: SupabaseMatchDataSource, backend: ActiveBackendService) =>
-        backend.current === 'supabase' ? supabase : sheets,
-      deps: [SheetsMatchDataSource, SupabaseMatchDataSource, ActiveBackendService],
-    },
-    {
-      provide: AttendanceDataSource,
-      useFactory: (sheets: SheetsAttendanceDataSource, supabase: SupabaseAttendanceDataSource, backend: ActiveBackendService) =>
-        backend.current === 'supabase' ? supabase : sheets,
-      deps: [SheetsAttendanceDataSource, SupabaseAttendanceDataSource, ActiveBackendService],
-    },
-    {
-      provide: NotificationDataSource,
-      useFactory: (sheets: SheetsNotificationDataSource, supabase: SupabaseNotificationDataSource, backend: ActiveBackendService) =>
-        backend.current === 'supabase' ? supabase : sheets,
-      deps: [SheetsNotificationDataSource, SupabaseNotificationDataSource, ActiveBackendService],
-    },
+    { provide: PlayerDataSource, useClass: SupabasePlayerDataSource },
+    { provide: MatchDataSource, useClass: SupabaseMatchDataSource },
+    { provide: AttendanceDataSource, useClass: SupabaseAttendanceDataSource },
+    { provide: NotificationDataSource, useClass: SupabaseNotificationDataSource },
   ]
 })
 export class AppModule {}
