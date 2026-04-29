@@ -1,0 +1,53 @@
+<div class="notif-admin">
+  <div class="header-actions">
+    <button mat-stroked-button (click)="refreshAll()">
+      <mat-icon>refresh</mat-icon>
+      Verversen
+    </button>
+  </div>
+
+  <mat-tab-group>
+    <mat-tab label="Abonnementen">
+      <ng-container *ngIf="subscriptions$ | async as subs; else loadingSubs">
+        <p class="hint">Totaal: {{ subs.length }} abonnement(en).</p>
+        <table mat-table [dataSource]="subs" class="full-width">
+          <ng-container matColumnDef="playerName">
+            <th mat-header-cell *matHeaderCellDef>Speler</th>
+            <td mat-cell *matCellDef="let row">{{ row.playerName || '—' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="device">
+            <th mat-header-cell *matHeaderCellDef>Device</th>
+            <td mat-cell *matCellDef="let row">{{ row.device }}</td>
+          </ng-container>
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Aangemeld</th>
+            <td mat-cell *matCellDef="let row">{{ row.createdAt | date:'dd-MM-yyyy' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="lastSeenAt">
+            <th mat-header-cell *matHeaderCellDef>Laatst gezien</th>
+            <td mat-cell *matCellDef="let row">{{ row.lastSeenAt ? (row.lastSeenAt | date:'dd-MM-yyyy') : '—' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="active">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <span [class.active]="row.active" [class.inactive]="!row.active">
+                {{ row.active ? '✓ Actief' : '✗ Inactief' }}
+              </span>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="subscriptionColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: subscriptionColumns;"></tr>
+        </table>
+      </ng-container>
+      <ng-template #loadingSubs><p>Laden…</p></ng-template>
+    </mat-tab>
+
+    <mat-tab label="Geschiedenis">
+      <p>(volgende task)</p>
+    </mat-tab>
+
+    <mat-tab label="Analytics">
+      <p>(volgende task)</p>
+    </mat-tab>
+  </mat-tab-group>
+</div>
