@@ -88,45 +88,6 @@ export type Database = {
           },
         ]
       }
-      latest_teams: {
-        Row: {
-          generated_at: string
-          generation_type: string | null
-          match_id: number
-          team_red_player_ids: number[]
-          team_white_player_ids: number[]
-        }
-        Insert: {
-          generated_at?: string
-          generation_type?: string | null
-          match_id: number
-          team_red_player_ids: number[]
-          team_white_player_ids: number[]
-        }
-        Update: {
-          generated_at?: string
-          generation_type?: string | null
-          match_id?: number
-          team_red_player_ids?: number[]
-          team_white_player_ids?: number[]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "latest_teams_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: true
-            referencedRelation: "matches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "latest_teams_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: true
-            referencedRelation: "player_match_results"
-            referencedColumns: ["match_id"]
-          },
-        ]
-      }
       match_lineups: {
         Row: {
           created_at: string
