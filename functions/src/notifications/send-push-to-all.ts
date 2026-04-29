@@ -166,6 +166,22 @@ export const sendPushToAll = onRequest(
       }
 
       logger.info(`📧 Sent ${succeeded}/${notifications.length} push notifications (${failed} failed, ${expiredEndpoints.length} deactivated)`);
+
+      const logType = typeof req.body.type === 'string' && req.body.type
+        ? `broadcast-${req.body.type}`
+        : 'broadcast-other';
+      const { error: logErr } = await supabase.from('reminder_log').insert({
+        type: logType,
+        title: req.body.title || null,
+        body: req.body.body || null,
+        recipients_count: notifications.length,
+        succeeded_count: succeeded,
+        expired_count: expiredEndpoints.length,
+      });
+      if (logErr) {
+        logger.warn(`reminder_log insert failed: ${logErr.message}`);
+      }
+
       res.json({
         success: true,
         sent: succeeded,
