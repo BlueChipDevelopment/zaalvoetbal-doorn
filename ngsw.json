@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1777494072305,
+  "timestamp": 1777495147327,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -22,14 +22,14 @@
         "/857.b0ec0adde094abc7.js",
         "/87.4096e41a21dc889a.js",
         "/901.c72372a46f3f0630.js",
-        "/958.568bb7cb7f022540.js",
+        "/981.6709b933af5ae4e9.js",
         "/common.0e39c4f984b360ee.js",
         "/favicon.ico",
         "/index.html",
-        "/main.4dd9b39d7eab6acf.js",
+        "/main.7aa06ce91cc9bd0b.js",
         "/manifest.webmanifest",
         "/polyfills.99185e01a8611993.js",
-        "/runtime.b172f7fd92b527e0.js",
+        "/runtime.2b3ad6f23d352f77.js",
         "/styles.72b7cf6aed1194e1.css"
       ],
       "patterns": []
@@ -72,7 +72,7 @@
     "/857.b0ec0adde094abc7.js": "196c6f380e88fda5704d1ee80381924ed53bd2c8",
     "/87.4096e41a21dc889a.js": "2c7255b0770a69934655593fceff5b9ff987436b",
     "/901.c72372a46f3f0630.js": "27165e09122c527b948ff69acb6075e21f680c11",
-    "/958.568bb7cb7f022540.js": "23242cbf001e757de86e78c755aa89d04c702bb9",
+    "/981.6709b933af5ae4e9.js": "bdd2cd4e55151d00b18ad47520bd2b182bab12c7",
     "/assets/icons/icon-128x128.png": "9229dd4ba94aada5d4f6b3c548172ea95369f499",
     "/assets/icons/icon-144x144.png": "b825660f4844720c113f3fb2822b3fbdcdb752b5",
     "/assets/icons/icon-152x152.png": "efb497d1eee470c7369bb073350a16b89ebe7e5c",
@@ -88,11 +88,11 @@
     "/favicon.ico": "43528d083572386b5f788141a0a2d6619d1409cd",
     "/football-shirt-red.2fabd340d484d4cb.png": "0df1723bfe98a67e423479be18fee4e7cde55834",
     "/football-shirt-white.dfa9a8ea30f39956.png": "b18ac6d8f00e6f5e00cb440b80a2a72b0e1658f3",
-    "/index.html": "231022489a831f1bd53c3922498e9a74d83e7b26",
-    "/main.4dd9b39d7eab6acf.js": "d6adbaace0aadf59cf28e6c01f6986427a7d1ca2",
+    "/index.html": "cf3240b135bbdfc3417f859a02e96a68e75a3fcb",
+    "/main.7aa06ce91cc9bd0b.js": "233cfacce8fd92241fe3182fa259d1b39aa6abf5",
     "/manifest.webmanifest": "f55078249defc81f0f13e2d5bb6e9e899577ec1c",
     "/polyfills.99185e01a8611993.js": "f11a301410e8f7479935b4934ce08e4623529fd4",
-    "/runtime.b172f7fd92b527e0.js": "f2a498fcd5f421cc57330230787f4969c941cc59",
+    "/runtime.2b3ad6f23d352f77.js": "65f86e650f12d3527fa739894c3caac1d6b25120",
     "/styles.72b7cf6aed1194e1.css": "1f7eadaaa9962ddfa9eb37127670c9de9bbc093f"
   },
   "navigationUrls": [
