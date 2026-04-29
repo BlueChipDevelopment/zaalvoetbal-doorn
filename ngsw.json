@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1777467541749,
+  "timestamp": 1777472875637,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -21,14 +21,14 @@
         "/857.7188a65b1d288459.js",
         "/87.1fcafea2c7acca47.js",
         "/901.e518337036df1f9b.js",
-        "/958.542ee60b3ffafb47.js",
+        "/958.de5b95f857428b46.js",
         "/common.11605a27bac87c4c.js",
         "/favicon.ico",
         "/index.html",
         "/main.f2ccf6783a2d42f6.js",
         "/manifest.webmanifest",
         "/polyfills.99185e01a8611993.js",
-        "/runtime.4907bd61967e4364.js",
+        "/runtime.cb6cc659d4d3595c.js",
         "/styles.266a513157d43049.css"
       ],
       "patterns": []
@@ -70,7 +70,7 @@
     "/857.7188a65b1d288459.js": "2dc04e45c4597a60cb3c74c0310ccba13fdcde88",
     "/87.1fcafea2c7acca47.js": "dd3c2c1ef271ebb4425a2045ce4eb009fc93c311",
     "/901.e518337036df1f9b.js": "2316e64fd9c6d5d96037346c6b9c89d277b76b86",
-    "/958.542ee60b3ffafb47.js": "1f22174aa579e1a226e7d0e5c2cfaae0bf24f72f",
+    "/958.de5b95f857428b46.js": "d9b481388c9d4322bbf658e2f34cda97e68eca18",
     "/assets/icons/icon-128x128.png": "9229dd4ba94aada5d4f6b3c548172ea95369f499",
     "/assets/icons/icon-144x144.png": "b825660f4844720c113f3fb2822b3fbdcdb752b5",
     "/assets/icons/icon-152x152.png": "efb497d1eee470c7369bb073350a16b89ebe7e5c",
@@ -86,11 +86,11 @@
     "/favicon.ico": "43528d083572386b5f788141a0a2d6619d1409cd",
     "/football-shirt-red.2fabd340d484d4cb.png": "0df1723bfe98a67e423479be18fee4e7cde55834",
     "/football-shirt-white.dfa9a8ea30f39956.png": "b18ac6d8f00e6f5e00cb440b80a2a72b0e1658f3",
-    "/index.html": "1868775823ff136aab7a526a2a84824c1e1cb012",
+    "/index.html": "a455d7f2e5db2a0d9cf95093689566abc59a74ac",
     "/main.f2ccf6783a2d42f6.js": "a832defc17e1cd58b9c7e5c9f7a07208931ff0b0",
     "/manifest.webmanifest": "f55078249defc81f0f13e2d5bb6e9e899577ec1c",
     "/polyfills.99185e01a8611993.js": "f11a301410e8f7479935b4934ce08e4623529fd4",
-    "/runtime.4907bd61967e4364.js": "d323d94cce3ee066ed98ba64b4d7f57678d42e6a",
+    "/runtime.cb6cc659d4d3595c.js": "c70c8743ee23cb2a874dd3fcbb3a7e8e9e07827c",
     "/styles.266a513157d43049.css": "1da82e260519f93774589aaa75be6185cf918547"
   },
   "navigationUrls": [
