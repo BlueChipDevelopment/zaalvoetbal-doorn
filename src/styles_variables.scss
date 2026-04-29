@@ -2,9 +2,29 @@
 $primary-color: #1976d2;
 $secondary-color: #616161;
 $success-color: #43a047;
-$error-color: #f44336;
-$light-bg: #fff;
-$text-color: #333;           // Donkere tekst kleur voor headers en belangrijke tekst
+$success-dark:   #2e7d32;
+$error-color:    #f44336;
+$error-dark:     #d32f2f;
+$error-light-bg: #ffebee;
+$light-bg:       #fff;
+$text-color:     #333;        // Donkere tekst kleur voor headers en belangrijke tekst
+$text-secondary: rgba(0, 0, 0, 0.6);
+$text-muted:     rgba(0, 0, 0, 0.4);
+$border-color:   rgba(0, 0, 0, 0.12);
+
+// Trophy tiers (klassement top-3)
+$trophy-gold:   #ffd700;
+$trophy-silver: #c0c0c0;
+$trophy-bronze: #ce8946;
+
+// Elevation
+$card-shadow:       0 2px 8px rgba(0, 0, 0, 0.1);
+$card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+// Breakpoints
+$bp-mobile:  640px;
+$bp-tablet:  768px;
+$bp-desktop: 1024px;
 
 // Typography
 $font-main: 'Roboto', Arial, sans-serif;

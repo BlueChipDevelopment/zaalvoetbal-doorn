@@ -1,6 +1,7 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableDataSource } from '@angular/material/table';
 import { WedstrijdenService } from '../../../services/wedstrijden.service';
 import { PlayerService } from '../../../services/player.service';
@@ -24,7 +25,8 @@ export class AdminWedstrijdenComponent implements OnInit {
   constructor(
     private wedstrijdenService: WedstrijdenService,
     private playerService: PlayerService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
@@ -76,7 +78,12 @@ export class AdminWedstrijdenComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error adding wedstrijd:', error);
-            alert('Fout bij toevoegen wedstrijd: ' + error.message);
+            this.snackBar.open('Fout bij toevoegen wedstrijd: ' + error.message, 'Sluiten', {
+              duration: 5000,
+              panelClass: ['futsal-notification', 'futsal-notification-error'],
+              horizontalPosition: 'center',
+              verticalPosition: 'bottom',
+            });
           }
         });
       }
@@ -101,7 +108,12 @@ export class AdminWedstrijdenComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error updating wedstrijd:', error);
-            alert('Fout bij wijzigen wedstrijd: ' + error.message);
+            this.snackBar.open('Fout bij wijzigen wedstrijd: ' + error.message, 'Sluiten', {
+              duration: 5000,
+              panelClass: ['futsal-notification', 'futsal-notification-error'],
+              horizontalPosition: 'center',
+              verticalPosition: 'bottom',
+            });
           }
         });
       }

@@ -13,12 +13,12 @@
   
   p {
     margin-top: 16px;
-    color: #666;
+    color: $text-secondary;
   }
 }
 
 .error-banner {
-  background-color: #ffebee;
+  background-color: $error-light-bg;
   border: 1px solid #e57373;
   border-radius: 4px;
   padding: 12px 16px;
@@ -28,16 +28,16 @@
   gap: 12px;
   
   mat-icon {
-    color: #d32f2f;
+    color: $error-dark;
   }
   
   span {
     flex: 1;
-    color: #d32f2f;
+    color: $error-dark;
   }
   
   button {
-    color: #d32f2f;
+    color: $error-dark;
   }
 }
 
@@ -101,7 +101,7 @@
 
 .match-card {
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: $card-shadow;
   transition: box-shadow 0.3s ease, transform 0.2s ease;
   
   &:hover {
@@ -148,7 +148,7 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    color: #666;
+    color: $text-secondary;
     font-size: $font-size-sm;
     margin-bottom: 8px;
     
@@ -309,20 +309,20 @@
     
     &.absent-list {
       [matSubheader].absent-subheader {
-        color: #d32f2f;
+        color: $error-dark;
         
         mat-icon {
-          color: #d32f2f;
+          color: $error-dark;
         }
       }
     }
     
     &.no-response-list {
       [matSubheader].no-response-subheader {
-        color: #666;
+        color: $text-secondary;
         
         mat-icon {
-          color: #666;
+          color: $text-secondary;
         }
       }
     }

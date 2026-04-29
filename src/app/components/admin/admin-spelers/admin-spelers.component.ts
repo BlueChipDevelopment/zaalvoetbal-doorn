@@ -1,6 +1,7 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableDataSource } from '@angular/material/table';
 import { PlayerService } from '../../../services/player.service';
 import { PlayerSheetData } from '../../../interfaces/IPlayerSheet';
@@ -20,7 +21,8 @@ export class AdminSpelersComponent implements OnInit {
 
   constructor(
     private playerService: PlayerService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
@@ -61,7 +63,12 @@ export class AdminSpelersComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error adding player:', error);
-            alert('Fout bij toevoegen speler: ' + error.message);
+            this.snackBar.open('Fout bij toevoegen speler: ' + error.message, 'Sluiten', {
+              duration: 5000,
+              panelClass: ['futsal-notification', 'futsal-notification-error'],
+              horizontalPosition: 'center',
+              verticalPosition: 'bottom',
+            });
           }
         });
       }
@@ -86,7 +93,12 @@ export class AdminSpelersComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error updating player:', error);
-            alert('Fout bij wijzigen speler: ' + error.message);
+            this.snackBar.open('Fout bij wijzigen speler: ' + error.message, 'Sluiten', {
+              duration: 5000,
+              panelClass: ['futsal-notification', 'futsal-notification-error'],
+              horizontalPosition: 'center',
+              verticalPosition: 'bottom',
+            });
           }
         });
       }

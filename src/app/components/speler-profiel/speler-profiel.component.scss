@@ -1,3 +1,5 @@
+@import '../../../styles_variables';
+
 :host {
   display: block;
   padding: 1rem;
@@ -25,7 +27,7 @@
     flex-direction: column;
     align-items: center;
     .value { font-size: 1.4rem; font-weight: 600; }
-    .label { font-size: 0.8rem; color: rgba(0, 0, 0, 0.6); }
+    .label { font-size: 0.8rem; color: $text-secondary; }
   }
 }
 
@@ -57,16 +59,16 @@
     margin: 0;
     li {
       padding: 0.35rem 0;
-      a { color: #1976d2; text-decoration: none; font-weight: 500; }
+      a { color: $primary-color; text-decoration: none; font-weight: 500; }
       a:hover { text-decoration: underline; }
     }
   }
-  .empty { font-style: italic; color: rgba(0, 0, 0, 0.6); }
+  .empty { font-style: italic; color: $text-secondary; }
 }
 
 .history {
   .full-width { width: 100%; }
-  .empty { font-style: italic; color: rgba(0, 0, 0, 0.6); }
+  .empty { font-style: italic; color: $text-secondary; }
 }
 
 .outcome {
@@ -75,9 +77,9 @@
   border-radius: 4px;
   font-weight: 600;
   color: #fff;
-  &.win  { background: #43a047; }
-  &.loss { background: #f44336; }
-  &.draw { background: #9e9e9e; }
+  &.win  { background: $success-color; }
+  &.loss { background: $error-color; }
+  &.draw { background: #9e9e9e; } // geen variabele voor draw-grijs
 }
 
-.not-found { text-align: center; color: rgba(0, 0, 0, 0.6); padding: 2rem; }
+.not-found { text-align: center; color: $text-secondary; padding: 2rem; }
