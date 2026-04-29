@@ -127,7 +127,7 @@ export const sendPushToAll = onRequest(
             body: req.body.body || 'Er is nieuws van Zaalvoetbal Doorn!',
             url: req.body.url || undefined,
           });
-          notifications.push(webpush.sendNotification(subscription, payload));
+          notifications.push(webpush.sendNotification(subscription, payload, { TTL: 60, urgency: 'high' }));
           notificationEndpoints.push(sub.endpoint);
         } catch (err) {
           logger.error(`Invalid subscription endpoint=${sub.endpoint}`, err);
