@@ -1,14 +1,14 @@
 <ng-container *ngIf="vm$ | async as vm; else loading">
   <ng-container *ngIf="vm; else notFound">
     <section class="hero">
-      <app-player-card
+      <app-fifa-card
         [player]="vm.player"
         [rating]="vm.stats.rating"
         [matchesPlayed]="vm.stats.matchesPlayed"
         [winRate]="vm.stats.winRate"
         [zlatanPerMatch]="vm.stats.zlatanPerMatch"
         [attendanceRate]="vm.stats.attendanceRate"
-      ></app-player-card>
+      ></app-fifa-card>
     </section>
 
     <section class="quick-stats">

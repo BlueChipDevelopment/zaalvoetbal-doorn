@@ -48,6 +48,11 @@ const routes: Routes = [
     loadChildren: () => import('./components/admin/admin.module').then(m => m.AdminModule),
     canActivate: [AdminGuard],
   },
+  {
+    path: 'speler/:id',
+    loadChildren: () =>
+      import('./components/speler-profiel/speler-profiel.module').then(m => m.SpelerProfielModule),
+  },
   { path: '', redirectTo: '/klassement', pathMatch: 'full' },
   { path: '**', redirectTo: '/klassement' },
 ];

@@ -4,11 +4,11 @@ import { getPlayerTier } from '../../../utils/player-tier';
 import { playerInitials } from '../../../utils/player-initials';
 
 @Component({
-  selector: 'app-player-card',
+  selector: 'app-fifa-card',
   templateUrl: './player-card.component.html',
   styleUrls: ['./player-card.component.scss'],
 })
-export class PlayerCardComponent {
+export class FifaCardComponent {
   @Input() player!: PlayerSheetData;
   @Input() rating = 0;
   @Input() matchesPlayed = 0;

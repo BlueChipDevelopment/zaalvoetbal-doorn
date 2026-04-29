@@ -161,8 +161,8 @@
             <span class="full-header">Name</span>
             <span class="mobile-header">Name</span>
           </mat-header-cell>
-          <mat-cell *matCellDef="let player; let i = index" class="name-cell name-data-cell clickable-name" (click)="openChemistryModal(player)">
-            {{player.name}}
+          <mat-cell *matCellDef="let player; let i = index" class="name-cell name-data-cell">
+            <a [routerLink]="['/speler', player.id]" class="player-link">{{player.name}}</a>
             <ng-container *ngIf="i === 0">
               <mat-icon class="trophy-gold">emoji_events</mat-icon>
             </ng-container>

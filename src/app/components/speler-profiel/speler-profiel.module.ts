@@ -8,11 +8,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { SpelerProfielRoutingModule } from './speler-profiel-routing.module';
 import { SpelerProfielComponent } from './speler-profiel.component';
-import { PlayerCardComponent } from './player-card/player-card.component';
+import { FifaCardComponent } from './player-card/player-card.component';
 import { RatingTrendChartComponent } from './rating-trend-chart/rating-trend-chart.component';
 
 @NgModule({
-  declarations: [SpelerProfielComponent, PlayerCardComponent, RatingTrendChartComponent],
+  declarations: [SpelerProfielComponent, FifaCardComponent, RatingTrendChartComponent],
   imports: [
     CommonModule,
     RouterModule,

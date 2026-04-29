@@ -92,7 +92,9 @@
         <h3>Aanwezig ({{ presentCount }})</h3>
         <ng-container *ngFor="let item of attendanceList; trackBy: trackByAttendanceName" >
           <ng-container *ngIf="item.status === 'Ja'">
-            <app-player-card *ngIf="item.playerData" [player]="item.playerData"></app-player-card>
+            <a *ngIf="item.playerData" [routerLink]="['/speler', item.playerData.id]" class="card-link">
+              <app-player-card [player]="item.playerData"></app-player-card>
+            </a>
             <span *ngIf="!item.playerData">{{ item.name }}</span>
           </ng-container>
         </ng-container>
@@ -101,7 +103,9 @@
         <h3>Afwezig ({{ absentCount }})</h3>
         <ng-container *ngFor="let item of attendanceList; trackBy: trackByAttendanceName">
           <ng-container *ngIf="item.status === 'Nee'">
-            <app-player-card *ngIf="item.playerData" [player]="item.playerData"></app-player-card>
+            <a *ngIf="item.playerData" [routerLink]="['/speler', item.playerData.id]" class="card-link">
+              <app-player-card [player]="item.playerData"></app-player-card>
+            </a>
             <span *ngIf="!item.playerData">{{ item.name }}</span>
           </ng-container>
         </ng-container>
