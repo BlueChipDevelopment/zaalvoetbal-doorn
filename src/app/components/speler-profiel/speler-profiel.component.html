@@ -1,0 +1,84 @@
+<ng-container *ngIf="vm$ | async as vm; else loading">
+  <ng-container *ngIf="vm; else notFound">
+    <section class="hero">
+      <app-player-card
+        [player]="vm.player"
+        [rating]="vm.stats.rating"
+        [matchesPlayed]="vm.stats.matchesPlayed"
+        [winRate]="vm.stats.winRate"
+        [zlatanPerMatch]="vm.stats.zlatanPerMatch"
+        [attendanceRate]="vm.stats.attendanceRate"
+      ></app-player-card>
+    </section>
+
+    <section class="quick-stats">
+      <mat-card class="stat-tile"><span class="value">{{ vm.stats.matchesPlayed }}</span><span class="label">Wedstrijden</span></mat-card>
+      <mat-card class="stat-tile"><span class="value">{{ vm.stats.wins }}-{{ vm.stats.draws }}-{{ vm.stats.losses }}</span><span class="label">W-G-V</span></mat-card>
+      <mat-card class="stat-tile"><span class="value">{{ vm.stats.currentWinStreak }}</span><span class="label">Huidige streak</span></mat-card>
+      <mat-card class="stat-tile"><span class="value">{{ vm.stats.longestWinStreak }}</span><span class="label">Langste streak</span></mat-card>
+      <mat-card class="stat-tile"><span class="value">{{ vm.stats.zlatanCount }}</span><span class="label">Zlatan</span></mat-card>
+      <mat-card class="stat-tile"><span class="value">{{ vm.stats.ventielCount }}</span><span class="label">Ventiel</span></mat-card>
+    </section>
+
+    <section class="trend">
+      <header>
+        <h3>Rating-trend</h3>
+        <mat-button-toggle-group [value]="(trendRange$ | async)" (change)="onRangeChange($event.value)">
+          <mat-button-toggle value="12m">12 mnd</mat-button-toggle>
+          <mat-button-toggle value="all">Alles</mat-button-toggle>
+        </mat-button-toggle-group>
+      </header>
+      <app-rating-trend-chart [points]="vm.trend"></app-rating-trend-chart>
+    </section>
+
+    <section class="teammates">
+      <h3>Top-5 teammates</h3>
+      <ul *ngIf="vm.teammates.length > 0; else noTeammates">
+        <li *ngFor="let t of vm.teammates">
+          <a [routerLink]="['/speler', t.teammate.id]">{{ t.teammate.name }}</a>
+          — {{ t.wins }}/{{ t.played }} ({{ t.winRate * 100 | number:'1.0-0' }}%)
+        </li>
+      </ul>
+      <ng-template #noTeammates><p class="empty">Nog te weinig samen-wedstrijden.</p></ng-template>
+    </section>
+
+    <section class="history">
+      <h3>Laatste wedstrijden</h3>
+      <table mat-table [dataSource]="vm.history" class="full-width" *ngIf="vm.history.length > 0; else noHistory">
+        <ng-container matColumnDef="date">
+          <th mat-header-cell *matHeaderCellDef>Datum</th>
+          <td mat-cell *matCellDef="let row">{{ row.date | date:'dd-MM-yyyy' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="ownTeam">
+          <th mat-header-cell *matHeaderCellDef>Team</th>
+          <td mat-cell *matCellDef="let row">{{ row.ownTeam | titlecase }}</td>
+        </ng-container>
+        <ng-container matColumnDef="opponents">
+          <th mat-header-cell *matHeaderCellDef>Tegen</th>
+          <td mat-cell *matCellDef="let row">
+            <span *ngFor="let o of row.opponents; let last = last">
+              {{ o.name }}<span *ngIf="!last">, </span>
+            </span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="score">
+          <th mat-header-cell *matHeaderCellDef>Score</th>
+          <td mat-cell *matCellDef="let row">{{ row.ownTeamScore }} - {{ row.opponentScore }}</td>
+        </ng-container>
+        <ng-container matColumnDef="outcome">
+          <th mat-header-cell *matHeaderCellDef>W/V/G</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="outcome" [class.win]="row.outcome==='win'" [class.loss]="row.outcome==='loss'" [class.draw]="row.outcome==='draw'">
+              {{ row.outcome === 'win' ? 'W' : row.outcome === 'loss' ? 'V' : 'G' }}
+            </span>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="historyColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: historyColumns;"></tr>
+      </table>
+      <ng-template #noHistory><p class="empty">Geen wedstrijden gespeeld.</p></ng-template>
+    </section>
+  </ng-container>
+  <ng-template #notFound><p class="not-found">Speler niet gevonden.</p></ng-template>
+</ng-container>
+<ng-template #loading><div class="loading"><mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner></div></ng-template>
