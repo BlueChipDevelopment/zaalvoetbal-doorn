@@ -2,13 +2,14 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { FIREBASE_CONFIG, SCHEDULE_PATTERNS } from "../config/constants";
 import { toISODateString } from "../shared/date-utils";
+import { SUPABASE_SERVICE_ROLE_KEY } from "../shared/supabase-client";
 
 /**
  * Scheduled function: automatisch teams genereren om 17:00 op wedstrijddagen
  * Voert volledige team generatie uit in Firebase Functions
  */
 export const scheduledAutoTeamGeneration = onSchedule(
-  { schedule: SCHEDULE_PATTERNS.DAILY_17H, region: FIREBASE_CONFIG.region, timeZone: FIREBASE_CONFIG.timeZone },
+  { schedule: SCHEDULE_PATTERNS.DAILY_17H, region: FIREBASE_CONFIG.region, timeZone: FIREBASE_CONFIG.timeZone, secrets: [SUPABASE_SERVICE_ROLE_KEY] },
   async (event) => {
     logger.info('🔄 Starting scheduled auto team generation...');
 

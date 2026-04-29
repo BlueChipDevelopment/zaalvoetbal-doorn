@@ -39,8 +39,12 @@ export const scheduledAttendanceReminders = onSchedule(
       return;
     }
 
-    // Wedstrijd-tijd: assume 21:00 lokale tijd (zaalvoetbal). Pas aan als time-of-day in matches komt.
-    const matchDateTime = new Date(`${nextMatch.date}T21:00:00`);
+    // Wedstrijd-tijd: 21:00 Europe/Amsterdam. DST-heuristiek (april-sept = CEST +02:00, anders CET +01:00).
+    // Boundary-gevallen (eind okt, eind maart) kunnen 1u afwijken — acceptabel voor zaalvoetbal-seizoen.
+    const month = parseInt(nextMatch.date.slice(5, 7), 10);
+    const offsetHours = (month >= 4 && month <= 9) ? 2 : 1;
+    const offset = `+0${offsetHours}:00`;
+    const matchDateTime = new Date(`${nextMatch.date}T21:00:00${offset}`);
     const hoursUntilMatch = (matchDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
     // Bepaal welk reminder-slot we nu zouden moeten versturen (als 'ie nog niet gestuurd is).

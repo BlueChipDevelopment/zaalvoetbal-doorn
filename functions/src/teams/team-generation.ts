@@ -4,12 +4,13 @@ import { setCorsHeaders } from "../shared/cors";
 import { FIREBASE_CONFIG } from "../config/constants";
 import { performAutoTeamGeneration } from "./team-logic";
 import { toISODateString } from "../shared/date-utils";
+import { SUPABASE_SERVICE_ROLE_KEY } from "../shared/supabase-client";
 
 /**
  * HTTP endpoint: team generatie (handmatig of automatisch via scheduler)
  */
 export const teamGeneration = onRequest(
-  { region: FIREBASE_CONFIG.region },
+  { region: FIREBASE_CONFIG.region, secrets: [SUPABASE_SERVICE_ROLE_KEY] },
   async (req, res) => {
     setCorsHeaders(res, req);
     if (req.method === 'OPTIONS') {
