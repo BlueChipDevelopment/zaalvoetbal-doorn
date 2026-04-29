@@ -11,13 +11,15 @@
       ></app-fifa-card>
     </section>
 
+    <app-form-indicator [history]="vm.history"></app-form-indicator>
+
     <section class="quick-stats">
-      <mat-card class="stat-tile"><span class="value">{{ vm.stats.matchesPlayed }}</span><span class="label">Wedstrijden</span></mat-card>
+      <mat-card class="stat-tile"><span class="value" [appCountUp]="vm.stats.matchesPlayed"></span><span class="label">Wedstrijden</span></mat-card>
       <mat-card class="stat-tile"><span class="value">{{ vm.stats.wins }}-{{ vm.stats.draws }}-{{ vm.stats.losses }}</span><span class="label">W-G-V</span></mat-card>
-      <mat-card class="stat-tile"><span class="value">{{ vm.stats.currentWinStreak }}</span><span class="label">Huidige streak</span></mat-card>
-      <mat-card class="stat-tile"><span class="value">{{ vm.stats.longestWinStreak }}</span><span class="label">Langste streak</span></mat-card>
-      <mat-card class="stat-tile"><span class="value">{{ vm.stats.zlatanCount }}</span><span class="label">Zlatan</span></mat-card>
-      <mat-card class="stat-tile"><span class="value">{{ vm.stats.ventielCount }}</span><span class="label">Ventiel</span></mat-card>
+      <mat-card class="stat-tile"><span class="value" [appCountUp]="vm.stats.currentWinStreak"></span><span class="label">Huidige streak</span></mat-card>
+      <mat-card class="stat-tile"><span class="value" [appCountUp]="vm.stats.longestWinStreak"></span><span class="label">Langste streak</span></mat-card>
+      <mat-card class="stat-tile"><span class="value" [appCountUp]="vm.stats.zlatanCount"></span><span class="label">Zlatan</span></mat-card>
+      <mat-card class="stat-tile"><span class="value" [appCountUp]="vm.stats.ventielCount"></span><span class="label">Ventiel</span></mat-card>
     </section>
 
     <section class="trend">

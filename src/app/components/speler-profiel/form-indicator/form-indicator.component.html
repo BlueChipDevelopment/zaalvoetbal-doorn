@@ -1,0 +1,13 @@
+<div class="form-indicator" *ngIf="dots.length > 0">
+  <span class="label">Vorm</span>
+  <div class="dots">
+    <span
+      *ngFor="let d of dots"
+      class="dot"
+      [class.win]="d.outcome === 'win'"
+      [class.loss]="d.outcome === 'loss'"
+      [class.draw]="d.outcome === 'draw'"
+      [matTooltip]="tooltipFor(d)"
+    >{{ letter(d) }}</span>
+  </div>
+</div>

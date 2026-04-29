@@ -6,13 +6,22 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { NgxChartsModule } from '@swimlane/ngx-charts';
 import { SpelerProfielRoutingModule } from './speler-profiel-routing.module';
 import { SpelerProfielComponent } from './speler-profiel.component';
 import { FifaCardComponent } from './player-card/player-card.component';
 import { RatingTrendChartComponent } from './rating-trend-chart/rating-trend-chart.component';
+import { FormIndicatorComponent } from './form-indicator/form-indicator.component';
+import { CountUpDirective } from '../../directives/count-up.directive';
 
 @NgModule({
-  declarations: [SpelerProfielComponent, FifaCardComponent, RatingTrendChartComponent],
+  declarations: [
+    SpelerProfielComponent,
+    FifaCardComponent,
+    RatingTrendChartComponent,
+    FormIndicatorComponent,
+  ],
   imports: [
     CommonModule,
     RouterModule,
@@ -22,6 +31,9 @@ import { RatingTrendChartComponent } from './rating-trend-chart/rating-trend-cha
     MatTableModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
+    NgxChartsModule,
+    CountUpDirective,
   ],
 })
 export class SpelerProfielModule {}

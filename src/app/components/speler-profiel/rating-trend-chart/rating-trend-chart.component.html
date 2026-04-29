@@ -1,13 +1,19 @@
-<svg
-  *ngIf="points.length >= 2; else emptyState"
-  class="trend-chart"
-  [attr.viewBox]="'0 0 ' + viewBoxWidth + ' ' + viewBoxHeight"
-  preserveAspectRatio="none"
-  role="img"
-  aria-label="Rating-trend over tijd"
->
-  <path [attr.d]="pathD" fill="none" stroke="#1976d2" stroke-width="2" stroke-linejoin="round" />
-</svg>
+<div class="trend-chart-container" *ngIf="series.length > 0; else emptyState">
+  <ngx-charts-line-chart
+    [results]="series"
+    [curve]="curve"
+    [scheme]="colorScheme"
+    [autoScale]="true"
+    [xAxis]="true"
+    [yAxis]="true"
+    [showGridLines]="true"
+    [gradient]="true"
+    [tooltipDisabled]="false"
+    [view]="[700, 280]"
+    [legend]="false"
+    [animations]="true"
+  ></ngx-charts-line-chart>
+</div>
 <ng-template #emptyState>
   <p class="empty">Onvoldoende wedstrijden voor een trendlijn.</p>
 </ng-template>

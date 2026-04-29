@@ -1,4 +1,5 @@
 import { Component, Input } from '@angular/core';
+import { curveBasis } from 'd3-shape';
 import { RatingPoint } from '../../../services/player-profile.service';
 
 @Component({
@@ -7,25 +8,20 @@ import { RatingPoint } from '../../../services/player-profile.service';
   styleUrls: ['./rating-trend-chart.component.scss'],
 })
 export class RatingTrendChartComponent {
-  @Input() points: RatingPoint[] = [];
-
-  readonly viewBoxWidth = 600;
-  readonly viewBoxHeight = 200;
-
-  get pathD(): string {
-    if (this.points.length < 2) return '';
-    const ys = this.points.map(p => p.rating);
-    const minY = Math.max(0, Math.min(...ys) - 0.5);
-    const maxY = Math.min(10, Math.max(...ys) + 0.5);
-    const range = Math.max(0.1, maxY - minY);
-    const W = this.viewBoxWidth;
-    const H = this.viewBoxHeight;
-    return this.points
-      .map((p, i) => {
-        const x = (i / (this.points.length - 1)) * W;
-        const y = H - ((p.rating - minY) / range) * H;
-        return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-      })
-      .join(' ');
+  @Input() set points(value: RatingPoint[]) {
+    this._points = value ?? [];
+    this.series = this._points.length >= 2
+      ? [{
+          name: 'Rating',
+          series: this._points.map(p => ({ name: new Date(p.matchDate), value: p.rating })),
+        }]
+      : [];
   }
+  get points(): RatingPoint[] { return this._points; }
+
+  private _points: RatingPoint[] = [];
+  series: { name: string; series: { name: Date; value: number }[] }[] = [];
+
+  readonly curve = curveBasis as any;
+  readonly colorScheme = { domain: ['#1976d2'] } as any;
 }
