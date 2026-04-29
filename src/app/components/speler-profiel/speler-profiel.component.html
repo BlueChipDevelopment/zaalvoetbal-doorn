@@ -48,21 +48,45 @@
     <section class="teammates">
       <div class="chemistry-grid">
         <div class="chemistry-block">
-          <h3>Beste-5 teammates</h3>
-          <ul *ngIf="vm.teammates.length > 0; else noBest">
-            <li *ngFor="let t of vm.teammates">
-              <a [routerLink]="['/speler', t.teammate.id]">{{ t.teammate.name }}</a>
-              — {{ t.wins }}/{{ t.played }} ({{ t.winRate * 100 | number:'1.0-0' }}%)
+          <h3 class="chemistry-title positive">
+            <mat-icon>thumb_up</mat-icon>
+            Beste teammates
+          </h3>
+          <ul class="teammate-list" *ngIf="vm.teammates.length > 0; else noBest">
+            <li *ngFor="let t of vm.teammates" class="teammate-row">
+              <a [routerLink]="['/speler', t.teammate.id]" class="teammate-link">
+                <span class="avatar">{{ initialsFor(t.teammate.name) }}</span>
+                <span class="info">
+                  <span class="name">{{ t.teammate.name }}</span>
+                  <span class="stats">{{ t.wins }} W / {{ t.played - t.wins }} V</span>
+                </span>
+              </a>
+              <div class="winrate">
+                <div class="bar"><div class="fill positive" [style.width.%]="t.winRate * 100"></div></div>
+                <span class="pct">{{ t.winRate * 100 | number:'1.0-0' }}%</span>
+              </div>
             </li>
           </ul>
           <ng-template #noBest><p class="empty">Nog te weinig samen-wedstrijden.</p></ng-template>
         </div>
         <div class="chemistry-block">
-          <h3>Slechtste-5 teammates</h3>
-          <ul *ngIf="vm.worstTeammates.length > 0; else noWorst">
-            <li *ngFor="let t of vm.worstTeammates">
-              <a [routerLink]="['/speler', t.teammate.id]">{{ t.teammate.name }}</a>
-              — {{ t.wins }}/{{ t.played }} ({{ t.winRate * 100 | number:'1.0-0' }}%)
+          <h3 class="chemistry-title negative">
+            <mat-icon>thumb_down</mat-icon>
+            Slechtste teammates
+          </h3>
+          <ul class="teammate-list" *ngIf="vm.worstTeammates.length > 0; else noWorst">
+            <li *ngFor="let t of vm.worstTeammates" class="teammate-row">
+              <a [routerLink]="['/speler', t.teammate.id]" class="teammate-link">
+                <span class="avatar">{{ initialsFor(t.teammate.name) }}</span>
+                <span class="info">
+                  <span class="name">{{ t.teammate.name }}</span>
+                  <span class="stats">{{ t.wins }} W / {{ t.played - t.wins }} V</span>
+                </span>
+              </a>
+              <div class="winrate">
+                <div class="bar"><div class="fill negative" [style.width.%]="t.winRate * 100"></div></div>
+                <span class="pct">{{ t.winRate * 100 | number:'1.0-0' }}%</span>
+              </div>
             </li>
           </ul>
           <ng-template #noWorst><p class="empty">Nog te weinig samen-wedstrijden.</p></ng-template>

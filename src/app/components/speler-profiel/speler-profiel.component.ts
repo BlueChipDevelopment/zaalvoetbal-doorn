@@ -13,6 +13,7 @@ import {
 } from '../../services/player-profile.service';
 import { PlayerSheetData } from '../../interfaces/IPlayerSheet';
 import { RecordCategory, RecordsService } from '../../services/records.service';
+import { playerInitials } from '../../utils/player-initials';
 
 interface ProfileVm {
   player: PlayerSheetData;
@@ -75,6 +76,10 @@ export class SpelerProfielComponent implements OnInit, OnDestroy {
 
   onRangeChange(range: '12m' | 'all'): void {
     this.trendRange$.next(range);
+  }
+
+  initialsFor(name: string | null | undefined): string {
+    return playerInitials(name);
   }
 
   getHolderValue(record: RecordCategory, playerId: number): string {
