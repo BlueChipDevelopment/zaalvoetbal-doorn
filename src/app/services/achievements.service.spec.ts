@@ -120,3 +120,68 @@ describe('AchievementsService — milestones', () => {
     });
   });
 });
+
+describe('AchievementsService — streaks', () => {
+  let service: AchievementsService;
+  let players: PlayerSheetData[];
+  let matches: WedstrijdData[];
+  let stats: Player[];
+
+  function build() {
+    TestBed.configureTestingModule({
+      providers: [
+        AchievementsService,
+        { provide: PlayerService, useValue: { getPlayers: () => of(players) } },
+        { provide: WedstrijdenService, useValue: { getGespeeldeWedstrijden: () => of(matches) } },
+        {
+          provide: GameStatisticsService,
+          useValue: {
+            getFullPlayerStats: () => of(stats),
+            getAvailableSeasons: () => of(['2024-2025']),
+            getCurrentSeason: () => of('2024-2025'),
+          },
+        },
+      ],
+    });
+    service = TestBed.inject(AchievementsService);
+  }
+
+  it('streak_3 unlocked op de 3e win op rij; streak_5 nog locked', (done) => {
+    players = [speler(1, 'Chris')];
+    matches = [
+      match({ id: 1, datum: '2024-03-01', wit: [1], rood: [], scoreWit: 1, scoreRood: 0 }),
+      match({ id: 2, datum: '2024-03-02', wit: [1], rood: [], scoreWit: 1, scoreRood: 0 }),
+      match({ id: 3, datum: '2024-03-03', wit: [1], rood: [], scoreWit: 1, scoreRood: 0 }),
+      match({ id: 4, datum: '2024-03-04', wit: [], rood: [1], scoreWit: 5, scoreRood: 0 }),
+    ];
+    stats = [fullStats({ id: 1, name: 'Chris', gamesPlayed: 4, wins: 3, losses: 1 })];
+    build();
+
+    service.getPlayerAchievements(1).subscribe(list => {
+      const s3 = list.find(a => a.key === 'streak_3')!;
+      const s5 = list.find(a => a.key === 'streak_5')!;
+      expect(s3.tier).toBe('bronze');
+      expect(s3.earnedAt).toEqual(new Date('2024-03-03'));
+      expect(s5.tier).toBeNull();
+      expect(s5.progress).toEqual({ current: 3, target: 5 });
+      done();
+    });
+  });
+
+  it('streak telt door over seizoens-grens heen', (done) => {
+    players = [speler(1, 'Chris')];
+    matches = [
+      match({ id: 1, datum: '2024-06-01', seizoen: '2023-2024', wit: [1], rood: [], scoreWit: 1, scoreRood: 0 }),
+      match({ id: 2, datum: '2024-09-01', seizoen: '2024-2025', wit: [1], rood: [], scoreWit: 1, scoreRood: 0 }),
+      match({ id: 3, datum: '2024-09-02', seizoen: '2024-2025', wit: [1], rood: [], scoreWit: 1, scoreRood: 0 }),
+    ];
+    stats = [fullStats({ id: 1, name: 'Chris', gamesPlayed: 3, wins: 3 })];
+    build();
+
+    service.getPlayerAchievements(1).subscribe(list => {
+      const s3 = list.find(a => a.key === 'streak_3')!;
+      expect(s3.tier).toBe('bronze');
+      done();
+    });
+  });
+});

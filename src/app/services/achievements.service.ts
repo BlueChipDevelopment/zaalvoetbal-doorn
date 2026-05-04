@@ -48,6 +48,13 @@ export class AchievementsService {
         result.push(this.buildMilestone(def, playerStats, sortedMatches));
       }
     }
+
+    const streakInfo = this.computeWinStreak(sortedMatches);
+    for (const def of ACHIEVEMENT_DEFINITIONS) {
+      if (def.category === 'streak') {
+        result.push(this.buildStreak(def, streakInfo));
+      }
+    }
     return result;
   }
 
@@ -101,7 +108,45 @@ export class AchievementsService {
       progress: { current, target },
     };
   }
+
+  private computeWinStreak(views: PlayerMatchView[]): { longest: number; reachedAt: Map<number, Date | null> } {
+    let longest = 0;
+    let run = 0;
+    const reachedAt = new Map<number, Date | null>();
+    for (const v of views) {
+      if (v.outcome === 'W') {
+        run++;
+        if (!reachedAt.has(run)) reachedAt.set(run, v.match.datum);
+        if (run > longest) longest = run;
+      } else {
+        run = 0;
+      }
+    }
+    return { longest, reachedAt };
+  }
+
+  private buildStreak(
+    def: AchievementDefinition,
+    info: { longest: number; reachedAt: Map<number, Date | null> },
+  ): PlayerAchievement {
+    const target = STREAK_TARGETS[def.key];
+    const earned = info.longest >= target;
+    return {
+      key: def.key,
+      category: def.category,
+      tier: earned ? 'bronze' : null,
+      title: def.title,
+      description: def.description,
+      icon: def.icon,
+      earnedAt: earned ? (info.reachedAt.get(target) ?? null) : null,
+      progress: { current: info.longest, target },
+    };
+  }
 }
+
+const STREAK_TARGETS: Record<string, number> = {
+  streak_3: 3, streak_5: 5, streak_7: 7,
+};
 
 const MILESTONE_VALUES: Record<string, (s: Player) => number> = {
   matches_played: s => s.gamesPlayed,
