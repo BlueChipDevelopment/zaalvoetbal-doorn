@@ -185,3 +185,101 @@ describe('AchievementsService — streaks', () => {
     });
   });
 });
+
+describe('AchievementsService — season', () => {
+  let service: AchievementsService;
+  let players: PlayerSheetData[];
+  let matches: WedstrijdData[];
+  let allTimeStats: Player[];
+  let seasonStats: Record<string, Player[]>;
+  let availableSeasons: string[];
+  let currentSeason: string | null;
+
+  function build() {
+    TestBed.configureTestingModule({
+      providers: [
+        AchievementsService,
+        { provide: PlayerService, useValue: { getPlayers: () => of(players) } },
+        { provide: WedstrijdenService, useValue: { getGespeeldeWedstrijden: () => of(matches) } },
+        {
+          provide: GameStatisticsService,
+          useValue: {
+            getFullPlayerStats: (season?: string | null) =>
+              of(season ? (seasonStats[season] ?? []) : allTimeStats),
+            getAvailableSeasons: () => of(availableSeasons),
+            getCurrentSeason: () => of(currentSeason),
+          },
+        },
+      ],
+    });
+    service = TestBed.inject(AchievementsService);
+  }
+
+  it('season_champion: top-1 in afgerond seizoen geeft badge met occurrence', (done) => {
+    players = [speler(1, 'Chris'), speler(2, 'Ward')];
+    matches = [
+      match({ id: 1, datum: '2024-01-01', seizoen: '2023-2024', wit: [1], rood: [2], scoreWit: 5, scoreRood: 0 }),
+    ];
+    allTimeStats = [
+      fullStats({ id: 1, name: 'Chris', gamesPlayed: 1, wins: 1, totalPoints: 3 }),
+      fullStats({ id: 2, name: 'Ward', gamesPlayed: 1, losses: 1, totalPoints: 0 }),
+    ];
+    seasonStats = {
+      '2023-2024': [
+        fullStats({ id: 1, name: 'Chris', gamesPlayed: 1, wins: 1, totalPoints: 3 }),
+        fullStats({ id: 2, name: 'Ward', gamesPlayed: 1, losses: 1, totalPoints: 0 }),
+      ],
+    };
+    availableSeasons = ['2023-2024', '2024-2025'];
+    currentSeason = '2024-2025';
+    build();
+
+    service.getPlayerAchievements(1).subscribe(list => {
+      const champ = list.find(a => a.key === 'season_champion')!;
+      const podium = list.find(a => a.key === 'season_podium')!;
+      expect(champ.tier).toBe('bronze');
+      expect(champ.occurrences?.map(o => o.season)).toEqual(['2023-2024']);
+      expect(podium.tier).toBe('bronze');
+      done();
+    });
+  });
+
+  it('lopend seizoen telt niet voor seizoens-badges', (done) => {
+    players = [speler(1, 'Chris')];
+    matches = [match({ id: 1, datum: '2024-09-01', seizoen: '2024-2025', wit: [1], rood: [], scoreWit: 1, scoreRood: 0 })];
+    allTimeStats = [fullStats({ id: 1, name: 'Chris', gamesPlayed: 1, wins: 1, totalPoints: 3 })];
+    seasonStats = { '2024-2025': allTimeStats };
+    availableSeasons = ['2024-2025'];
+    currentSeason = '2024-2025';
+    build();
+
+    service.getPlayerAchievements(1).subscribe(list => {
+      const champ = list.find(a => a.key === 'season_champion')!;
+      expect(champ.tier).toBeNull();
+      expect(champ.occurrences).toBeUndefined();
+      done();
+    });
+  });
+
+  it('season_full_attend: één gemiste wedstrijd → geen badge', (done) => {
+    players = [speler(1, 'Chris'), speler(2, 'Ward')];
+    matches = [
+      match({ id: 1, datum: '2024-01-01', seizoen: '2023-2024', wit: [1], rood: [2], scoreWit: 1, scoreRood: 0 }),
+      match({ id: 2, datum: '2024-01-08', seizoen: '2023-2024', wit: [2], rood: [], scoreWit: 1, scoreRood: 0 }),
+    ];
+    allTimeStats = [
+      fullStats({ id: 1, name: 'Chris', gamesPlayed: 1, wins: 1, totalPoints: 3 }),
+      fullStats({ id: 2, name: 'Ward', gamesPlayed: 2, wins: 1, losses: 1, totalPoints: 3 }),
+    ];
+    seasonStats = { '2023-2024': allTimeStats };
+    availableSeasons = ['2023-2024'];
+    currentSeason = null;
+    build();
+
+    service.getPlayerAchievements(1).subscribe(list => {
+      const fa = list.find(a => a.key === 'season_full_attend')!;
+      expect(fa.tier).toBeNull();
+      done();
+    });
+  });
+});

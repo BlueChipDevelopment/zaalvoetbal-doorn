@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
-import { Observable, forkJoin } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, forkJoin, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { PlayerService } from './player.service';
 import { WedstrijdenService } from './wedstrijden.service';
 import { GameStatisticsService } from './game.statistics.service';
 import { ACHIEVEMENT_DEFINITIONS } from './achievement-definitions';
 import {
   AchievementDefinition,
+  AchievementOccurrence,
   AchievementTier,
   PlayerAchievement,
 } from '../interfaces/IAchievement';
@@ -29,15 +30,35 @@ export class AchievementsService {
 
   getPlayerAchievements(playerId: number): Observable<PlayerAchievement[]> {
     return forkJoin({
-      players: this.playerService.getPlayers(),
       matches: this.wedstrijdenService.getGespeeldeWedstrijden(),
       stats: this.statsService.getFullPlayerStats(null),
+      seasons: this.statsService.getAvailableSeasons(),
+      current: this.statsService.getCurrentSeason(),
     }).pipe(
-      map(({ matches, stats }) => this.buildForPlayer(playerId, matches, stats)),
+      switchMap(({ matches, stats, seasons, current }) => {
+        const completed = (seasons ?? []).filter(s => s !== current);
+        const seasonStats$ = completed.length === 0
+          ? of([] as { season: string; stats: Player[] }[])
+          : forkJoin(
+              completed.map(season =>
+                this.statsService.getFullPlayerStats(season).pipe(
+                  map(s => ({ season, stats: s })),
+                ),
+              ),
+            );
+        return seasonStats$.pipe(
+          map(perSeason => this.buildForPlayer(playerId, matches, stats, perSeason)),
+        );
+      }),
     );
   }
 
-  private buildForPlayer(playerId: number, matches: WedstrijdData[], stats: Player[]): PlayerAchievement[] {
+  private buildForPlayer(
+    playerId: number,
+    matches: WedstrijdData[],
+    stats: Player[],
+    perSeason: { season: string; stats: Player[] }[],
+  ): PlayerAchievement[] {
     const playerStats = stats.find(s => s.id === playerId);
     if (!playerStats) return [];
     const sortedMatches = this.matchesForPlayer(playerId, matches);
@@ -48,11 +69,16 @@ export class AchievementsService {
         result.push(this.buildMilestone(def, playerStats, sortedMatches));
       }
     }
-
     const streakInfo = this.computeWinStreak(sortedMatches);
     for (const def of ACHIEVEMENT_DEFINITIONS) {
       if (def.category === 'streak') {
         result.push(this.buildStreak(def, streakInfo));
+      }
+    }
+    const seasonResults = this.computeSeasonOccurrences(playerId, matches, perSeason);
+    for (const def of ACHIEVEMENT_DEFINITIONS) {
+      if (def.category === 'season') {
+        result.push(this.buildSeasonBadge(def, seasonResults));
       }
     }
     return result;
@@ -140,6 +166,66 @@ export class AchievementsService {
       icon: def.icon,
       earnedAt: earned ? (info.reachedAt.get(target) ?? null) : null,
       progress: { current: info.longest, target },
+    };
+  }
+
+  private computeSeasonOccurrences(
+    playerId: number,
+    matches: WedstrijdData[],
+    perSeason: { season: string; stats: Player[] }[],
+  ): Record<string, AchievementOccurrence[]> {
+    const out: Record<string, AchievementOccurrence[]> = {
+      season_champion: [], season_podium: [], season_full_attend: [],
+    };
+    for (const { season, stats } of perSeason) {
+      const seasonMatches = matches
+        .filter(m => m.seizoen === season && m.datum)
+        .sort((a, b) => a.datum!.getTime() - b.datum!.getTime());
+      const lastDate = seasonMatches.length > 0 ? seasonMatches[seasonMatches.length - 1].datum : null;
+
+      const ranking = [...stats].filter(s => typeof s.id === 'number')
+        .sort((a, b) => b.totalPoints - a.totalPoints);
+      const top1 = ranking[0]?.totalPoints ?? -Infinity;
+      const top3Threshold = ranking[2]?.totalPoints ?? -Infinity;
+      const me = stats.find(s => s.id === playerId);
+
+      if (me && me.totalPoints === top1 && me.totalPoints > 0) {
+        out['season_champion'].push({ season, date: lastDate });
+      }
+      if (me && me.totalPoints >= top3Threshold && me.totalPoints > 0) {
+        out['season_podium'].push({ season, date: lastDate });
+      }
+      if (seasonMatches.length > 0) {
+        const playedAll = seasonMatches.every(
+          m => (m.teamWit || []).includes(playerId) || (m.teamRood || []).includes(playerId),
+        );
+        if (playedAll) out['season_full_attend'].push({ season, date: lastDate });
+      }
+    }
+    return out;
+  }
+
+  private buildSeasonBadge(
+    def: AchievementDefinition,
+    occurrencesByKey: Record<string, AchievementOccurrence[]>,
+  ): PlayerAchievement {
+    const occurrences = occurrencesByKey[def.key] ?? [];
+    const earned = occurrences.length > 0;
+    const earnedAt = earned
+      ? occurrences.reduce<Date | null>((min, o) => {
+          if (!o.date) return min;
+          return !min || o.date < min ? o.date : min;
+        }, null)
+      : null;
+    return {
+      key: def.key,
+      category: def.category,
+      tier: earned ? 'bronze' : null,
+      title: def.title,
+      description: def.description,
+      icon: def.icon,
+      earnedAt,
+      occurrences: earned ? occurrences : undefined,
     };
   }
 }
