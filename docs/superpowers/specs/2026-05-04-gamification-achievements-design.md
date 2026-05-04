@@ -132,9 +132,9 @@ Nieuwe sectie "Achievements" via `AchievementsGridComponent`, ergens onder de FI
 - **Seizoens-badges**: één tegel per key. Behaald: vol, tooltip toont aantal voorkomens (`×N`) + lijst seizoenen + datums. Een speler die nog nooit meedeed in een afgerond seizoen krijgt geen seizoens-tegels.
 - Tooltip bevat altijd `description` + (indien behaald) "Behaald op {earnedAt}".
 
-### Klassement & aanwezigheid (chips bij naam)
+### Chips elders
 
-Top-2 zeldzaamste behaalde achievements naast de naam, **gemixt met de bestaande Records-chips** — dezelfde regel `max 2 chips` totaal blijft staan, achievements concurreren met records op rarity. Implementatie: bestaande chips-helper uitbreiden met achievement-bron, niet duplicate code.
+V1: alleen het profiel-grid. Records-chips bestaan momenteel alleen op de profielpagina (niet op klassement/aanwezigheid), dus achievements volgen hetzelfde patroon. `getTopChipsForPlayer` is wel onderdeel van de service-API zodat een toekomstige uitbreiding naar klassement/aanwezigheid (samen met records-chips) low-cost is.
 
 ### Styling
 
