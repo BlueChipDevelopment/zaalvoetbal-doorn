@@ -14,6 +14,8 @@ import { FifaCardComponent } from './player-card/player-card.component';
 import { RatingTrendChartComponent } from './rating-trend-chart/rating-trend-chart.component';
 import { FormIndicatorComponent } from './form-indicator/form-indicator.component';
 import { CountUpDirective } from '../../directives/count-up.directive';
+import { AchievementBadgeComponent } from '../shared/achievement-badge/achievement-badge.component';
+import { AchievementsGridComponent } from './achievements-grid/achievements-grid.component';
 
 @NgModule({
   declarations: [
@@ -21,6 +23,8 @@ import { CountUpDirective } from '../../directives/count-up.directive';
     FifaCardComponent,
     RatingTrendChartComponent,
     FormIndicatorComponent,
+    AchievementBadgeComponent,
+    AchievementsGridComponent,
   ],
   imports: [
     CommonModule,

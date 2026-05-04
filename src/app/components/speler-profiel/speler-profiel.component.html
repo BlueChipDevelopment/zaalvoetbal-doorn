@@ -34,6 +34,8 @@
       <mat-card class="stat-tile"><span class="value" [appCountUp]="vm.stats.ventielCount"></span><span class="label">Ventiel</span></mat-card>
     </section>
 
+    <app-achievements-grid [achievements]="vm.achievements"></app-achievements-grid>
+
     <section class="trend">
       <header>
         <h3>Rating-trend</h3>

@@ -13,6 +13,8 @@ import {
 } from '../../services/player-profile.service';
 import { PlayerSheetData } from '../../interfaces/IPlayerSheet';
 import { RecordCategory, RecordsService } from '../../services/records.service';
+import { AchievementsService } from '../../services/achievements.service';
+import { PlayerAchievement } from '../../interfaces/IAchievement';
 import { playerInitials } from '../../utils/player-initials';
 
 interface ProfileVm {
@@ -23,6 +25,7 @@ interface ProfileVm {
   worstTeammates: TopTeammate[];
   history: MatchHistoryEntry[];
   recordsHeld: RecordCategory[];
+  achievements: PlayerAchievement[];
 }
 
 @Component({
@@ -40,6 +43,7 @@ export class SpelerProfielComponent implements OnInit, OnDestroy {
     private playerService: PlayerService,
     private profileService: PlayerProfileService,
     private recordsService: RecordsService,
+    private achievementsService: AchievementsService,
     private titleService: Title,
   ) {}
 
@@ -56,9 +60,10 @@ export class SpelerProfielComponent implements OnInit, OnDestroy {
           this.profileService.getWorstTeammates(id, 5),
           this.profileService.getMatchHistory(id, 10),
           this.recordsService.getRecordsForPlayer(id),
+          this.achievementsService.getPlayerAchievements(id),
         ]).pipe(
-          map(([player, stats, trend, teammates, worstTeammates, history, recordsHeld]) =>
-            player ? { player, stats, trend, teammates, worstTeammates, history, recordsHeld } : null,
+          map(([player, stats, trend, teammates, worstTeammates, history, recordsHeld, achievements]) =>
+            player ? { player, stats, trend, teammates, worstTeammates, history, recordsHeld, achievements } : null,
           ),
           tap(vm => {
             if (vm?.player?.name) {
