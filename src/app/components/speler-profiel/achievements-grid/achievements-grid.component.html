@@ -1,0 +1,8 @@
+<section class="achievements" *ngIf="sections.length > 0">
+  <div class="section" *ngFor="let s of sections">
+    <h3>{{ s.title }}</h3>
+    <div class="grid">
+      <app-achievement-badge *ngFor="let a of s.items" [achievement]="a"></app-achievement-badge>
+    </div>
+  </div>
+</section>
