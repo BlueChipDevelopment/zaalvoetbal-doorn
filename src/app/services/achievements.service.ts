@@ -8,6 +8,7 @@ import { ACHIEVEMENT_DEFINITIONS } from './achievement-definitions';
 import {
   AchievementDefinition,
   AchievementOccurrence,
+  AchievementSummary,
   AchievementTier,
   PlayerAchievement,
 } from '../interfaces/IAchievement';
@@ -51,6 +52,88 @@ export class AchievementsService {
         );
       }),
     );
+  }
+
+  getAllAchievements(): Observable<{
+    perPlayer: Record<number, PlayerAchievement[]>;
+    summaries: AchievementSummary[];
+  }> {
+    return forkJoin({
+      players: this.playerService.getPlayers(),
+      matches: this.wedstrijdenService.getGespeeldeWedstrijden(),
+      stats: this.statsService.getFullPlayerStats(null),
+      seasons: this.statsService.getAvailableSeasons(),
+      current: this.statsService.getCurrentSeason(),
+    }).pipe(
+      switchMap(({ players, matches, stats, seasons, current }) => {
+        const completed = (seasons ?? []).filter(s => s !== current);
+        const seasonStats$ = completed.length === 0
+          ? of([] as { season: string; stats: Player[] }[])
+          : forkJoin(
+              completed.map(season =>
+                this.statsService.getFullPlayerStats(season).pipe(
+                  map(s => ({ season, stats: s })),
+                ),
+              ),
+            );
+        return seasonStats$.pipe(
+          map(perSeason => {
+            const perPlayer: Record<number, PlayerAchievement[]> = {};
+            const ids = players.map(p => p.id).filter((id): id is number => typeof id === 'number');
+            for (const id of ids) {
+              perPlayer[id] = this.buildForPlayer(id, matches, stats, perSeason);
+            }
+            const summaries = this.summarize(perPlayer, ids.length);
+            return { perPlayer, summaries };
+          }),
+        );
+      }),
+    );
+  }
+
+  getTopChipsForPlayer(playerId: number, max: number): Observable<PlayerAchievement[]> {
+    return this.getAllAchievements().pipe(
+      map(({ perPlayer, summaries }) => {
+        const summaryByKey = new Map(summaries.map(s => [`${s.key}:${s.tier ?? ''}`, s]));
+        const own = (perPlayer[playerId] ?? []).filter(a => a.tier !== null);
+        const tierOrder: Record<string, number> = { platinum: 4, gold: 3, silver: 2, bronze: 1 };
+        return [...own]
+          .sort((a, b) => {
+            const ra = summaryByKey.get(`${a.key}:${a.tier ?? ''}`)?.rarity ?? 1;
+            const rb = summaryByKey.get(`${b.key}:${b.tier ?? ''}`)?.rarity ?? 1;
+            if (ra !== rb) return ra - rb;
+            const ta = tierOrder[a.tier ?? ''] ?? 0;
+            const tb = tierOrder[b.tier ?? ''] ?? 0;
+            if (ta !== tb) return tb - ta;
+            return a.key.localeCompare(b.key);
+          })
+          .slice(0, max);
+      }),
+    );
+  }
+
+  private summarize(
+    perPlayer: Record<number, PlayerAchievement[]>,
+    totalPlayers: number,
+  ): AchievementSummary[] {
+    const counts = new Map<string, { key: string; tier: AchievementTier | null; count: number }>();
+    for (const list of Object.values(perPlayer)) {
+      for (const a of list) {
+        if (a.tier === null) continue;
+        const k = `${a.key}:${a.tier}`;
+        const existing = counts.get(k);
+        if (existing) existing.count++;
+        else counts.set(k, { key: a.key, tier: a.tier, count: 1 });
+      }
+    }
+    const safeTotal = Math.max(totalPlayers, 1);
+    return Array.from(counts.values()).map(c => ({
+      key: c.key,
+      tier: c.tier,
+      holdersCount: c.count,
+      totalPlayers: safeTotal,
+      rarity: c.count / safeTotal,
+    }));
   }
 
   private buildForPlayer(

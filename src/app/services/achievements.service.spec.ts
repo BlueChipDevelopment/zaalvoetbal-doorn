@@ -283,3 +283,55 @@ describe('AchievementsService — season', () => {
     });
   });
 });
+
+describe('AchievementsService — rarity & chips', () => {
+  let service: AchievementsService;
+  let players: PlayerSheetData[];
+  let matches: WedstrijdData[];
+  let allTimeStats: Player[];
+  let seasonStats: Record<string, Player[]>;
+
+  function build() {
+    TestBed.configureTestingModule({
+      providers: [
+        AchievementsService,
+        { provide: PlayerService, useValue: { getPlayers: () => of(players) } },
+        { provide: WedstrijdenService, useValue: { getGespeeldeWedstrijden: () => of(matches) } },
+        {
+          provide: GameStatisticsService,
+          useValue: {
+            getFullPlayerStats: (season?: string | null) =>
+              of(season ? (seasonStats[season] ?? []) : allTimeStats),
+            getAvailableSeasons: () => of(['2023-2024']),
+            getCurrentSeason: () => of(null),
+          },
+        },
+      ],
+    });
+    service = TestBed.inject(AchievementsService);
+  }
+
+  it('getTopChipsForPlayer geeft de zeldzaamste behaalde achievements', (done) => {
+    players = [speler(1, 'Chris'), speler(2, 'Ward'), speler(3, 'Tom')];
+    matches = [];
+    for (let i = 1; i <= 12; i++) {
+      matches.push(match({
+        id: i, datum: `2024-01-${String(i).padStart(2, '0')}`, seizoen: '2023-2024',
+        wit: [1], rood: i === 1 ? [2] : [3], scoreWit: 5, scoreRood: 0,
+      }));
+    }
+    allTimeStats = [
+      fullStats({ id: 1, name: 'Chris', gamesPlayed: 12, wins: 12, totalPoints: 36 }),
+      fullStats({ id: 2, name: 'Ward', gamesPlayed: 1, losses: 1 }),
+      fullStats({ id: 3, name: 'Tom', gamesPlayed: 11, losses: 11 }),
+    ];
+    seasonStats = { '2023-2024': allTimeStats };
+    build();
+
+    service.getTopChipsForPlayer(1, 2).subscribe(chips => {
+      expect(chips.length).toBe(2);
+      expect(chips.every(c => c.tier !== null)).toBe(true);
+      done();
+    });
+  });
+});
