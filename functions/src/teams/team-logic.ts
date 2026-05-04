@@ -84,12 +84,23 @@ export async function performAutoTeamGeneration(dateString: string, trigger: str
       throw new Error(`Players load failed: ${playersErr.message}`);
     }
 
-    // 4. Filter op aanwezig + actief.
-    const attendingPlayers: PlayerLite[] = (allPlayers ?? [])
-      .filter(p => p.actief && attendingIds.has(p.id))
-      .map(p => ({ id: p.id, name: (p.name ?? '').trim(), position: p.position ?? 'Speler' }));
+    // 4. Filter op aanwezig. Wie 'Ja' zegt speelt mee, ongeacht de `actief`-vlag —
+    //    die vlag bepaalt zichtbaarheid in defaults/uitnodigingen, niet of een
+    //    bevestigde aanmelding meetelt.
+    const playerById = new Map((allPlayers ?? []).map(p => [p.id, p]));
+    const skippedNonActief: string[] = [];
+    const attendingPlayers: PlayerLite[] = [];
+    for (const id of attendingIds) {
+      const p = playerById.get(id);
+      if (!p) continue;
+      attendingPlayers.push({ id: p.id, name: (p.name ?? '').trim(), position: p.position ?? 'Speler' });
+      if (!p.actief) skippedNonActief.push((p.name ?? '').trim());
+    }
 
-    logger.info(`👥 Total present + active players: ${attendingPlayers.length} - ${attendingPlayers.map(p => p.name).join(', ')}`);
+    logger.info(`👥 Total present players: ${attendingPlayers.length} - ${attendingPlayers.map(p => p.name).join(', ')}`);
+    if (skippedNonActief.length > 0) {
+      logger.info(`ℹ️ Including non-actief players who confirmed: ${skippedNonActief.join(', ')}`);
+    }
 
     if (attendingPlayers.length < 6) {
       return {
