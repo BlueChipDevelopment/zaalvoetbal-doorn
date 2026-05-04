@@ -1,0 +1,36 @@
+@import '../../../../styles_variables';
+
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: $light-bg;
+  position: relative;
+
+  .icon { font-size: 32px; width: 32px; height: 32px; }
+  .title { font-size: 12px; margin-top: 4px; }
+  .occurrence { position: absolute; top: 4px; right: 6px; font-weight: 600; }
+  .progress {
+    width: 100%;
+    margin-top: 6px;
+    .progress-bar {
+      height: 4px; background: rgba(0,0,0,0.1); border-radius: 2px; overflow: hidden;
+      span { display: block; height: 100%; background: $primary-color; }
+    }
+    .progress-label { font-size: 10px; opacity: 0.7; margin-top: 2px; }
+  }
+
+  &.tier-bronze   { border-color: $tier-bronze; }
+  &.tier-silver   { border-color: $tier-silver; }
+  &.tier-gold     { border-color: $tier-gold; }
+  &.tier-platinum { border-color: $tier-platinum; }
+
+  &.locked {
+    opacity: 0.45;
+    filter: grayscale(0.7);
+  }
+}

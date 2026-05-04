@@ -17,6 +17,12 @@ $trophy-gold:   #ffd700;
 $trophy-silver: #c0c0c0;
 $trophy-bronze: #ce8946;
 
+// Achievement tiers — hergebruik trophy-kleuren, voeg platinum toe.
+$tier-bronze:   $trophy-bronze;
+$tier-silver:   $trophy-silver;
+$tier-gold:     $trophy-gold;
+$tier-platinum: #b9f2ff;
+
 // Elevation
 $card-shadow:       0 2px 8px rgba(0, 0, 0, 0.1);
 $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);

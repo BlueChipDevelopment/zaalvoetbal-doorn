@@ -1,0 +1,9 @@
+<div class="badge" [class.locked]="isLocked" [ngClass]="tierClass" [matTooltip]="tooltipText">
+  <mat-icon class="icon">{{ achievement.icon }}</mat-icon>
+  <div class="title">{{ achievement.title }}</div>
+  <div class="occurrence" *ngIf="occurrenceCount > 1">×{{ occurrenceCount }}</div>
+  <div class="progress" *ngIf="progressLabel">
+    <div class="progress-bar"><span [style.width.%]="progressFraction * 100"></span></div>
+    <div class="progress-label">{{ progressLabel }}</div>
+  </div>
+</div>
