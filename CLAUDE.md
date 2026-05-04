@@ -25,7 +25,7 @@ ng deploy
 
 ## Architecture Overview
 
-This is an Angular 18 application for managing futsal team generation, player statistics, and match attendance. The application integrates with Google Sheets as a backend data store through Firebase Functions.
+This is an Angular 18 application for managing futsal team generation, player statistics, and match attendance. Data lives in Supabase (Postgres); push-notification broadcasts run via Firebase Functions.
 
 ### Core Components Structure
 
@@ -38,22 +38,20 @@ This is an Angular 18 application for managing futsal team generation, player st
 
 ### Key Services
 
-- **GoogleSheetsService** - Handles all Google Sheets API integration via Firebase Functions
-- **PlayerService** - Manages player data and statistics
-- **TeamGenerateService** - Core team balancing algorithms
-- **AttendanceService** - Player attendance management
+- **SupabaseClientService** (`src/app/services/data-sources/`) - Shared, lazily-instantiated `SupabaseClient` typed against generated `Database` types in `src/app/types/database.types.ts`
+- **Data sources** (`src/app/services/data-sources/`) - Abstract interfaces with Supabase implementations: `PlayerDataSource`, `MatchDataSource`, `AttendanceDataSource`, `NotificationDataSource`. Domain services depend on these abstractions, not on Supabase directly.
+- **PlayerService / PlayerProfileService** - Player data, ratings, and per-profile statistics
 - **WedstrijdenService** - Match data operations
+- **AttendanceService** - Player attendance management
+- **TeamGenerateService** - Core team balancing algorithms
 - **GameStatisticsService** - Player performance analytics
-- **NotificationService** - Manages Web Push notifications and browser subscription handling
+- **RecordsService** - Hall of Fame / season MVPs
+- **NotificationService** - Web Push subscription handling on the client
+- **BeheerNotificatiesService** - Admin view: subscriptions, broadcast history, analytics; calls `sendPushToAll` Firebase Function for broadcasts
 
 ### Data Architecture
 
-The app uses Google Sheets as the primary data store with these main sheets:
-- **Spelers** - Player information, ratings, and statistics
-- **Wedstrijden** - Match data and results
-- **Aanwezigheid** - Player attendance records
-- **LaatsteTeams** - Latest generated team compositions
-- **Notificaties** - Push notification subscription data and player preferences
+Primary data store is **Supabase (Postgres)**, accessed via the typed client and the data-source abstractions above. The Supabase schema is reflected in `src/app/types/database.types.ts` — consult that file for current table/column names rather than guessing. Firebase Functions remain only for push-notification broadcasts (`sendPushToAll`) which writes a `reminder_log` entry per call.
 
 ### Key Interfaces
 
@@ -84,16 +82,18 @@ All TypeScript interfaces are centralized in `src/app/interfaces/`:
 - Component-specific styles follow Angular's encapsulated styling approach
 - **When creating new components or styling, always use the variables from `styles_variables.scss` instead of hardcoding colors**
 
-### Google Sheets Integration
+### Supabase Integration
 
-The Firebase Functions backend (referenced as `firebaseBaseUrl` in environment) provides:
-- `getSheetData` - Retrieve sheet data
-- `appendSheetRow` - Add new rows
-- `updateSheetRow` - Update existing rows  
-- `batchUpdateSheet` - Bulk operations
-- `querySheetData` - Filtered data queries
+- All reads/writes go through the data-source classes in `src/app/services/data-sources/`. Don't call `SupabaseClient` directly from components or domain services — extend the relevant data source instead.
+- Types are generated; regenerate `database.types.ts` after schema changes so queries stay type-safe.
+- The anon key (`supabaseAnonKey`) is used client-side; rely on Supabase RLS for authorization, not on hiding the key.
 
-Always skip header rows when processing Google Sheets data (first row contains column headers).
+### Firebase Functions (push notifications only)
+
+`firebaseBaseUrl` in environment still points at Cloud Functions used for push broadcasts:
+- `sendPushToAll` - Broadcast a Web Push message to all active subscribers; logs each call to `reminder_log`.
+
+No other Sheets/Firebase data endpoints are in use.
 
 ### Deployment
 
@@ -105,7 +105,7 @@ Always skip header rows when processing Google Sheets data (first row contains c
 ### Environment Configuration
 
 - Environment files are in `src/environments/`
-- `firebaseBaseUrl` must be configured for Google Sheets integration
+- Required keys: `supabaseUrl` + `supabaseAnonKey` (data store), `firebaseBaseUrl` + `vapidPublicKey` + `firebase.*` (push notifications), `adminEmails` (admin guard)
 - See `.example` files for required environment variables
 
 ### Testing
