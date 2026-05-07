@@ -63,6 +63,18 @@
   padding: 20px; /* Voeg wat padding toe aan de content area */
 }
 
+/* Active route highlighting */
+.desktop-navigation .active-link {
+  color: #ffc107; /* Amber accent op de blauwe toolbar */
+  font-weight: 500;
+}
+
+.sidenav .active-link {
+  background-color: rgba($primary-color, 0.12);
+  color: $primary-color;
+  font-weight: 500;
+}
+
 /* Verberg desktop navigatie op kleine schermen */
 .desktop-navigation {
   display: none;

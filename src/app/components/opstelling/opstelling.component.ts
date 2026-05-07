@@ -8,7 +8,6 @@ import { PlayerCardComponent } from '../player-card/player-card.component';
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LoadingStateComponent } from '../loading-state/loading-state.component';
-import { PageHeaderComponent } from '../page-header/page-header.component';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -27,7 +26,6 @@ import { environment } from '../../../environments/environment';
     CommonModule,
     MatProgressSpinnerModule,
     LoadingStateComponent,
-    PageHeaderComponent,
     MatIconModule,
     MatButtonModule,
     MatCardModule,

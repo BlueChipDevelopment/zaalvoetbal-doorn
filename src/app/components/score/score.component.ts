@@ -9,7 +9,6 @@ import { NextMatchInfoComponent } from '../next-match-info/next-match-info.compo
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LoadingStateComponent } from '../loading-state/loading-state.component';
-import { PageHeaderComponent } from '../page-header/page-header.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
@@ -44,7 +43,6 @@ interface Match {
     NextMatchInfoComponent,
     MatProgressSpinnerModule,
     LoadingStateComponent,
-    PageHeaderComponent,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
