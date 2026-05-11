@@ -5,7 +5,23 @@
 }
 
 .sidenav {
-  width: 200px; /* Pas breedte aan indien nodig */
+  width: 240px; /* Ruimte voor icoon + label */
+}
+
+.sidenav mat-nav-list {
+  h3[matSubheader] {
+    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: $text-secondary;
+    padding: 12px 16px 4px;
+    margin: 0;
+  }
+
+  mat-divider {
+    margin: 4px 0;
+  }
 }
 
 .sidenav .mat-toolbar {
@@ -70,9 +86,7 @@
 }
 
 .sidenav .active-link {
-  background-color: rgba($primary-color, 0.12);
-  color: $primary-color;
-  font-weight: 500;
+  background-color: rgba($primary-color, 0.08);
 }
 
 /* Verberg desktop navigatie op kleine schermen */
@@ -91,7 +105,23 @@
     display: none; /* Verberg menu knop */
   }
   .desktop-navigation {
-    display: block; /* Toon desktop navigatie */
+    display: flex; /* Toon desktop navigatie */
+    align-items: center;
+    gap: 4px;
+  }
+
+  .desktop-navigation .nav-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .desktop-navigation .nav-separator {
+    display: inline-block;
+    width: 1px;
+    height: 24px;
+    margin: 0 6px;
+    background-color: rgba(255, 255, 255, 0.35);
   }
    /* Optionele aanpassingen voor desktop kunnen hier */
 }
