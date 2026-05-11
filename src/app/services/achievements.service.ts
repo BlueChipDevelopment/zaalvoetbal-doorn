@@ -6,8 +6,10 @@ import { WedstrijdenService } from './wedstrijden.service';
 import { GameStatisticsService } from './game.statistics.service';
 import { ACHIEVEMENT_DEFINITIONS } from './achievement-definitions';
 import {
+  AchievementCategory,
   AchievementDefinition,
   AchievementOccurrence,
+  AchievementRecord,
   AchievementSummary,
   AchievementTier,
   PlayerAchievement,
@@ -87,6 +89,69 @@ export class AchievementsService {
             return { perPlayer, summaries };
           }),
         );
+      }),
+    );
+  }
+
+  getAchievementRecords(): Observable<AchievementRecord[]> {
+    return forkJoin({
+      players: this.playerService.getPlayers(),
+      all: this.getAllAchievements(),
+    }).pipe(
+      map(({ players, all }) => {
+        const nameById = new Map<number, string>();
+        players.forEach(p => {
+          if (typeof p.id === 'number') nameById.set(p.id, p.name);
+        });
+
+        const groups = new Map<string, AchievementRecord>();
+        for (const [pidStr, list] of Object.entries(all.perPlayer)) {
+          const playerId = Number(pidStr);
+          const name = nameById.get(playerId);
+          if (!name) continue;
+          for (const a of list) {
+            if (!a.tier) continue;
+            const groupKey = `${a.key}:${a.tier}`;
+            let group = groups.get(groupKey);
+            if (!group) {
+              group = {
+                key: groupKey,
+                title: a.title,
+                description: a.description,
+                icon: a.icon,
+                category: a.category,
+                tier: a.tier,
+                holders: [],
+              };
+              groups.set(groupKey, group);
+            }
+            const occurrenceCount = a.occurrences?.length ?? 1;
+            group.holders.push({ playerId, name, occurrenceCount });
+          }
+        }
+
+        const catOrder: Record<AchievementCategory, number> = { milestone: 1, streak: 2, season: 3 };
+        const tierOrder: Record<AchievementTier, number> = { platinum: 4, gold: 3, silver: 2, bronze: 1 };
+        const defOrder = new Map<string, number>();
+        ACHIEVEMENT_DEFINITIONS.forEach((d, i) => defOrder.set(d.key, i));
+
+        return Array.from(groups.values())
+          .map(g => ({
+            ...g,
+            holders: [...g.holders].sort(
+              (a, b) => (b.occurrenceCount - a.occurrenceCount) || a.name.localeCompare(b.name),
+            ),
+          }))
+          .sort((a, b) => {
+            const co = catOrder[a.category] - catOrder[b.category];
+            if (co !== 0) return co;
+            const baseA = a.key.split(':')[0];
+            const baseB = b.key.split(':')[0];
+            const da = defOrder.get(baseA) ?? 999;
+            const db = defOrder.get(baseB) ?? 999;
+            if (da !== db) return da - db;
+            return tierOrder[b.tier] - tierOrder[a.tier];
+          });
       }),
     );
   }

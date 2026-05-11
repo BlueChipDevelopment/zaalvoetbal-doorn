@@ -39,3 +39,19 @@ export interface AchievementSummary {
   totalPlayers: number;
   rarity: number;
 }
+
+export interface AchievementRecordHolder {
+  playerId: number;
+  name: string;
+  occurrenceCount: number;
+}
+
+export interface AchievementRecord {
+  key: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: AchievementCategory;
+  tier: AchievementTier;
+  holders: AchievementRecordHolder[];
+}

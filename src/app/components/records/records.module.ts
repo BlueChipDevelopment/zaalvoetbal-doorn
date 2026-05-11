@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RecordsRoutingModule } from './records-routing.module';
 import { RecordsComponent } from './records.component';
 import { PageHeaderComponent } from '../page-header/page-header.component';
@@ -16,6 +17,7 @@ import { LoadingStateComponent } from '../loading-state/loading-state.component'
     RecordsRoutingModule,
     MatCardModule,
     MatIconModule,
+    MatTooltipModule,
     PageHeaderComponent,
     LoadingStateComponent,
   ],

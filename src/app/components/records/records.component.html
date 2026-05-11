@@ -20,6 +20,32 @@
   </section>
 </ng-container>
 
+<ng-container *ngIf="achievementGroups$ | async as achievementGroups">
+  <section class="achievements-section" *ngIf="achievementGroups.length > 0">
+    <h2 class="section-title">Achievements</h2>
+    <div class="achievement-category" *ngFor="let group of achievementGroups">
+      <h3 class="category-title">{{ group.title }}</h3>
+      <div class="records-grid">
+        <mat-card *ngFor="let a of group.items; trackBy: trackByKey"
+                  class="record-card achievement-card"
+                  [ngClass]="'tier-' + a.tier"
+                  [matTooltip]="a.description">
+          <div class="header">
+            <mat-icon>{{ a.icon }}</mat-icon>
+            <h3>{{ a.title }}</h3>
+          </div>
+          <ul class="holders">
+            <li *ngFor="let h of a.holders">
+              <a [routerLink]="['/speler', h.playerId]">{{ h.name }}</a>
+              <span class="value" *ngIf="h.occurrenceCount > 1">×{{ h.occurrenceCount }}</span>
+            </li>
+          </ul>
+        </mat-card>
+      </div>
+    </div>
+  </section>
+</ng-container>
+
 <ng-container *ngIf="mvps$ | async as mvps">
   <section class="mvp-section" *ngIf="mvps.length > 0">
     <h2 class="section-title">Seizoen-MVP's</h2>

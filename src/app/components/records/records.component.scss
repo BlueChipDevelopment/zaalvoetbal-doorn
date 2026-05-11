@@ -86,6 +86,46 @@
   }
 }
 
+.achievements-section {
+  margin-top: 2rem;
+
+  .section-title {
+    margin: 0 0 0.75rem;
+    font-size: $font-size-xl;
+    font-weight: $font-weight-medium;
+    color: $primary-color;
+  }
+
+  .achievement-category {
+    margin-bottom: 1.5rem;
+
+    &:last-child { margin-bottom: 0; }
+
+    .category-title {
+      margin: 0 0 0.5rem;
+      font-size: $font-size-lg;
+      font-weight: $font-weight-medium;
+      color: $text-secondary;
+    }
+  }
+
+  .achievement-card {
+    border-left: 4px solid transparent;
+
+    &.tier-bronze   { border-left-color: $tier-bronze; }
+    &.tier-silver   { border-left-color: $tier-silver; }
+    &.tier-gold     { border-left-color: $tier-gold; }
+    &.tier-platinum { border-left-color: $tier-platinum; }
+
+    .header mat-icon {
+      .tier-bronze   & { color: $tier-bronze; }
+      .tier-silver   & { color: $tier-silver; }
+      .tier-gold     & { color: $tier-gold; }
+      .tier-platinum & { color: $tier-platinum; }
+    }
+  }
+}
+
 .mvp-section {
   margin-top: 2rem;
 
