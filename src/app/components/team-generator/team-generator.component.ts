@@ -13,6 +13,7 @@ import { ReplaySubject } from 'rxjs';
 import { NextMatchService, NextMatchInfo } from '../../services/next-match.service';
 import { WedstrijdenService } from '../../services/wedstrijden.service';
 import { WedstrijdData } from '../../interfaces/IWedstrijd';
+import { resolveSquadIds } from '../../utils/resolve-squad-ids';
 import { NextMatchInfoComponent } from '../next-match-info/next-match-info.component';
 import { AsyncPipe, CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -748,13 +749,31 @@ export class TeamGeneratorComponent implements OnInit {
     this.loadingSubject.next(true);
     this.errorMessage = null;
 
-    // Save to Wedstrijden sheet — id-arrays aanleveren aan WedstrijdenService.
-    const teamWhitePlayerIds = this.teams.teamWhite.squad
-      .map(p => p.id)
-      .filter((id): id is number => typeof id === 'number');
-    const teamRedPlayerIds = this.teams.teamRed.squad
-      .map(p => p.id)
-      .filter((id): id is number => typeof id === 'number');
+    // Speler-ids resolven via fullPlayerStats: de squad-objecten uit het
+    // formulier dragen zelf geen id. Lukt het matchen niet, dan breken we af —
+    // anders zou updateTeams een lege opstelling opslaan (delete zonder insert)
+    // en de bestaande opstelling wissen.
+    const whiteResolved = resolveSquadIds(this.teams.teamWhite.squad, this.fullPlayerStats);
+    const redResolved = resolveSquadIds(this.teams.teamRed.squad, this.fullPlayerStats);
+    const unresolved = [...whiteResolved.unresolved, ...redResolved.unresolved];
+    if (unresolved.length > 0) {
+      console.error('❌ Spelers zonder id-match:', unresolved);
+      this.isSavingTeams = false;
+      this.loadingSubject.next(false);
+      this.snackbar.error(
+        `Kan deze spelers niet koppelen: ${unresolved.join(', ')}. Teams niet opgeslagen.`,
+      );
+      return;
+    }
+    const teamWhitePlayerIds = whiteResolved.ids;
+    const teamRedPlayerIds = redResolved.ids;
+    if (teamWhitePlayerIds.length === 0 || teamRedPlayerIds.length === 0) {
+      console.error('❌ Leeg team — opslaan afgebroken');
+      this.isSavingTeams = false;
+      this.loadingSubject.next(false);
+      this.snackbar.error('Eén van de teams is leeg — teams niet opgeslagen.');
+      return;
+    }
 
     // Extra validatie: controleer seizoen en wedstrijdnummer
     const seizoen = this.nextMatchInfo.seizoen;
