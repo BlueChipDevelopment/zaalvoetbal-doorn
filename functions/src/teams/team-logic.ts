@@ -12,8 +12,8 @@ interface PlayerLite { id: number; name: string; position: string; }
  * - Skip als er al lineups bestaan (oud: skip als TeamWit/TeamRood al gevuld).
  * - Lees aanwezigheid (status='Ja') + filter op actieve spelers.
  * - Vereis minimaal 6 spelers (ongewijzigd t.o.v. oud).
- * - Random shuffle + alternerend over twee teams (positie wordt niet meegenomen
- *   in de verdeling, identiek aan de oude implementatie).
+ * - Random shuffle + alternerend over twee teams; keepers worden gespreid
+ *   (1 per team bij 2+ keepers) — zie balanceTeams.
  * - Schrijf match_lineups en update matches.team_generation
  *   ('Automatisch' bij scheduled, 'Handmatig' bij manual — gelijk aan oud).
  * - Verstuur push-notificatie (oud: altijd; we behouden dat — `trigger` wordt
@@ -188,27 +188,54 @@ export async function performAutoTeamGeneration(dateString: string, trigger: str
   }
 }
 
+/** Fisher-Yates shuffle (in-place op een kopie). */
+function shuffle<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 /**
- * Port van het oude balansing-algoritme:
- *   - Random shuffle van álle aanwezige spelers (positie wordt niet apart behandeld).
- *   - Alternerende verdeling (i % 2 === 0 → wit, anders rood).
+ * Verdeel aanwezige spelers over twee teams.
  *
- * Het oude algoritme las wel `position` uit Spelers, maar gebruikte het verder
- * niet in de verdeling (zie commentaar "we can enhance this later" in de oude
- * code). De `rating` was bovendien hardcoded op 5. We repliceren die simpele
- * semantiek hier 1-op-1, maar dan op id-basis.
+ * Random shuffle + alternerende verdeling (port van de oude Sheets-logica),
+ * met één toevoeging: keepers worden gespreid. Bij 2+ keepers gaat er één naar
+ * elk team; eventuele extra keepers tellen als veldspeler. Bij 0 of 1 keeper
+ * telt de keeper gewoon als veldspeler. Dit voorkomt dat de automatische
+ * generatie twee keepers in hetzelfde team zet (zie team-generate.service.ts,
+ * dat dezelfde semantiek hanteert voor handmatige generatie).
  */
 function balanceTeams(players: PlayerLite[]): { teamWhite: number[]; teamRed: number[] } {
-  const shuffled = [...players].sort(() => Math.random() - 0.5);
+  const keepers = players.filter(p => p.position === 'Keeper');
+  const others = players.filter(p => p.position !== 'Keeper');
 
   const teamWhite: number[] = [];
   const teamRed: number[] = [];
 
-  for (let i = 0; i < shuffled.length; i++) {
-    if (i % 2 === 0) {
-      teamWhite.push(shuffled[i].id);
+  // Veldspelers = niet-keepers + eventuele extra keepers (3e, 4e, ...).
+  let fieldPlayers = others;
+
+  if (keepers.length >= 2) {
+    const shuffledKeepers = shuffle(keepers);
+    teamWhite.push(shuffledKeepers[0].id);
+    teamRed.push(shuffledKeepers[1].id);
+    fieldPlayers = [...others, ...shuffledKeepers.slice(2)];
+  } else {
+    // 0 of 1 keeper: keeper telt als veldspeler.
+    fieldPlayers = [...others, ...keepers];
+  }
+
+  // Alterneer de veldspelers; start met het team dat nog het kleinst is,
+  // zodat de teams zo gelijk mogelijk blijven na de keeper-toewijzing.
+  const shuffledField = shuffle(fieldPlayers);
+  for (const player of shuffledField) {
+    if (teamWhite.length <= teamRed.length) {
+      teamWhite.push(player.id);
     } else {
-      teamRed.push(shuffled[i].id);
+      teamRed.push(player.id);
     }
   }
 
