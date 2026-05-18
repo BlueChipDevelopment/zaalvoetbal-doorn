@@ -1,0 +1,119 @@
+{
+  "configVersion": 1,
+  "timestamp": 1779124068680,
+  "index": "/index.html",
+  "assetGroups": [
+    {
+      "name": "app",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "urls": [
+        "/338.0e071d9353c8d4b9.js",
+        "/342.5ec13beb74d70f21.js",
+        "/444.7acfd447d6ddf918.js",
+        "/502.bb5a26626f528c2e.js",
+        "/521.4c1f17a7e255bc7d.js",
+        "/629.173ac9340c7d6097.js",
+        "/661.4f168777e918c646.js",
+        "/700.d4197cac478edbea.js",
+        "/747.7b02aec414e751c1.js",
+        "/770.627bfa6efc056ae8.js",
+        "/857.eaf446a881a88954.js",
+        "/87.c7e75ebc156b425a.js",
+        "/901.aa05eae2493521cb.js",
+        "/common.2163918a92160199.js",
+        "/favicon.ico",
+        "/index.html",
+        "/main.77875086117be377.js",
+        "/manifest.webmanifest",
+        "/polyfills.99185e01a8611993.js",
+        "/runtime.44d25b629a14cec7.js",
+        "/styles.72b7cf6aed1194e1.css"
+      ],
+      "patterns": []
+    },
+    {
+      "name": "assets",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "urls": [
+        "/assets/icons/icon-128x128.png",
+        "/assets/icons/icon-144x144.png",
+        "/assets/icons/icon-152x152.png",
+        "/assets/icons/icon-192x192.png",
+        "/assets/icons/icon-384x384.png",
+        "/assets/icons/icon-512x512.png",
+        "/assets/icons/icon-72x72.png",
+        "/assets/icons/icon-96x96.png",
+        "/assets/icons/whatsapp.svg",
+        "/assets/images/football-shirt-red.png",
+        "/assets/images/football-shirt-white.png",
+        "/football-shirt-red.2fabd340d484d4cb.png",
+        "/football-shirt-white.dfa9a8ea30f39956.png"
+      ],
+      "patterns": []
+    }
+  ],
+  "dataGroups": [],
+  "hashTable": {
+    "/338.0e071d9353c8d4b9.js": "fe23c967fd5e19cb7ca02f71c597f0f254af0f2f",
+    "/342.5ec13beb74d70f21.js": "b59800842b00187489afc1c1eb863e22f09e80d0",
+    "/444.7acfd447d6ddf918.js": "74453bf261a710b6f912a97311e2fe5f7a250dbf",
+    "/502.bb5a26626f528c2e.js": "447bfb952209fda896527119110c584781c336b7",
+    "/521.4c1f17a7e255bc7d.js": "7570b6ab0a7be5a4678132a7abf7962ed32320d7",
+    "/629.173ac9340c7d6097.js": "40ef971c3bf6c58c19092b2db10876572535388e",
+    "/661.4f168777e918c646.js": "c996f0001b057780b2efceedf9c13cea7cfb4289",
+    "/700.d4197cac478edbea.js": "1fd3570b90717a75e4dee636fd0e459ea93c7201",
+    "/747.7b02aec414e751c1.js": "063d4ee1fd288ed57836bb07993a0bee16c1bb27",
+    "/770.627bfa6efc056ae8.js": "656663ad870029a046dbf0cb727d2df24dec7ccd",
+    "/857.eaf446a881a88954.js": "a0e42ea7e3dfa597ef6835996ff9ef723f7ac669",
+    "/87.c7e75ebc156b425a.js": "8b83472f4f6e6b7eb91521119a9eb3a606b30bb6",
+    "/901.aa05eae2493521cb.js": "779793741f96f1d4d4296d56b62d1edb8c54c44f",
+    "/assets/icons/icon-128x128.png": "9229dd4ba94aada5d4f6b3c548172ea95369f499",
+    "/assets/icons/icon-144x144.png": "b825660f4844720c113f3fb2822b3fbdcdb752b5",
+    "/assets/icons/icon-152x152.png": "efb497d1eee470c7369bb073350a16b89ebe7e5c",
+    "/assets/icons/icon-192x192.png": "d975eaad867cc689e82e6cb65068fa45ee3266f4",
+    "/assets/icons/icon-384x384.png": "120251cc2b367cfd8a7e74f912b52608edd5bc21",
+    "/assets/icons/icon-512x512.png": "792133a3bee90a9b70d50a67d4ac195f7a398c69",
+    "/assets/icons/icon-72x72.png": "4f6b4920ed0d8d501b55a6e9f09221441cb6667e",
+    "/assets/icons/icon-96x96.png": "5a636881f928f1ba924fa5555d09879f08b4a1d1",
+    "/assets/icons/whatsapp.svg": "26691423e75eca4f185800b1ef533ea7b729ba73",
+    "/assets/images/football-shirt-red.png": "0df1723bfe98a67e423479be18fee4e7cde55834",
+    "/assets/images/football-shirt-white.png": "b18ac6d8f00e6f5e00cb440b80a2a72b0e1658f3",
+    "/common.2163918a92160199.js": "6128417e656efc9d9f2d2f65265fdd599872eece",
+    "/favicon.ico": "43528d083572386b5f788141a0a2d6619d1409cd",
+    "/football-shirt-red.2fabd340d484d4cb.png": "0df1723bfe98a67e423479be18fee4e7cde55834",
+    "/football-shirt-white.dfa9a8ea30f39956.png": "b18ac6d8f00e6f5e00cb440b80a2a72b0e1658f3",
+    "/index.html": "c8425081b91b6a380fd5d7ae5b72decab830e6f0",
+    "/main.77875086117be377.js": "34f7365b8929ac5c810ab6f76bc0ddb96d3b41f3",
+    "/manifest.webmanifest": "f55078249defc81f0f13e2d5bb6e9e899577ec1c",
+    "/polyfills.99185e01a8611993.js": "f11a301410e8f7479935b4934ce08e4623529fd4",
+    "/runtime.44d25b629a14cec7.js": "ce94f027b72deb0da31f27f7c5e01484c590a4ad",
+    "/styles.72b7cf6aed1194e1.css": "1f7eadaaa9962ddfa9eb37127670c9de9bbc093f"
+  },
+  "navigationUrls": [
+    {
+      "positive": true,
+      "regex": "^\\/.*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*\\.[^/]*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*__[^/]*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*__[^/]*\\/.*$"
+    }
+  ],
+  "navigationRequestStrategy": "performance"
+}
