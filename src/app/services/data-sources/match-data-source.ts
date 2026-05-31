@@ -5,6 +5,9 @@ export abstract class MatchDataSource {
   abstract getAll(): Observable<WedstrijdData[]>;
   abstract add(match: WedstrijdData): Observable<WedstrijdData>;
   abstract update(match: WedstrijdData): Observable<void>;
+  /** Verwijdert een wedstrijd. Gekoppelde `match_lineups`, `attendance` en
+   *  `latest_teams` worden in de DB automatisch verwijderd via ON DELETE CASCADE. */
+  abstract delete(matchId: number): Observable<void>;
   /** Schrijft alleen score-velden (`score_white`, `score_red`, `zlatan_player_id`).
    *  Ventiel zit niet in deze flow — wordt via volledige `update()` gezet. */
   abstract updateScore(

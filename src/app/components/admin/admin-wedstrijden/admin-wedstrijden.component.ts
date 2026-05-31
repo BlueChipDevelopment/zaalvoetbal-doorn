@@ -7,6 +7,7 @@ import { PlayerService } from '../../../services/player.service';
 import { PlayerSheetData } from '../../../interfaces/IPlayerSheet';
 import { WedstrijdData } from '../../../interfaces/IWedstrijd';
 import { WedstrijdDialogComponent } from './wedstrijd-dialog/wedstrijd-dialog.component';
+import { ConfirmDialogComponent } from '../../confirm-dialog/confirm-dialog.component';
 import { SnackbarService } from '../../../services/snackbar.service';
 
 @Component({
@@ -108,6 +109,40 @@ export class AdminWedstrijdenComponent implements OnInit {
         });
       }
     });
+  }
+
+  deleteWedstrijd(wedstrijd: WedstrijdData): void {
+    if (!wedstrijd.id) return;
+    const datum = this.formatDate(wedstrijd.datum);
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: 'Wedstrijd verwijderen',
+        message: `Weet je zeker dat je de wedstrijd van ${datum} wilt verwijderen? `
+          + 'De opstelling en aanwezigheid van deze wedstrijd worden ook verwijderd. '
+          + 'Dit kan niet ongedaan worden gemaakt.',
+        confirmLabel: 'Verwijderen',
+        destructive: true,
+      },
+    });
+
+    dialogRef.afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(confirmed => {
+        if (!confirmed) return;
+        // Mutation: geen takeUntilDestroyed zodat de write doorgaat bij navigatie.
+        this.wedstrijdenService.deleteWedstrijd(wedstrijd.id!)
+          .subscribe({
+            next: () => {
+              this.snackbar.success(`Wedstrijd van ${datum} verwijderd`);
+              this.loadWedstrijden();
+            },
+            error: (error) => {
+              console.error('Error deleting wedstrijd:', error);
+              this.snackbar.error('Fout bij verwijderen wedstrijd: ' + error.message);
+            }
+          });
+      });
   }
 
   formatDate(datum: Date | null): string {

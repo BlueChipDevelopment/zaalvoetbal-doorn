@@ -121,6 +121,17 @@ export class SupabaseMatchDataSource extends MatchDataSource {
     );
   }
 
+  delete(matchId: number): Observable<void> {
+    return from(
+      this.supabase.client.from('matches').delete().eq('id', matchId),
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw error;
+        return undefined;
+      }),
+    );
+  }
+
   updateScore(
     matchId: number,
     scoreWhite: number,

@@ -14,6 +14,7 @@ describe('SupabaseMatchDataSource', () => {
       select: jasmine.createSpy('select').and.callFake(() => matchesQB),
       insert: jasmine.createSpy('insert').and.callFake(() => matchesQB),
       update: jasmine.createSpy('update').and.callFake(() => matchesQB),
+      delete: jasmine.createSpy('delete').and.callFake(() => matchesQB),
       eq: jasmine.createSpy('eq').and.callFake(() => matchesQB),
       order: jasmine.createSpy('order').and.callFake(() => matchesQB),
       single: jasmine.createSpy('single').and.callFake(() => matchesQB),
@@ -162,5 +163,15 @@ describe('SupabaseMatchDataSource', () => {
 
     const arg = matchesQB.insert.calls.mostRecent().args[0];
     expect(arg.team_generation).toBeNull();
+  });
+
+  it('delete verwijdert de match-rij op id (lineups/attendance cascaden in de DB)', async () => {
+    matchesQB.then = (resolve: any) => Promise.resolve({ data: null, error: null }).then(resolve);
+
+    await lastValueFrom(dataSource.delete(7));
+
+    expect(mockClient.from).toHaveBeenCalledWith('matches');
+    expect(matchesQB.delete).toHaveBeenCalled();
+    expect(matchesQB.eq).toHaveBeenCalledWith('id', 7);
   });
 });

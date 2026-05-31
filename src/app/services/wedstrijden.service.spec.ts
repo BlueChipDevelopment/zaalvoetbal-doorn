@@ -43,7 +43,7 @@ describe('WedstrijdenService', () => {
 
   beforeEach(() => {
     mockDataSource = jasmine.createSpyObj('MatchDataSource',
-      ['getAll', 'add', 'update', 'updateScore', 'updateTeams']);
+      ['getAll', 'add', 'update', 'delete', 'updateScore', 'updateTeams']);
     TestBed.configureTestingModule({
       providers: [
         WedstrijdenService,
@@ -82,6 +82,14 @@ describe('WedstrijdenService', () => {
     mockDataSource.updateTeams.and.returnValue(of(undefined));
     service.updateTeams(1, [1, 2], [3, 4], 'Handmatig', 'tactiek').subscribe(() => {
       expect(mockDataSource.updateTeams).toHaveBeenCalledWith(1, [1, 2], [3, 4], 'Handmatig', 'tactiek');
+      done();
+    });
+  });
+
+  it('deleteWedstrijd delegeert naar de data-source en invalideert de cache', (done) => {
+    mockDataSource.delete.and.returnValue(of(undefined));
+    service.deleteWedstrijd(2).subscribe(() => {
+      expect(mockDataSource.delete).toHaveBeenCalledWith(2);
       done();
     });
   });

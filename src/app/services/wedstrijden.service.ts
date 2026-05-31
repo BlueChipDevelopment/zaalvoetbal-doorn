@@ -102,6 +102,19 @@ export class WedstrijdenService {
     );
   }
 
+  deleteWedstrijd(matchId: number): Observable<void> {
+    return this.dataSource.delete(matchId).pipe(
+      tap(() => {
+        this.wedstrijdenCache$.next(null);
+        this.cacheTimestamp = 0;
+      }),
+      catchError(error => {
+        console.error('Error deleting wedstrijd:', error);
+        throw error;
+      })
+    );
+  }
+
   /**
    * Bulk-update score + zlatan voor één wedstrijd. Vervangt de directe
    * `batchUpdateSheet`-aanroep in score.component.

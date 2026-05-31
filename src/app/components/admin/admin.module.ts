@@ -16,6 +16,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { PlayerNamePipe } from '../../pipes/player-name.pipe';
 import { LoadingStateComponent } from '../loading-state/loading-state.component';
+import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 
 import { AdminRoutingModule } from './admin-routing.module';
 import { AdminComponent } from './admin.component';
@@ -54,7 +55,8 @@ import { TestBroadcastDialogComponent } from './admin-notificaties/test-broadcas
     MatCheckboxModule,
     MatSnackBarModule,
     PlayerNamePipe,
-    LoadingStateComponent
+    LoadingStateComponent,
+    ConfirmDialogComponent
   ]
 })
 export class AdminModule { }
