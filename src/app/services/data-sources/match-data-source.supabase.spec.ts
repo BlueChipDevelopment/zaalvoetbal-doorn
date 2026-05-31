@@ -125,4 +125,42 @@ describe('SupabaseMatchDataSource', () => {
 
     expect(matchesQB.update).toHaveBeenCalledWith({ team_generation: 'Automatisch' });
   });
+
+  it('update met lege teamGeneratie schrijft team_generation: null (check-constraint)', async () => {
+    matchesQB.then = (resolve: any) => Promise.resolve({ data: null, error: null }).then(resolve);
+    lineupsQB.then = (resolve: any) => Promise.resolve({ data: null, error: null }).then(resolve);
+
+    await lastValueFrom(dataSource.update({
+      id: 7,
+      datum: new Date(2026, 5, 30),
+      teamWit: [],
+      teamRood: [],
+      teamGeneratie: '',
+      scoreWit: null,
+      scoreRood: null,
+      zlatanPlayerId: null,
+      ventielPlayerId: null,
+    } as any));
+
+    const arg = matchesQB.update.calls.mostRecent().args[0];
+    expect(arg.team_generation).toBeNull();
+  });
+
+  it('add met lege teamGeneratie schrijft team_generation: null (check-constraint)', async () => {
+    matchesQB.then = (resolve: any) => Promise.resolve({ data: { id: 99 }, error: null }).then(resolve);
+
+    await lastValueFrom(dataSource.add({
+      datum: new Date(2026, 5, 30),
+      teamWit: [],
+      teamRood: [],
+      teamGeneratie: '',
+      scoreWit: null,
+      scoreRood: null,
+      zlatanPlayerId: null,
+      ventielPlayerId: null,
+    } as any));
+
+    const arg = matchesQB.insert.calls.mostRecent().args[0];
+    expect(arg.team_generation).toBeNull();
+  });
 });

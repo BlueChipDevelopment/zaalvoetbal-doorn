@@ -65,7 +65,7 @@ export class SupabaseMatchDataSource extends MatchDataSource {
     const insert: MatchInsert = {
       date: dateIso,
       location: match.locatie ?? null,
-      team_generation: match.teamGeneratie ?? null,
+      team_generation: match.teamGeneratie || null,
       score_white: match.scoreWit,
       score_red: match.scoreRood,
       zlatan_player_id: match.zlatanPlayerId,
@@ -104,7 +104,7 @@ export class SupabaseMatchDataSource extends MatchDataSource {
     const update: MatchUpdate = {
       date: this.formatDateISO(match.datum) ?? undefined,
       location: match.locatie ?? null,
-      team_generation: match.teamGeneratie ?? null,
+      team_generation: match.teamGeneratie || null,
       score_white: match.scoreWit,
       score_red: match.scoreRood,
       zlatan_player_id: match.zlatanPlayerId,
