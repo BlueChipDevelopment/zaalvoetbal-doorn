@@ -22,8 +22,9 @@ opslaan **zet diens strippenkaart-status op false**.
      opgeslagen via de footer-knop **Opslaan** (formulier-model, geeft resultaat
      terug aan de parent).
    - **Tab "Lidmaatschap"** — strippenkaart-toggle, abonnement-toggle (huidig
-     seizoen), saldo + `+5`/`+10`/correctie, mutatie-historie. **Directe acties**
-     (schrijven meteen weg), zoals de huidige lidmaatschap-dialog.
+     seizoen), een **bewerkbaar saldo-totaal** + `+5`/`+10`-snelknoppen, en
+     mutatie-historie. **Directe acties** (schrijven meteen weg), zoals de
+     huidige lidmaatschap-dialog.
 2. De **strippenkaart-toggle** staat op de Lidmaatschap-tab (directe actie).
 3. De Lidmaatschap-tab is **alleen actief in bewerk-modus** (bij toevoegen
    bestaat de speler nog niet).
@@ -48,10 +49,17 @@ zoals de twee dialogs nu al werken:
   `updatePlayer`/`addPlayer` aanroept.
 - **Lidmaatschap-tab = directe acties.** Strippenkaart-toggle (schrijft via
   `PlayerService.updatePlayer`), abonnement-toggle (`StrippenkaartService.setSubscription`),
-  strippen toevoegen/correctie (`addStrips`/`correct`), mutatie-historie. Elke
-  actie schrijft meteen weg en herlaadt de tab-data. "Annuleren" draait deze
-  niet terug (een gekochte strippenkaart annuleer je niet); dat is inherent en
-  acceptabel.
+  strippen-saldo en mutatie-historie. Elke actie schrijft meteen weg en herlaadt
+  de tab-data. "Annuleren" draait deze niet terug (een gekochte strippenkaart
+  annuleer je niet); dat is inherent en acceptabel.
+  - **`+5`/`+10`-snelknoppen** → `StrippenkaartService.addStrips` (mutatie
+    `kaart gekocht`), voor het normale "kaart gekocht"-geval.
+  - **Bewerkbaar saldo-totaal** — een invoerveld voorgevuld met het huidige
+    saldo. Bij opslaan boekt het component het **verschil** als correctie:
+    `delta = nieuw_totaal − huidig_saldo`, en roept `StrippenkaartService.correct(playerId, delta)`
+    aan (alleen als `delta !== 0`). De gebruiker zet dus simpelweg het nieuwe
+    totaal; het mutatie-logboek blijft de bron van waarheid (geen destructieve
+    overschrijving, historie behouden). Dit vervangt de oude `±`-correctie-UI.
 
 **Add-modus:** alleen de Gegevens-tab; de Lidmaatschap-tab is verborgen
 (`*ngIf="isEditMode"`) omdat er nog geen speler-id is.
@@ -114,6 +122,9 @@ van speler-ids), naast de bestaande saldo's (gedeelde fetch via `inflight$`).
 
 - Unit: `SpelerDialogComponent.onSave` bewaart `usesStrippenkaart` in edit-modus
   (de bugfix) — nieuw test.
+- Unit: het bewerkbare saldo-totaal boekt het juiste verschil — `correct` wordt
+  aangeroepen met `nieuw_totaal − huidig_saldo`, en niet aangeroepen als het
+  totaal ongewijzigd is.
 - Unit: bestaande vaste-beheerder/`isAdmin`-toggle-logica blijft werken.
 - Dev-build slaagt (template met tabs compileert; `LidmaatschapDialogComponent`-
   referenties zijn verwijderd).
