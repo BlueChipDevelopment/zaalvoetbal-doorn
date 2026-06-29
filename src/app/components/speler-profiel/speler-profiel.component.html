@@ -11,6 +11,18 @@
       ></app-fifa-card>
     </section>
 
+    <mat-card class="lidmaatschap-card" *ngIf="heeftAbonnement || vm.player.usesStrippenkaart">
+      <mat-card-content>
+        <div *ngIf="heeftAbonnement">
+          Abonnement{{ lidSeizoen ? ' (' + lidSeizoen + ')' : '' }}: actief
+        </div>
+        <div *ngIf="vm.player.usesStrippenkaart">
+          Strippen-saldo: {{ stripBalance ?? '…' }}
+          <span *ngIf="stripBalance !== null && stripBalance <= 0">— strippen op</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
     <section class="records-held" *ngIf="vm.recordsHeld.length > 0">
       <h3>Records die {{ vm.player.name }} houdt</h3>
       <div class="record-chips">

@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
-import { Observable, BehaviorSubject, combineLatest, of } from 'rxjs';
+import { Observable, BehaviorSubject, combineLatest, of, Subscription } from 'rxjs';
 import { switchMap, map, tap } from 'rxjs/operators';
 import { PlayerService } from '../../services/player.service';
 import {
@@ -16,6 +16,8 @@ import { RecordCategory, RecordsService } from '../../services/records.service';
 import { AchievementsService } from '../../services/achievements.service';
 import { PlayerAchievement } from '../../interfaces/IAchievement';
 import { playerInitials } from '../../utils/player-initials';
+import { StrippenkaartService } from '../../services/strippenkaart.service';
+import { GameStatisticsService } from '../../services/game.statistics.service';
 
 interface ProfileVm {
   player: PlayerSheetData;
@@ -38,6 +40,12 @@ export class SpelerProfielComponent implements OnInit, OnDestroy {
   trendRange$ = new BehaviorSubject<'12m' | 'all'>('12m');
   readonly historyColumns = ['date', 'ownTeam', 'opponents', 'score', 'outcome'];
 
+  stripBalance: number | null = null;
+  heeftAbonnement = false;
+  lidSeizoen: string | null = null;
+
+  private stripSub?: Subscription;
+
   constructor(
     private route: ActivatedRoute,
     private playerService: PlayerService,
@@ -45,6 +53,8 @@ export class SpelerProfielComponent implements OnInit, OnDestroy {
     private recordsService: RecordsService,
     private achievementsService: AchievementsService,
     private titleService: Title,
+    private strippenkaart: StrippenkaartService,
+    private stats: GameStatisticsService,
   ) {}
 
   ngOnInit(): void {
@@ -73,10 +83,24 @@ export class SpelerProfielComponent implements OnInit, OnDestroy {
         );
       }),
     );
+
+    this.stripSub = this.route.paramMap.subscribe(params => {
+      const playerId = Number(params.get('id'));
+      if (!Number.isFinite(playerId)) return;
+
+      this.stats.getCurrentSeason().subscribe(season => {
+        this.lidSeizoen = season;
+        if (season) {
+          this.strippenkaart.isSubscribed(playerId, season).subscribe(s => (this.heeftAbonnement = s));
+        }
+      });
+      this.strippenkaart.getBalance(playerId).subscribe(b => (this.stripBalance = b));
+    });
   }
 
   ngOnDestroy(): void {
     this.titleService.setTitle('Zaalvoetbal Doorn');
+    this.stripSub?.unsubscribe();
   }
 
   onRangeChange(range: '12m' | 'all'): void {
