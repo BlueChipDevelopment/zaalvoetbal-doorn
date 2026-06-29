@@ -5,7 +5,6 @@ import { MatTableDataSource } from '@angular/material/table';
 import { PlayerService } from '../../../services/player.service';
 import { PlayerSheetData } from '../../../interfaces/IPlayerSheet';
 import { SpelerDialogComponent } from './speler-dialog/speler-dialog.component';
-import { LidmaatschapDialogComponent } from './lidmaatschap-dialog/lidmaatschap-dialog.component';
 import { ConfirmDialogComponent } from '../../confirm-dialog/confirm-dialog.component';
 import { SnackbarService } from '../../../services/snackbar.service';
 import { AuthService } from '../../../services/auth.service';
@@ -146,14 +145,6 @@ export class AdminSpelersComponent implements OnInit {
         this.strippenkaart.getBalance(p.id).subscribe(b => (this.balances[p.id!] = b));
       }
     });
-  }
-
-  openLidmaatschap(player: PlayerSheetData): void {
-    const ref = this.dialog.open(LidmaatschapDialogComponent, {
-      width: '520px',
-      data: { player: { ...player } },
-    });
-    ref.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.loadPlayers());
   }
 
   getActiefText(actief: boolean): string {

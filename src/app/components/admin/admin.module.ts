@@ -26,8 +26,6 @@ import { SpelerDialogComponent } from './admin-spelers/speler-dialog/speler-dial
 import { WedstrijdDialogComponent } from './admin-wedstrijden/wedstrijd-dialog/wedstrijd-dialog.component';
 import { AdminNotificatiesComponent } from './admin-notificaties/admin-notificaties.component';
 import { TestBroadcastDialogComponent } from './admin-notificaties/test-broadcast-dialog.component';
-import { LidmaatschapDialogComponent } from './admin-spelers/lidmaatschap-dialog/lidmaatschap-dialog.component';
-
 @NgModule({
   declarations: [
     AdminComponent,
@@ -37,7 +35,6 @@ import { LidmaatschapDialogComponent } from './admin-spelers/lidmaatschap-dialog
     WedstrijdDialogComponent,
     AdminNotificatiesComponent,
     TestBroadcastDialogComponent,
-    LidmaatschapDialogComponent
   ],
   imports: [
     CommonModule,

@@ -1,48 +1,94 @@
 <h2 mat-dialog-title>{{ getDialogTitle() }}</h2>
 
 <mat-dialog-content>
-  <form [formGroup]="spelerForm">
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Spelernaam</mat-label>
-      <input matInput formControlName="name" required>
-      <mat-error *ngIf="spelerForm.get('name')?.hasError('required')">
-        Spelernaam is verplicht
-      </mat-error>
-    </mat-form-field>
+  <mat-tab-group>
+    <mat-tab label="Gegevens">
+      <form [formGroup]="spelerForm" class="tab-content">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Spelernaam</mat-label>
+          <input matInput formControlName="name" required>
+          <mat-error *ngIf="spelerForm.get('name')?.hasError('required')">
+            Spelernaam is verplicht
+          </mat-error>
+        </mat-form-field>
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Positie</mat-label>
-      <mat-select formControlName="position" required>
-        <mat-option *ngFor="let position of positions" [value]="position">
-          {{ position }}
-        </mat-option>
-      </mat-select>
-      <mat-error *ngIf="spelerForm.get('position')?.hasError('required')">
-        Positie is verplicht
-      </mat-error>
-    </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Positie</mat-label>
+          <mat-select formControlName="position" required>
+            <mat-option *ngFor="let position of positions" [value]="position">
+              {{ position }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="spelerForm.get('position')?.hasError('required')">
+            Positie is verplicht
+          </mat-error>
+        </mat-form-field>
 
-    <div class="toggle-field">
-      <label>Actief</label>
-      <mat-slide-toggle formControlName="actief"></mat-slide-toggle>
-    </div>
+        <div class="toggle-field">
+          <label>Actief</label>
+          <mat-slide-toggle formControlName="actief"></mat-slide-toggle>
+        </div>
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>E-mail (voor inloggen)</mat-label>
-      <input matInput type="email" formControlName="email" placeholder="naam@gmail.com">
-      <mat-error *ngIf="spelerForm.get('email')?.hasError('email')">
-        Ongeldig e-mailadres
-      </mat-error>
-    </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>E-mail (voor inloggen)</mat-label>
+          <input matInput type="email" formControlName="email" placeholder="naam@gmail.com">
+          <mat-error *ngIf="spelerForm.get('email')?.hasError('email')">
+            Ongeldig e-mailadres
+          </mat-error>
+        </mat-form-field>
 
-    <div class="toggle-field">
-      <label>Beheerder</label>
-      <mat-slide-toggle formControlName="isAdmin"></mat-slide-toggle>
-    </div>
-    <p class="hint" *ngIf="isVasteBeheerder">
-      Vaste beheerder — deze rol kan niet worden uitgezet.
-    </p>
-  </form>
+        <div class="toggle-field">
+          <label>Beheerder</label>
+          <mat-slide-toggle formControlName="isAdmin"></mat-slide-toggle>
+        </div>
+        <p class="hint" *ngIf="isVasteBeheerder">
+          Vaste beheerder — deze rol kan niet worden uitgezet.
+        </p>
+      </form>
+    </mat-tab>
+
+    <mat-tab label="Lidmaatschap" *ngIf="isEditMode">
+      <div class="tab-content">
+        <div class="toggle-field">
+          <label>Op de strippenkaart</label>
+          <mat-slide-toggle [checked]="usesStrippenkaart" (change)="toggleStrippenkaart()"></mat-slide-toggle>
+        </div>
+
+        <div class="toggle-field">
+          <label>Abonnement dit seizoen{{ season ? ' (' + season + ')' : '' }}</label>
+          <mat-slide-toggle [checked]="hasSubscription" [disabled]="!season" (change)="toggleSubscription()"></mat-slide-toggle>
+        </div>
+        <p class="hint" *ngIf="!season">Nog geen seizoen bekend (geen wedstrijden) — abonnement is nu niet instelbaar.</p>
+
+        <div class="saldo-bewerk">
+          <mat-form-field appearance="outline">
+            <mat-label>Strippen-saldo</mat-label>
+            <input matInput type="number" [(ngModel)]="newTotal" [ngModelOptions]="{standalone: true}">
+          </mat-form-field>
+          <button mat-stroked-button (click)="applyTotal()" [disabled]="newTotal === null || newTotal === balance">
+            Saldo bijwerken
+          </button>
+          <span class="op" *ngIf="balance <= 0">strippen op</span>
+        </div>
+
+        <div class="acties">
+          <button mat-stroked-button (click)="addStrips(5)">+5 strippen</button>
+          <button mat-stroked-button (click)="addStrips(10)">+10 strippen</button>
+        </div>
+
+        <h3>Recente mutaties</h3>
+        <div *ngIf="!ledgerLoading">
+          <p *ngIf="ledger.length === 0">Nog geen mutaties.</p>
+          <ul class="ledger">
+            <li *ngFor="let t of ledger">
+              {{ t.amount > 0 ? '+' : '' }}{{ t.amount }} — {{ t.reason }}
+              <span class="datum" *ngIf="t.createdAt">({{ t.createdAt | date:'dd-MM-yyyy' }})</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
