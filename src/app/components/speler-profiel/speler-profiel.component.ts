@@ -88,6 +88,9 @@ export class SpelerProfielComponent implements OnInit, OnDestroy {
       const playerId = Number(params.get('id'));
       if (!Number.isFinite(playerId)) return;
 
+      this.heeftAbonnement = false;
+      this.stripBalance = null;
+
       this.stats.getCurrentSeason().subscribe(season => {
         this.lidSeizoen = season;
         if (season) {
