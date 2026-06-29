@@ -58,6 +58,10 @@ export class StrippenkaartService {
     );
   }
 
+  getSubscriptions(season: string): Observable<number[]> {
+    return this.dataSource.getSubscriptions(season);
+  }
+
   isSubscribed(playerId: number, season: string): Observable<boolean> {
     return this.dataSource.getSubscriptions(season).pipe(
       map(ids => ids.includes(playerId)),

@@ -33,8 +33,9 @@
       <ng-container matColumnDef="lidmaatschap">
         <th mat-header-cell *matHeaderCellDef>Lidmaatschap</th>
         <td mat-cell *matCellDef="let player">
+          <span class="badge-abo" *ngIf="player.id != null && subscribedPlayerIds.has(player.id)">Abo</span>
           <span *ngIf="player.usesStrippenkaart">Strippen: {{ balances[player.id] ?? '…' }}</span>
-          <span *ngIf="!player.usesStrippenkaart">—</span>
+          <span *ngIf="!player.usesStrippenkaart && !(player.id != null && subscribedPlayerIds.has(player.id))">—</span>
         </td>
       </ng-container>
 

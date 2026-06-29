@@ -9,6 +9,7 @@ import { ConfirmDialogComponent } from '../../confirm-dialog/confirm-dialog.comp
 import { SnackbarService } from '../../../services/snackbar.service';
 import { AuthService } from '../../../services/auth.service';
 import { StrippenkaartService } from '../../../services/strippenkaart.service';
+import { GameStatisticsService } from '../../../services/game.statistics.service';
 
 @Component({
   selector: 'app-admin-spelers',
@@ -20,6 +21,7 @@ export class AdminSpelersComponent implements OnInit {
   dataSource = new MatTableDataSource<PlayerSheetData>();
   loading = true;
   balances: Record<number, number> = {};
+  subscribedPlayerIds = new Set<number>();
   private currentUserEmail: string | null = null;
 
   private destroyRef = inject(DestroyRef);
@@ -29,7 +31,8 @@ export class AdminSpelersComponent implements OnInit {
     private dialog: MatDialog,
     private snackbar: SnackbarService,
     private authService: AuthService,
-    private strippenkaart: StrippenkaartService
+    private strippenkaart: StrippenkaartService,
+    private stats: GameStatisticsService
   ) {}
 
   ngOnInit(): void {
@@ -49,6 +52,7 @@ export class AdminSpelersComponent implements OnInit {
       next: (players) => {
         this.dataSource.data = players;
         this.loadBalances(players);
+        this.loadSubscriptions();
         this.loading = false;
       },
       error: (error) => {
@@ -135,6 +139,15 @@ export class AdminSpelersComponent implements OnInit {
         console.error('Error updating player:', error);
         this.snackbar.error('Fout bij wijzigen speler: ' + error.message);
       }
+    });
+  }
+
+  private loadSubscriptions(): void {
+    this.stats.getCurrentSeason().subscribe(season => {
+      if (!season) { this.subscribedPlayerIds = new Set(); return; }
+      this.strippenkaart.getSubscriptions(season).subscribe(ids => {
+        this.subscribedPlayerIds = new Set(ids);
+      });
     });
   }
 
