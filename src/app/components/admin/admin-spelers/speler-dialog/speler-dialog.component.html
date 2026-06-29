@@ -26,6 +26,22 @@
       <label>Actief</label>
       <mat-slide-toggle formControlName="actief"></mat-slide-toggle>
     </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>E-mail (voor inloggen)</mat-label>
+      <input matInput type="email" formControlName="email" placeholder="naam@gmail.com">
+      <mat-error *ngIf="spelerForm.get('email')?.hasError('email')">
+        Ongeldig e-mailadres
+      </mat-error>
+    </mat-form-field>
+
+    <div class="toggle-field">
+      <label>Beheerder</label>
+      <mat-slide-toggle formControlName="isAdmin"></mat-slide-toggle>
+    </div>
+    <p class="hint" *ngIf="isVasteBeheerder">
+      Vaste beheerder — deze rol kan niet worden uitgezet.
+    </p>
   </form>
 </mat-dialog-content>
 
