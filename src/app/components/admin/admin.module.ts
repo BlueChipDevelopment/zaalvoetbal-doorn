@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,6 +26,7 @@ import { SpelerDialogComponent } from './admin-spelers/speler-dialog/speler-dial
 import { WedstrijdDialogComponent } from './admin-wedstrijden/wedstrijd-dialog/wedstrijd-dialog.component';
 import { AdminNotificatiesComponent } from './admin-notificaties/admin-notificaties.component';
 import { TestBroadcastDialogComponent } from './admin-notificaties/test-broadcast-dialog.component';
+import { LidmaatschapDialogComponent } from './admin-spelers/lidmaatschap-dialog/lidmaatschap-dialog.component';
 
 @NgModule({
   declarations: [
@@ -35,10 +36,12 @@ import { TestBroadcastDialogComponent } from './admin-notificaties/test-broadcas
     SpelerDialogComponent,
     WedstrijdDialogComponent,
     AdminNotificatiesComponent,
-    TestBroadcastDialogComponent
+    TestBroadcastDialogComponent,
+    LidmaatschapDialogComponent
   ],
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     AdminRoutingModule,
     MatTabsModule,

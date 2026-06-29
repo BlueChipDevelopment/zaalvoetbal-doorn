@@ -5,9 +5,11 @@ import { MatTableDataSource } from '@angular/material/table';
 import { PlayerService } from '../../../services/player.service';
 import { PlayerSheetData } from '../../../interfaces/IPlayerSheet';
 import { SpelerDialogComponent } from './speler-dialog/speler-dialog.component';
+import { LidmaatschapDialogComponent } from './lidmaatschap-dialog/lidmaatschap-dialog.component';
 import { ConfirmDialogComponent } from '../../confirm-dialog/confirm-dialog.component';
 import { SnackbarService } from '../../../services/snackbar.service';
 import { AuthService } from '../../../services/auth.service';
+import { StrippenkaartService } from '../../../services/strippenkaart.service';
 
 @Component({
   selector: 'app-admin-spelers',
@@ -15,9 +17,10 @@ import { AuthService } from '../../../services/auth.service';
   styleUrls: ['./admin-spelers.component.scss']
 })
 export class AdminSpelersComponent implements OnInit {
-  displayedColumns: string[] = ['name', 'position', 'actief', 'isAdmin', 'actions'];
+  displayedColumns: string[] = ['name', 'position', 'actief', 'isAdmin', 'lidmaatschap', 'actions'];
   dataSource = new MatTableDataSource<PlayerSheetData>();
   loading = true;
+  balances: Record<number, number> = {};
   private currentUserEmail: string | null = null;
 
   private destroyRef = inject(DestroyRef);
@@ -26,7 +29,8 @@ export class AdminSpelersComponent implements OnInit {
     private playerService: PlayerService,
     private dialog: MatDialog,
     private snackbar: SnackbarService,
-    private authService: AuthService
+    private authService: AuthService,
+    private strippenkaart: StrippenkaartService
   ) {}
 
   ngOnInit(): void {
@@ -45,6 +49,7 @@ export class AdminSpelersComponent implements OnInit {
       .subscribe({
       next: (players) => {
         this.dataSource.data = players;
+        this.loadBalances(players);
         this.loading = false;
       },
       error: (error) => {
@@ -132,6 +137,23 @@ export class AdminSpelersComponent implements OnInit {
         this.snackbar.error('Fout bij wijzigen speler: ' + error.message);
       }
     });
+  }
+
+  private loadBalances(players: PlayerSheetData[]): void {
+    this.strippenkaart.refresh();
+    players.forEach(p => {
+      if (p.id != null) {
+        this.strippenkaart.getBalance(p.id).subscribe(b => (this.balances[p.id!] = b));
+      }
+    });
+  }
+
+  openLidmaatschap(player: PlayerSheetData): void {
+    const ref = this.dialog.open(LidmaatschapDialogComponent, {
+      width: '520px',
+      data: { player: { ...player } },
+    });
+    ref.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.loadPlayers());
   }
 
   getActiefText(actief: boolean): string {
