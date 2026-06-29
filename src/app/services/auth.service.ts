@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Auth, signInWithPopup, GoogleAuthProvider, signOut, authState, User } from '@angular/fire/auth';
 import { Observable, of, firstValueFrom, defer } from 'rxjs';
-import { map, switchMap, catchError } from 'rxjs/operators';
+import { map, switchMap, catchError, shareReplay } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { PlayerDataSource } from './data-sources/player-data-source';
 
@@ -26,7 +26,8 @@ export class AuthService {
     );
 
     this.isAuthorizedAdmin$ = defer(() => authState(this.auth)).pipe(
-      switchMap(user => this.resolveIsAdmin(user?.email))
+      switchMap(user => this.resolveIsAdmin(user?.email)),
+      shareReplay({ bufferSize: 1, refCount: true })
     );
   }
 

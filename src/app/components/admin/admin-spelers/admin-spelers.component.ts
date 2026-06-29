@@ -92,13 +92,15 @@ export class AdminSpelersComponent implements OnInit {
       }
       const isSelf = !!player.email && player.email.toLowerCase() === this.currentUserEmail;
       const losesOwnAdmin = isSelf && player.isAdmin === true && result.player.isAdmin === false;
+      const changesOwnEmail = isSelf && (result.player.email || '').toLowerCase() !== (player.email || '').toLowerCase();
+      const selfLockoutRisk = losesOwnAdmin || changesOwnEmail;
 
-      if (losesOwnAdmin) {
+      if (selfLockoutRisk) {
         const confirmRef = this.dialog.open(ConfirmDialogComponent, {
           width: '420px',
           data: {
-            title: 'Eigen beheerrechten verwijderen',
-            message: 'Je verwijdert je eigen beheerrechten. Doorgaan?',
+            title: 'Eigen toegang wijzigen',
+            message: 'Je wijzigt je eigen beheerrechten of inlog-e-mailadres. Hierdoor kun je jezelf buitensluiten. Doorgaan?',
             confirmLabel: 'Doorgaan',
             destructive: true
           }
