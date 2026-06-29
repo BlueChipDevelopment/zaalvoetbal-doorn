@@ -35,10 +35,12 @@ import { PlayerDataSource } from './services/data-sources/player-data-source';
 import { MatchDataSource } from './services/data-sources/match-data-source';
 import { AttendanceDataSource } from './services/data-sources/attendance-data-source';
 import { NotificationDataSource } from './services/data-sources/notification-data-source';
+import { StrippenkaartDataSource } from './services/data-sources/strippenkaart-data-source';
 import { SupabasePlayerDataSource } from './services/data-sources/player-data-source.supabase';
 import { SupabaseMatchDataSource } from './services/data-sources/match-data-source.supabase';
 import { SupabaseAttendanceDataSource } from './services/data-sources/attendance-data-source.supabase';
 import { SupabaseNotificationDataSource } from './services/data-sources/notification-data-source.supabase';
+import { SupabaseStrippenkaartDataSource } from './services/data-sources/strippenkaart-data-source.supabase';
 import { PlayerNamePipe } from './pipes/player-name.pipe';
 
 registerLocaleData(localeNl);
@@ -95,6 +97,7 @@ import { LoginComponent } from './components/login/login.component';
     { provide: MatchDataSource, useClass: SupabaseMatchDataSource },
     { provide: AttendanceDataSource, useClass: SupabaseAttendanceDataSource },
     { provide: NotificationDataSource, useClass: SupabaseNotificationDataSource },
+    { provide: StrippenkaartDataSource, useClass: SupabaseStrippenkaartDataSource },
     { provide: TitleStrategy, useClass: PageTitleStrategy },
   ]
 })
