@@ -24,6 +24,9 @@ speler als beheerder, beheerd op één plek.
    Supabase staat — server-side koppeling valt buiten scope).
 4. **Bootstrap:** seed via migratie **én** behoud `environment.adminEmails` als
    break-glass fallback.
+5. **Minimaal één admin:** er moet altijd minstens één beheerder zijn. Chris
+   (`cs.de.kok@gmail.com`) is de vaste, niet-verwijderbare beheerder; dit wordt
+   gegarandeerd doordat hij permanent in `environment.adminEmails` staat.
 
 ## Architectuur
 
@@ -64,8 +67,10 @@ isAdmin(email) = (er bestaat een player met lower(email) = login-email AND is_ad
 - **`AdminGuard`** blijft ongewijzigd in vorm (leunt op `isAuthenticated$` en
   `isAuthorizedAdmin$`), maar profiteert automatisch van de nieuwe bron.
 
-`environment.adminEmails` blijft bestaan, maar fungeert alleen nog als
-break-glass vangnet. Documenteren dat het normaal leeg/minimaal kan blijven.
+`environment.adminEmails` blijft bestaan als break-glass vangnet. Chris
+(`cs.de.kok@gmail.com`) blijft hier **permanent** in staan, zodat er altijd
+minstens één beheerder is — ook als de DB-data ooit misgaat of leeg raakt. De
+overige admins worden normaal via de DB beheerd.
 
 ### Beheer-UI (bestaande Spelerbeheer-tab)
 
@@ -79,9 +84,15 @@ break-glass vangnet. Documenteren dat het normaal leeg/minimaal kan blijven.
   - Beheerder (`mat-slide-toggle`, label "Beheerder").
 - **`admin-spelers`** tabel: kolom/badge "Beheerder" (bv. een chip of icoon bij
   `isAdmin === true`).
-- **Safeguard:** zet de gebruiker zijn/haar eigen Beheerder-toggle uit, dan een
-  bevestigingsdialoog ("Je verwijdert je eigen beheerrechten — doorgaan?"). Geen
-  harde blokkade nodig: de env-fallback voorkomt volledige lock-out.
+- **Safeguards:**
+  - **Vaste beheerder:** spelers met een e-mail die in `environment.adminEmails`
+    staat (in de praktijk Chris) krijgen een uitgeschakelde Beheerder-toggle met
+    tooltip/badge "Vaste beheerder". Hun rechten kunnen niet via de UI worden
+    afgenomen; de env-fallback garandeert dat ze admin blijven, ongeacht de
+    `is_admin`-waarde in de DB.
+  - **Eigen rechten:** zet een (niet-vaste) admin de eigen Beheerder-toggle uit,
+    dan een bevestigingsdialoog ("Je verwijdert je eigen beheerrechten —
+    doorgaan?").
 
 ## Componenten & verantwoordelijkheden
 
@@ -95,7 +106,7 @@ break-glass vangnet. Documenteren dat het normaal leeg/minimaal kan blijven.
 | `AuthService`                 | `isAuthorizedAdmin$` + `isAdminEmail()` → DB OR env.            |
 | `LoginComponent`              | Gebruikt gecombineerde check.                                   |
 | `SpelerDialogComponent`       | E-mail-veld + Beheerder-toggle.                                 |
-| `AdminSpelersComponent`       | Beheerder-kolom + self-demotion-bevestiging.                   |
+| `AdminSpelersComponent`       | Beheerder-kolom, "vaste beheerder" (env) beschermen, self-demotion-bevestiging. |
 
 ## Datastroom
 
@@ -129,7 +140,22 @@ break-glass vangnet. Documenteren dat het normaal leeg/minimaal kan blijven.
 - Uniciteits-constraint op e-mail in de DB.
 - Uitnodigingsflow / e-mailverificatie.
 
-## Open punt voor implementatie
+## Seed-detail
 
-- Exacte spelernamen van Chris/Hans/Ward in de live `players`-tabel verifiëren
-  vóór de seed (match op naam), of seed direct op `email` indien al bekend.
+De speler-records heten exact `Chris`, `Hans` en `Ward`. De seed matcht op die
+namen:
+
+| Speler | Login-e-mail              |
+|--------|---------------------------|
+| Chris  | `cs.de.kok@gmail.com`     |
+| Hans   | `davids.hans@gmail.com`   |
+| Ward   | `wardnoorland@gmail.com`  |
+
+Bij implementatie wordt dit nog even geverifieerd tegen de live `players`-tabel
+(via Supabase MCP) voordat de seed draait.
+
+## Toekomstige uitbreiding (out-of-scope)
+
+Een volgende iteratie breidt de ledenadministratie uit met abonnementen /
+strippenkaart. Valt buiten deze spec, maar het datamodel op `players` is daar
+niet mee in conflict.
