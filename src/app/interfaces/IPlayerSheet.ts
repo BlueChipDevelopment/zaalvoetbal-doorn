@@ -13,6 +13,10 @@ export interface PlayerSheetData {
   position: string;
   /** Kolom C (2): Actief status ("Ja"/"Nee") */
   actief: boolean;
+  /** Google-loginadres van de speler (lowercase). Alleen gevuld voor wie kan inloggen. */
+  email?: string;
+  /** Beheerrechten-vlag. Afwezig = geen admin. */
+  isAdmin?: boolean;
 }
 
 /**
