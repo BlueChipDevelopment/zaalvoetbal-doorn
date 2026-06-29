@@ -43,8 +43,7 @@
 
       <mat-divider></mat-divider>
       <h3 matSubheader>App</h3>
-      <a mat-list-item routerLink="/beheer" routerLinkActive="active-link" (click)="sidenav.close()"
-         *ngIf="(authService.isAuthorizedAdmin$ | async)">
+      <a mat-list-item routerLink="/beheer" routerLinkActive="active-link" (click)="sidenav.close()">
         <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
         <span matListItemTitle>Beheer</span>
       </a>
@@ -108,7 +107,7 @@
         </div>
         <span class="nav-separator" aria-hidden="true"></span>
         <div class="nav-group">
-          <button mat-button routerLink="/beheer" routerLinkActive="active-link" *ngIf="(authService.isAuthorizedAdmin$ | async)">Beheer</button>
+          <button mat-button routerLink="/beheer" routerLinkActive="active-link">Beheer</button>
           <button mat-button routerLink="/about" routerLinkActive="active-link">Over</button>
           <button mat-button (click)="logout()" *ngIf="(authService.isAuthorizedAdmin$ | async)">
             <mat-icon>logout</mat-icon>
