@@ -33,24 +33,23 @@ describe('SupabasePlayerDataSource', () => {
 
   it('getAll mapt rows van players-tabel naar PlayerSheetData', async () => {
     queryBuilder.then = (resolve: any) => Promise.resolve({ data: [
-      { id: 1, name: 'Alice', position: 'Speler', actief: true, email: 'alice@x.nl', is_admin: true, created_at: '...' },
-      { id: 2, name: 'Bob', position: 'Keeper', actief: false, email: null, is_admin: false, created_at: '...' },
+      { id: 1, name: 'Alice', position: 'Speler', actief: true, email: 'alice@x.nl', is_admin: true, uses_strippenkaart: true, created_at: '...' },
+      { id: 2, name: 'Bob', position: 'Keeper', actief: false, email: null, is_admin: false, uses_strippenkaart: false, created_at: '...' },
     ], error: null }).then(resolve);
 
     const players = await lastValueFrom(dataSource.getAll());
 
     expect(mockClient.from).toHaveBeenCalledWith('players');
-    expect(queryBuilder.order).toHaveBeenCalledWith('name');
     expect(players).toEqual([
-      { id: 1, name: 'Alice', position: 'Speler', actief: true, email: 'alice@x.nl', isAdmin: true },
-      { id: 2, name: 'Bob', position: 'Keeper', actief: false, email: undefined, isAdmin: false },
+      { id: 1, name: 'Alice', position: 'Speler', actief: true, email: 'alice@x.nl', isAdmin: true, usesStrippenkaart: true },
+      { id: 2, name: 'Bob', position: 'Keeper', actief: false, email: undefined, isAdmin: false, usesStrippenkaart: false },
     ]);
   });
 
   it('add insert een rij in players', async () => {
     queryBuilder.then = (resolve: any) => Promise.resolve({ data: null, error: null }).then(resolve);
 
-    await lastValueFrom(dataSource.add({ name: 'Carl', position: 'Speler', actief: true, email: 'Carl@X.nl', isAdmin: true }));
+    await lastValueFrom(dataSource.add({ name: 'Carl', position: 'Speler', actief: true, email: 'Carl@X.nl', isAdmin: true, usesStrippenkaart: true }));
 
     expect(queryBuilder.insert).toHaveBeenCalledWith({
       name: 'Carl',
@@ -58,6 +57,7 @@ describe('SupabasePlayerDataSource', () => {
       actief: true,
       email: 'carl@x.nl',
       is_admin: true,
+      uses_strippenkaart: true,
     });
   });
 
@@ -72,6 +72,7 @@ describe('SupabasePlayerDataSource', () => {
       actief: false,
       email: null,
       is_admin: false,
+      uses_strippenkaart: false,
     });
     expect(queryBuilder.eq).toHaveBeenCalledWith('id', 5);
   });

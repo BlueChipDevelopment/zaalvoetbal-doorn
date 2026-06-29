@@ -20,7 +20,7 @@ export class SupabasePlayerDataSource extends PlayerDataSource {
     return from(
       this.supabase.client
         .from('players')
-        .select('id, name, position, actief, email, is_admin')
+        .select('id, name, position, actief, email, is_admin, uses_strippenkaart')
         .order('name'),
     ).pipe(
       map(({ data, error }) => {
@@ -32,6 +32,7 @@ export class SupabasePlayerDataSource extends PlayerDataSource {
           actief: row.actief,
           email: row.email ?? undefined,
           isAdmin: row.is_admin ?? false,
+          usesStrippenkaart: row.uses_strippenkaart ?? false,
         }));
       }),
     );
@@ -45,6 +46,7 @@ export class SupabasePlayerDataSource extends PlayerDataSource {
         actief: player.actief,
         email: this.normalizeEmail(player.email),
         is_admin: player.isAdmin ?? false,
+        uses_strippenkaart: player.usesStrippenkaart ?? false,
       }),
     ).pipe(
       map(({ error }) => {
@@ -63,6 +65,7 @@ export class SupabasePlayerDataSource extends PlayerDataSource {
           actief: player.actief,
           email: this.normalizeEmail(player.email),
           is_admin: player.isAdmin ?? false,
+          uses_strippenkaart: player.usesStrippenkaart ?? false,
         }).eq('id', id),
       ).pipe(
         map(({ error }) => {

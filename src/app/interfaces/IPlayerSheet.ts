@@ -17,6 +17,8 @@ export interface PlayerSheetData {
   email?: string;
   /** Beheerrechten-vlag. Afwezig = geen admin. */
   isAdmin?: boolean;
+  /** Staat deze speler op de strippenkaart? Afwezig = nee. */
+  usesStrippenkaart?: boolean;
 }
 
 /**
