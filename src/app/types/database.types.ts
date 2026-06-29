@@ -195,7 +195,9 @@ export type Database = {
         Row: {
           actief: boolean
           created_at: string
+          email: string | null
           id: number
+          is_admin: boolean
           name: string
           photo_url: string | null
           position: string
@@ -203,7 +205,9 @@ export type Database = {
         Insert: {
           actief?: boolean
           created_at?: string
+          email?: string | null
           id?: number
+          is_admin?: boolean
           name: string
           photo_url?: string | null
           position: string
@@ -211,7 +215,9 @@ export type Database = {
         Update: {
           actief?: boolean
           created_at?: string
+          email?: string | null
           id?: number
+          is_admin?: boolean
           name?: string
           photo_url?: string | null
           position?: string
