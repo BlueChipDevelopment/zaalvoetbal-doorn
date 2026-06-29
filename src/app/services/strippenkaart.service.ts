@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, BehaviorSubject, of } from 'rxjs';
-import { map, tap, shareReplay } from 'rxjs/operators';
+import { map, tap, shareReplay, finalize } from 'rxjs/operators';
 import { StrippenkaartDataSource } from './data-sources/strippenkaart-data-source';
 import { StripTransaction } from '../interfaces/IStrippenkaart';
 
@@ -9,6 +9,7 @@ export class StrippenkaartService {
   private txCache$ = new BehaviorSubject<StripTransaction[] | null>(null);
   private timestamp = 0;
   private readonly CACHE_MS = 5 * 60 * 1000;
+  private inflight$?: Observable<StripTransaction[]>;
 
   constructor(private dataSource: StrippenkaartDataSource) {}
 
@@ -18,10 +19,14 @@ export class StrippenkaartService {
     if (cached && (now - this.timestamp) < this.CACHE_MS) {
       return of(cached);
     }
-    return this.dataSource.getAllTransactions().pipe(
-      tap(txs => { this.txCache$.next(txs); this.timestamp = now; }),
-      shareReplay(1),
-    );
+    if (!this.inflight$) {
+      this.inflight$ = this.dataSource.getAllTransactions().pipe(
+        tap(txs => { this.txCache$.next(txs); this.timestamp = Date.now(); }),
+        finalize(() => { this.inflight$ = undefined; }),
+        shareReplay(1),
+      );
+    }
+    return this.inflight$;
   }
 
   refresh(): void {

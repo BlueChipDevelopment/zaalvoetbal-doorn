@@ -130,11 +130,11 @@ export class WedstrijdenService {
     zlatanPlayerId: number | null,
   ): Observable<void> {
     return this.dataSource.updateScore(matchId, scoreWhite, scoreRed, zlatanPlayerId).pipe(
-      switchMap(() => this.strippenkaart.applyMatchDeductions(matchId)),
       tap(() => {
         this.wedstrijdenCache$.next(null);
         this.cacheTimestamp = 0;
       }),
+      switchMap(() => this.strippenkaart.applyMatchDeductions(matchId)),
       catchError(error => {
         console.error('Error updating score:', error);
         throw error;
