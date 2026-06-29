@@ -11,11 +11,16 @@ export class SupabasePlayerDataSource extends PlayerDataSource {
     super();
   }
 
+  private normalizeEmail(email?: string): string | null {
+    const trimmed = email?.trim().toLowerCase();
+    return trimmed ? trimmed : null;
+  }
+
   getAll(): Observable<PlayerSheetData[]> {
     return from(
       this.supabase.client
         .from('players')
-        .select('id, name, position, actief')
+        .select('id, name, position, actief, email, is_admin')
         .order('name'),
     ).pipe(
       map(({ data, error }) => {
@@ -25,6 +30,8 @@ export class SupabasePlayerDataSource extends PlayerDataSource {
           name: row.name,
           position: row.position,
           actief: row.actief,
+          email: row.email ?? undefined,
+          isAdmin: row.is_admin ?? false,
         }));
       }),
     );
@@ -36,6 +43,8 @@ export class SupabasePlayerDataSource extends PlayerDataSource {
         name: player.name,
         position: player.position,
         actief: player.actief,
+        email: this.normalizeEmail(player.email),
+        is_admin: player.isAdmin ?? false,
       }),
     ).pipe(
       map(({ error }) => {
@@ -52,6 +61,8 @@ export class SupabasePlayerDataSource extends PlayerDataSource {
           name: player.name,
           position: player.position,
           actief: player.actief,
+          email: this.normalizeEmail(player.email),
+          is_admin: player.isAdmin ?? false,
         }).eq('id', id),
       ).pipe(
         map(({ error }) => {
@@ -64,7 +75,6 @@ export class SupabasePlayerDataSource extends PlayerDataSource {
       return updateById(nameOrId);
     }
 
-    // Lookup by name first
     return from(
       this.supabase.client.from('players').select('id').eq('name', nameOrId).limit(1),
     ).pipe(
@@ -75,6 +85,23 @@ export class SupabasePlayerDataSource extends PlayerDataSource {
           return throwError(() => new Error(`Player not found: ${nameOrId}`));
         }
         return updateById(row.id);
+      }),
+    );
+  }
+
+  isAdminEmail(email: string): Observable<boolean> {
+    const normalized = email.trim().toLowerCase();
+    return from(
+      this.supabase.client
+        .from('players')
+        .select('id')
+        .eq('email', normalized)
+        .eq('is_admin', true)
+        .limit(1),
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return (data?.length ?? 0) > 0;
       }),
     );
   }

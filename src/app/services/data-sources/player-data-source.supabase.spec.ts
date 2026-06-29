@@ -33,8 +33,8 @@ describe('SupabasePlayerDataSource', () => {
 
   it('getAll mapt rows van players-tabel naar PlayerSheetData', async () => {
     queryBuilder.then = (resolve: any) => Promise.resolve({ data: [
-      { id: 1, name: 'Alice', position: 'Speler', actief: true, created_at: '...' },
-      { id: 2, name: 'Bob', position: 'Keeper', actief: false, created_at: '...' },
+      { id: 1, name: 'Alice', position: 'Speler', actief: true, email: 'alice@x.nl', is_admin: true, created_at: '...' },
+      { id: 2, name: 'Bob', position: 'Keeper', actief: false, email: null, is_admin: false, created_at: '...' },
     ], error: null }).then(resolve);
 
     const players = await lastValueFrom(dataSource.getAll());
@@ -42,20 +42,22 @@ describe('SupabasePlayerDataSource', () => {
     expect(mockClient.from).toHaveBeenCalledWith('players');
     expect(queryBuilder.order).toHaveBeenCalledWith('name');
     expect(players).toEqual([
-      { id: 1, name: 'Alice', position: 'Speler', actief: true },
-      { id: 2, name: 'Bob', position: 'Keeper', actief: false },
+      { id: 1, name: 'Alice', position: 'Speler', actief: true, email: 'alice@x.nl', isAdmin: true },
+      { id: 2, name: 'Bob', position: 'Keeper', actief: false, email: undefined, isAdmin: false },
     ]);
   });
 
   it('add insert een rij in players', async () => {
     queryBuilder.then = (resolve: any) => Promise.resolve({ data: null, error: null }).then(resolve);
 
-    await lastValueFrom(dataSource.add({ name: 'Carl', position: 'Speler', actief: true }));
+    await lastValueFrom(dataSource.add({ name: 'Carl', position: 'Speler', actief: true, email: 'Carl@X.nl', isAdmin: true }));
 
     expect(queryBuilder.insert).toHaveBeenCalledWith({
       name: 'Carl',
       position: 'Speler',
       actief: true,
+      email: 'carl@x.nl',
+      is_admin: true,
     });
   });
 
@@ -68,6 +70,8 @@ describe('SupabasePlayerDataSource', () => {
       name: 'Updated',
       position: 'Keeper',
       actief: false,
+      email: null,
+      is_admin: false,
     });
     expect(queryBuilder.eq).toHaveBeenCalledWith('id', 5);
   });
@@ -93,5 +97,25 @@ describe('SupabasePlayerDataSource', () => {
 
     await expectAsync(lastValueFrom(dataSource.getAll()))
       .toBeRejected();
+  });
+
+  it('isAdminEmail true als er een admin-rij matcht (lowercase)', async () => {
+    queryBuilder.then = (resolve: any) =>
+      Promise.resolve({ data: [{ id: 3 }], error: null }).then(resolve);
+
+    const result = await lastValueFrom(dataSource.isAdminEmail('Chris@Example.COM'));
+
+    expect(result).toBeTrue();
+    expect(queryBuilder.eq).toHaveBeenCalledWith('email', 'chris@example.com');
+    expect(queryBuilder.eq).toHaveBeenCalledWith('is_admin', true);
+  });
+
+  it('isAdminEmail false als er geen rij matcht', async () => {
+    queryBuilder.then = (resolve: any) =>
+      Promise.resolve({ data: [], error: null }).then(resolve);
+
+    const result = await lastValueFrom(dataSource.isAdminEmail('nobody@example.com'));
+
+    expect(result).toBeFalse();
   });
 });
