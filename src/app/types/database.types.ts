@@ -201,6 +201,7 @@ export type Database = {
           name: string
           photo_url: string | null
           position: string
+          uses_strippenkaart: boolean
         }
         Insert: {
           actief?: boolean
@@ -211,6 +212,7 @@ export type Database = {
           name: string
           photo_url?: string | null
           position: string
+          uses_strippenkaart?: boolean
         }
         Update: {
           actief?: boolean
@@ -221,6 +223,7 @@ export type Database = {
           name?: string
           photo_url?: string | null
           position?: string
+          uses_strippenkaart?: boolean
         }
         Relationships: []
       }
@@ -300,6 +303,84 @@ export type Database = {
           type?: string
         }
         Relationships: []
+      }
+      season_subscriptions: {
+        Row: {
+          created_at: string
+          id: number
+          player_id: number
+          season: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          player_id: number
+          season: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          player_id?: number
+          season?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_subscriptions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      strip_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: number
+          match_id: number | null
+          player_id: number
+          reason: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: never
+          match_id?: number | null
+          player_id: number
+          reason: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: never
+          match_id?: number | null
+          player_id?: number
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strip_transactions_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strip_transactions_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "player_match_results"
+            referencedColumns: ["match_id"]
+          },
+          {
+            foreignKeyName: "strip_transactions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
