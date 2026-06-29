@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -33,14 +32,15 @@ export class LoginComponent {
         return;
       }
 
-      if (!environment.adminEmails.includes(user.email)) {
+      const isAdmin = await this.authService.isAdminEmail();
+      if (!isAdmin) {
         await this.authService.signOut();
         this.loading = false;
         this.errorMessage = `Toegang geweigerd. Je email (${user.email}) heeft geen beheer rechten.`;
         return;
       }
 
-      // Success - user is on whitelist
+      // Success - user is admin (env-fallback of DB)
       this.router.navigate(['/beheer']);
     } catch (error: any) {
       console.error('❌ Google Sign-In error:', error);
