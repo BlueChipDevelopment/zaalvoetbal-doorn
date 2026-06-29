@@ -2,11 +2,13 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { WedstrijdenService } from './wedstrijden.service';
 import { MatchDataSource } from './data-sources/match-data-source';
+import { StrippenkaartDataSource } from './data-sources/strippenkaart-data-source';
 import { WedstrijdData } from '../interfaces/IWedstrijd';
 
 describe('WedstrijdenService', () => {
   let service: WedstrijdenService;
   let mockDataSource: jasmine.SpyObj<MatchDataSource>;
+  let strippenkaartDsSpy: jasmine.SpyObj<StrippenkaartDataSource>;
 
   const mockMatches: WedstrijdData[] = [
     {
@@ -44,10 +46,14 @@ describe('WedstrijdenService', () => {
   beforeEach(() => {
     mockDataSource = jasmine.createSpyObj('MatchDataSource',
       ['getAll', 'add', 'update', 'delete', 'updateScore', 'updateTeams']);
+    strippenkaartDsSpy = jasmine.createSpyObj<StrippenkaartDataSource>('StrippenkaartDataSource',
+      ['getAllTransactions', 'addTransaction', 'getSubscriptions', 'setSubscription', 'applyMatchDeductions']);
+    strippenkaartDsSpy.applyMatchDeductions.and.returnValue(of(undefined));
     TestBed.configureTestingModule({
       providers: [
         WedstrijdenService,
         { provide: MatchDataSource, useValue: mockDataSource },
+        { provide: StrippenkaartDataSource, useValue: strippenkaartDsSpy },
       ],
     });
     service = TestBed.inject(WedstrijdenService);
@@ -74,6 +80,15 @@ describe('WedstrijdenService', () => {
     mockDataSource.updateScore.and.returnValue(of(undefined));
     service.updateScore(1, 4, 1, 2).subscribe(() => {
       expect(mockDataSource.updateScore).toHaveBeenCalledWith(1, 4, 1, 2);
+      done();
+    });
+  });
+
+  it('updateScore triggert applyMatchDeductions ná de score-write', (done) => {
+    mockDataSource.updateScore.and.returnValue(of(undefined));
+    service.updateScore(7, 4, 1, 2).subscribe(() => {
+      expect(mockDataSource.updateScore).toHaveBeenCalledWith(7, 4, 1, 2);
+      expect(strippenkaartDsSpy.applyMatchDeductions).toHaveBeenCalledWith(7);
       done();
     });
   });

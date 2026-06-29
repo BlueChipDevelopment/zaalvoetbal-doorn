@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, BehaviorSubject } from 'rxjs';
-import { map, tap, catchError, shareReplay } from 'rxjs/operators';
+import { map, tap, catchError, shareReplay, switchMap } from 'rxjs/operators';
 import { WedstrijdData, WedstrijdFilter, SeizoenData } from '../interfaces/IWedstrijd';
 import { MatchDataSource } from './data-sources/match-data-source';
+import { StrippenkaartDataSource } from './data-sources/strippenkaart-data-source';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +13,10 @@ export class WedstrijdenService {
   private cacheTimestamp = 0;
   private readonly CACHE_DURATION = 3 * 60 * 1000;
 
-  constructor(private dataSource: MatchDataSource) {}
+  constructor(
+    private dataSource: MatchDataSource,
+    private strippenkaart: StrippenkaartDataSource,
+  ) {}
 
   getWedstrijden(filter?: WedstrijdFilter): Observable<WedstrijdData[]> {
     return this.getCachedWedstrijden().pipe(
@@ -126,6 +130,7 @@ export class WedstrijdenService {
     zlatanPlayerId: number | null,
   ): Observable<void> {
     return this.dataSource.updateScore(matchId, scoreWhite, scoreRed, zlatanPlayerId).pipe(
+      switchMap(() => this.strippenkaart.applyMatchDeductions(matchId)),
       tap(() => {
         this.wedstrijdenCache$.next(null);
         this.cacheTimestamp = 0;
