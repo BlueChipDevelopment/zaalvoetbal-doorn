@@ -1,34 +1,49 @@
 import { Injectable, inject } from '@angular/core';
 import { Auth, signInWithPopup, GoogleAuthProvider, signOut, authState, User } from '@angular/fire/auth';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, of, firstValueFrom, defer } from 'rxjs';
+import { map, switchMap, catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { PlayerDataSource } from './data-sources/player-data-source';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private auth: Auth = inject(Auth);
-  
+  private players = inject(PlayerDataSource);
+
+  /** Vaste break-glass admins (lowercase). Bevat altijd minimaal Chris. */
+  private readonly envAdminEmails = environment.adminEmails.map(e => e.toLowerCase());
+
   isAuthenticated$: Observable<boolean>;
   isAuthorizedAdmin$: Observable<boolean>;
 
   constructor() {
-    // Get auth state as observable
-    const authState$ = authState(this.auth);
-
-    this.isAuthenticated$ = authState$.pipe(
+    // defer ensures authState() is only called on subscription, not during construction.
+    // This keeps tests that inject AuthService without a real Firebase app from failing.
+    this.isAuthenticated$ = defer(() => authState(this.auth)).pipe(
       map(user => !!user)
     );
 
-    // Check if user is both authenticated AND on the admin whitelist
-    this.isAuthorizedAdmin$ = authState$.pipe(
-      map(user => {
-        if (!user || !user.email) {
-          return false;
-        }
-        return environment.adminEmails.includes(user.email);
-      })
+    this.isAuthorizedAdmin$ = defer(() => authState(this.auth)).pipe(
+      switchMap(user => this.resolveIsAdmin(user?.email))
+    );
+  }
+
+  /**
+   * Bepaalt of een e-mail admin is: env-fallback OF DB-vlag. Puur en los van
+   * Firebase, zodat het zelfstandig te testen is.
+   */
+  resolveIsAdmin(email: string | null | undefined): Observable<boolean> {
+    const normalized = email?.trim().toLowerCase();
+    if (!normalized) {
+      return of(false);
+    }
+    if (this.envAdminEmails.includes(normalized)) {
+      return of(true);
+    }
+    return this.players.isAdminEmail(normalized).pipe(
+      catchError(() => of(false))
     );
   }
 
@@ -52,12 +67,9 @@ export class AuthService {
     return authState(this.auth);
   }
 
-  // Check if current user email is on admin whitelist
+  /** True als de huidige ingelogde gebruiker admin is (env OF DB). */
   async isAdminEmail(): Promise<boolean> {
     const user = this.auth.currentUser;
-    if (!user || !user.email) {
-      return false;
-    }
-    return environment.adminEmails.includes(user.email);
+    return firstValueFrom(this.resolveIsAdmin(user?.email));
   }
 }
