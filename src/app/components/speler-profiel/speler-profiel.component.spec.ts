@@ -16,6 +16,8 @@ import { PlayerService } from '../../services/player.service';
 import { PlayerProfileService } from '../../services/player-profile.service';
 import { RecordsService } from '../../services/records.service';
 import { AchievementsService } from '../../services/achievements.service';
+import { StrippenkaartDataSource } from '../../services/data-sources/strippenkaart-data-source';
+import { GameStatisticsService } from '../../services/game.statistics.service';
 
 describe('SpelerProfielComponent', () => {
   let fixture: ComponentFixture<SpelerProfielComponent>;
@@ -48,6 +50,17 @@ describe('SpelerProfielComponent', () => {
         },
         { provide: RecordsService, useValue: { getRecordsForPlayer: () => of([]) } },
         { provide: AchievementsService, useValue: { getPlayerAchievements: () => of([]) } },
+        {
+          provide: StrippenkaartDataSource,
+          useValue: {
+            getAllTransactions: () => of([]),
+            addTransaction: () => of(undefined),
+            getSubscriptions: () => of([]),
+            setSubscription: () => of(undefined),
+            applyMatchDeductions: () => of(undefined),
+          },
+        },
+        { provide: GameStatisticsService, useValue: { getCurrentSeason: () => of(null) } },
         Title,
       ],
       schemas: [NO_ERRORS_SCHEMA],
