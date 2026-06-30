@@ -4,72 +4,64 @@
     <mat-icon>error</mat-icon>
     <span>{{ error }}</span>
   </div>
+
   <div *ngIf="teams && !loading">
-  <!-- Team Analysis - clickable quote that shows detailed analysis -->
-  <div class="team-analysis-quote" *ngIf="teams && teams.teamWhite && teams.teamRed">
-    <p class="balance-description clickable" 
-       (click)="showDetailedAnalysis = !showDetailedAnalysis"
-       [title]="'Klik voor uitgebreide analyse'">
-      {{ commentaryTeaser }}
-      <mat-icon class="expand-icon">{{ showDetailedAnalysis ? 'expand_less' : 'expand_more' }}</mat-icon>
-    </p>
-  </div>
+    <!-- Stap 1: Voorbeschouwing -->
+    <div *ngIf="!showOpstelling" class="voorbeschouwing-step">
+      <mat-card class="voorbeschouwing-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>analytics</mat-icon>
+            Voorbeschouwing
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="voorbeschouwing-loading" *ngIf="isLoadingCommentary && !algorithmExplanation">
+            <mat-progress-spinner diameter="28" mode="indeterminate"></mat-progress-spinner>
+            <span>Voorbeschouwing wordt geschreven…</span>
+          </div>
+          <div class="explanation-content" *ngIf="algorithmExplanation" [innerHTML]="algorithmExplanation"></div>
+        </mat-card-content>
+      </mat-card>
 
-  <!-- Detailed team analysis card (shown when clicked) -->
-  <mat-card class="algorithm-explanation-card" *ngIf="showDetailedAnalysis && teams && teams.teamWhite && teams.teamRed">
-    <mat-card-header>
-      <mat-card-title>
-        <mat-icon>analytics</mat-icon>
-        Voorbeschouwing
-        <mat-progress-spinner *ngIf="isLoadingCommentary" diameter="18" mode="indeterminate" class="inline-spinner"></mat-progress-spinner>
-      </mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      <div class="detailed-analysis">
-        <p *ngIf="isLoadingCommentary && !algorithmExplanation" class="loading-text">
-          Voorbeschouwing wordt geschreven...
-        </p>
-        <div class="explanation-content" *ngIf="algorithmExplanation" [innerHTML]="algorithmExplanation"></div>
-      </div>
-    </mat-card-content>
-    <mat-card-actions align="end">
-      <button mat-button color="primary" (click)="showDetailedAnalysis = false">
-        <mat-icon>expand_less</mat-icon>
-        Verberg details
+      <button mat-flat-button color="primary" class="reveal-button"
+              [disabled]="!canRevealOpstelling"
+              (click)="revealOpstelling()">
+        <mat-progress-spinner *ngIf="!canRevealOpstelling" diameter="20" mode="indeterminate"
+                              class="reveal-spinner"></mat-progress-spinner>
+        <span>{{ canRevealOpstelling ? 'Bekijk de opstelling' : 'Voorbeschouwing laden…' }}</span>
+        <mat-icon *ngIf="canRevealOpstelling">arrow_forward</mat-icon>
       </button>
-      <button mat-button color="primary"
-              *ngIf="algorithmExplanation.length > 800 && !isLoadingCommentary"
-              (click)="showFullExplanation = !showFullExplanation">
-        <mat-icon>{{ showFullExplanation ? 'expand_less' : 'expand_more' }}</mat-icon>
-        {{ showFullExplanation ? 'Minder tonen' : 'Meer details' }}
-      </button>
-    </mat-card-actions>
-  </mat-card>
+    </div>
 
-  <div class="results">
-    <div class="each-result" *ngFor="let team of orderedTeams">
-      <div class="team-header">
-        <h4>{{ team.key === 'teamWhite' ? 'Team Wit' : 'Team Rood' }}</h4>
-        <div class="team-rating" *ngIf="team.value && team.value.length > 0">
-          Rating: <strong>{{ getTeamRating(team.value) | number:'1.0-0' }}</strong>
+    <!-- Stap 2: Opstelling -->
+    <div *ngIf="showOpstelling" class="opstelling-step">
+      <div class="results">
+        <div class="each-result" *ngFor="let team of orderedTeams">
+          <div class="team-header">
+            <h4>{{ team.key === 'teamWhite' ? 'Team Wit' : 'Team Rood' }}</h4>
+            <div class="team-rating" *ngIf="team.value && team.value.length > 0">
+              Rating: <strong>{{ getTeamRating(team.value) | number:'1.0-0' }}</strong>
+            </div>
+          </div>
+          <div class="results-details">
+            <ng-container *ngIf="team.value.length > 0; else geenOpstelling">
+              <app-player-card *ngFor="let player of team.value" [player]="player" [shirtColor]="team.key === 'teamWhite' ? 'white' : 'red'"></app-player-card>
+            </ng-container>
+            <ng-template #geenOpstelling>
+              <span>Geen spelers in deze opstelling.</span>
+            </ng-template>
+          </div>
         </div>
       </div>
-      <div class="results-details">
-        <ng-container *ngIf="team.value.length > 0; else geenOpstelling">
-          <app-player-card *ngFor="let player of team.value" [player]="player" [shirtColor]="team.key === 'teamWhite' ? 'white' : 'red'"></app-player-card>
-        </ng-container>
-        <ng-template #geenOpstelling>
-          <span>Geen spelers in deze opstelling.</span>
-        </ng-template>
+      <div class="share-link-container">
+        <button mat-fab (click)="copyOpstellingLink()" title="Kopieer link naar opstelling">
+          <mat-icon>link</mat-icon>
+        </button>
       </div>
     </div>
   </div>
-    <div class="share-link-container">
-      <button mat-fab (click)="copyOpstellingLink()" title="Kopieer link naar opstelling">
-        <mat-icon>link</mat-icon>
-      </button>
-    </div>
-  </div>
+
   <div *ngIf="!loading && !teams && countdown">
     <div class="countdown-container">
       <mat-icon>hourglass_empty</mat-icon>

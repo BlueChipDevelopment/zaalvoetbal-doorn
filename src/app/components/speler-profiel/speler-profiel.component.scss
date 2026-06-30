@@ -158,7 +158,7 @@
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: linear-gradient(135deg, $primary-color, #0d47a1);
+      background: linear-gradient(135deg, $primary-color, darken($primary-color, 18%));
       color: #fff;
       display: grid;
       place-items: center;

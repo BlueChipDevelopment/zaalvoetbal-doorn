@@ -82,7 +82,7 @@ mat-card-header {
           color: white;
 
           &:hover:not([disabled]) {
-            background-color: #1565c0;
+            background-color: darken($primary-color, 8%);
           }
 
           &[disabled] {
@@ -148,7 +148,7 @@ mat-card-header {
   }
 
   .btn-yes {
-    background-color: #4CAF50; // Green
+    background-color: $success-color; // Green
     color: white;
   }
 
@@ -165,7 +165,7 @@ mat-card-header {
   // Style for disabled buttons to keep colors
   button:disabled {
     opacity: 0.7;
-    &.btn-yes { background-color: #4CAF50; color: white; }
+    &.btn-yes { background-color: $success-color; color: white; }
     &.btn-no { background-color: #f44336; color: white; }
     &.btn-maybe { background-color: #ff9800; color: white; }
   }
@@ -181,9 +181,9 @@ mat-card-header {
   font-weight: 500;
   font-size: 1.1rem;
   gap: 12px;
-  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.08);
+  box-shadow: 0 2px 8px rgba($primary-color, 0.08);
   border: 2px solid $primary-color;
-  background: #f5faff;
+  background: rgba($primary-color, 0.04);
 
   .status-row {
     display: flex;
@@ -215,12 +215,12 @@ mat-card-header {
 }
 
 .next-match-box {
-  background-color: #e3f2fd;
+  background-color: rgba($primary-color, 0.08);
   padding: 1.5rem;
   padding-top: 0.5rem;
   border-radius: 12px;
   margin-bottom: 24px;
-  border: 1px solid #90caf9;
+  border: 1px solid rgba($primary-color, 0.3);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -245,7 +245,7 @@ mat-card-header {
 }
 
 .icon-green {
-  color: #4CAF50;
+  color: $success-color;
 }
 
 .attendance-overview {

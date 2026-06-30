@@ -39,11 +39,10 @@ export class OpstellingComponent implements OnInit, OnDestroy {
   error: string | null = null;
   opstellingUrl = window.location.origin + '/opstelling';
   nextMatchInfo: NextMatchInfo | null = null;
-  showDetailedAnalysis = false;
+  showOpstelling = false;
   revealTime: Date | null = null;
   countdown: string | null = null;
   algorithmExplanation = '';
-  showFullExplanation = false;
   isLoadingCommentary = false;
 
   private destroyRef = inject(DestroyRef);
@@ -176,59 +175,16 @@ export class OpstellingComponent implements OnInit, OnDestroy {
     return team.map(p => p.name).join(', ');
   }
 
-  getTeamRatingDifference(): string {
-    if (!this.teams) return '0.0';
-    const whiteRating = this.getTeamRating(this.teams.teamWhite);
-    const redRating = this.getTeamRating(this.teams.teamRed);
-    return Math.abs(whiteRating - redRating).toFixed(1);
+  /**
+   * De knop 'Bekijk de opstelling' mag pas activeren als er een complete
+   * voorbeschouwing staat — de AI-tekst of, bij API-fout, de template-fallback.
+   */
+  get canRevealOpstelling(): boolean {
+    return !this.isLoadingCommentary && !!this.algorithmExplanation;
   }
 
-  get commentaryTeaser(): string {
-    if (this.algorithmExplanation) {
-      const match = this.algorithmExplanation.match(/<p[^>]*>(.*?)<\/p>/i);
-      if (match) {
-        // Strip HTML tags en trim
-        return match[1].replace(/<[^>]+>/g, '').trim();
-      }
-    }
-    return this.getBalanceDescription();
-  }
-
-  getBalanceDescription(): string {
-    const diff = parseFloat(this.getTeamRatingDifference());
-    if (diff < 1.0) {
-      return 'Extreem evenwichtige opstelling - spannende wedstrijd gegarandeerd! 🔥';
-    } else if (diff < 2.0) {
-      return 'Goede balans tussen de teams met kleine tactische verschillen. ⚽';
-    } else if (diff < 3.0) {
-      return 'Één team heeft een licht voordeel, maar vorm kan alles veranderen. 💪';
-    } else {
-      return 'Duidelijk verschil in sterkte - underdog kan verrassen! 🌟';
-    }
-  }
-
-  getDetailedBalanceAnalysis(): string {
-    const diff = parseFloat(this.getTeamRatingDifference());
-    const whiteRating = this.getTeamRating(this.teams?.teamWhite || []);
-    const redRating = this.getTeamRating(this.teams?.teamRed || []);
-    
-    let analysis = `Met een verschil van ${diff} punten tussen de teams, `;
-    
-    if (diff < 1.0) {
-      analysis += 'is deze wedstrijd bijna perfecte gebalanceerd. Beide teams hebben vrijwel gelijke kansen op winst. Vorm op de dag en teamwork zullen het verschil maken.';
-    } else if (diff < 2.0) {
-      const strongerTeam = whiteRating > redRating ? 'Team Wit' : 'Team Rood';
-      analysis += `heeft ${strongerTeam} een licht voordeel op papier. Dit kleine verschil kan echter gemakkelijk weggenomen worden door goede tactiek en inzet.`;
-    } else if (diff < 3.0) {
-      const strongerTeam = whiteRating > redRating ? 'Team Wit' : 'Team Rood';
-      analysis += `is ${strongerTeam} de favoriet voor deze wedstrijd. Toch blijft voetbal onvoorspelbaar en kan de underdog met de juiste mentaliteit verrassen.`;
-    } else {
-      const strongerTeam = whiteRating > redRating ? 'Team Wit' : 'Team Rood';
-      const weakerTeam = whiteRating > redRating ? 'Team Rood' : 'Team Wit';
-      analysis += `heeft ${strongerTeam} een duidelijke voorsprong. ${weakerTeam} zal extra hard moeten werken, maar in zaalvoetbal kunnen individuele acties en geluk alles veranderen!`;
-    }
-    
-    return analysis;
+  revealOpstelling(): void {
+    this.showOpstelling = true;
   }
 
   // Comprehensive team analysis methods

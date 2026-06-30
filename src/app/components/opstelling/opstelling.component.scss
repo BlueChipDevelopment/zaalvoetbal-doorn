@@ -1,16 +1,5 @@
 @import '../../../styles_variables';
 
-.inline-spinner {
-  display: inline-block;
-  margin-left: 8px;
-  vertical-align: middle;
-}
-
-.loading-text {
-  color: $secondary-color;
-  font-style: italic;
-}
-
 // Main container for mobile margins
 .opstelling-container {
   padding: 0 16px;
@@ -22,98 +11,57 @@
   }
 }
 
-// Team analysis quote - styled as blockquote
-.team-analysis-quote {
-  max-width: 600px;
-  margin: 16px auto 24px auto;
-  padding: 0 16px;
-  
-  .balance-description {
-    text-align: center;
-    font-size: $font-size-lg;
-    font-weight: $font-weight-normal;
-    font-style: italic;
-    margin: 0;
-    line-height: 1.5;
-    padding: 16px 24px;
-    
-    &.clickable {
-      cursor: pointer;
-      transition: color 0.2s ease, transform 0.1s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      border-radius: 4px;
-      
-      &:hover {
-        transform: translateY(-1px);
-      }
-      
-      .expand-icon {
-        font-size: $font-size-lg;
-        width: 18px;
-        height: 18px;
-        color: $secondary-color;
-        transition: color 0.2s ease;
-      }
-    }
-  }
-}
-
-// Detailed analysis card styling
-.algorithm-explanation-card {
+// Stap 1: voorbeschouwing
+.voorbeschouwing-step {
   max-width: 800px;
   margin: 16px auto 24px auto;
-  
-  mat-card-header {
-    mat-card-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      
-      mat-icon {
-        color: $primary-color;
-      }
+}
+
+.voorbeschouwing-card {
+  mat-card-header mat-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    mat-icon {
+      color: $primary-color;
     }
   }
-  
-  .detailed-analysis {
+
+  .voorbeschouwing-loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: $secondary-color;
+    font-style: italic;
+    padding: 8px 0;
+  }
+
+  .explanation-content {
     line-height: 1.6;
-    
+
     p {
       margin: 12px 0;
-      
+
       strong {
         color: $primary-color;
       }
     }
-    
-    .analysis-summary {
-      background: $light-bg;
-      padding: 16px;
-      border-radius: 4px;
-      border-left: 4px solid $primary-color;
-      margin-top: 16px;
-      
-      p:last-child {
-        margin-bottom: 0;
-      }
-    }
   }
 }
 
+.reveal-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 48px;
+  margin-top: 16px;
+  font-size: $font-size-base;
+}
+
 @media (max-width: $bp-tablet) {
-  .team-analysis-quote {
-    margin: 8px auto 16px auto;
-    padding: 0 8px;
-    
-    .balance-description {
-      font-size: $font-size-sm;
-      padding: 12px 20px;
-    }
-  }
-  
   .results {
     flex-wrap: nowrap !important; // Force teams to stay side by side
     flex-direction: row !important;

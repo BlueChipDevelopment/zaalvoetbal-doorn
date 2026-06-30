@@ -1,9 +1,9 @@
 @import '../../../styles_variables';
 
 .next-match-box {
-  background: #e3f2fd;
+  background: rgba($primary-color, 0.08);
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.08);
+  box-shadow: 0 2px 8px rgba($primary-color, 0.08);
   padding: 1.5rem 2rem;
   margin-bottom: 24px;
   text-align: center;
