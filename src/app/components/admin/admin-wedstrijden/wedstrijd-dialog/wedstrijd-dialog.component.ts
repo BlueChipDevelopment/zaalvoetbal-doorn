@@ -26,6 +26,7 @@ export class WedstrijdDialogComponent implements OnInit {
     this.wedstrijdForm = this.fb.group({
       seizoen: [data?.seizoen || this.getCurrentSeizoen(), Validators.required],
       datum: [data?.datum || null, Validators.required],
+      locatie: [data?.locatie ?? (data ? '' : 'Sporthal Steinheim')],
       teamWit: [data?.teamWit || []],
       teamRood: [data?.teamRood || []],
       teamGeneratie: [data?.teamGeneratie || ''],
@@ -63,6 +64,7 @@ export class WedstrijdDialogComponent implements OnInit {
         ...this.data,
         seizoen: formValue.seizoen,
         datum: formValue.datum,
+        locatie: formValue.locatie?.trim() || undefined,
         teamWit: formValue.teamWit || [],
         teamRood: formValue.teamRood || [],
         teamGeneratie: formValue.teamGeneratie || '',

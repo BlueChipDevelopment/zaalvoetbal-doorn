@@ -24,6 +24,11 @@
     </div>
 
     <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Locatie</mat-label>
+      <input matInput formControlName="locatie" placeholder="Sporthal Steinheim">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
       <mat-label>Team Wit</mat-label>
       <mat-select formControlName="teamWit" multiple>
         <mat-option *ngFor="let player of allPlayers$ | async" [value]="player.id">{{ player.name }}</mat-option>
