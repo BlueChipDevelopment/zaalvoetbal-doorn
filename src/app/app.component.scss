@@ -81,7 +81,7 @@
 
 /* Active route highlighting */
 .desktop-navigation .active-link {
-  color: #fff;
+  color: $primary-color;
   font-weight: 600;
   position: relative;
 }
@@ -93,7 +93,7 @@
   right: 12px;
   bottom: 6px;
   height: 2px;
-  background-color: #fff;
+  background-color: $primary-color;
   border-radius: 1px;
 }
 
