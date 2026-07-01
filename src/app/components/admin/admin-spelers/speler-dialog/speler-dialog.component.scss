@@ -1,13 +1,32 @@
 @import '../../../../../styles_variables.scss';
 
+// De globale h2-regel (30px) bleedt over de dialogtitel; scoped terug naar
+// Material-formaat en wat lucht naar de tab-balk eronder.
+h2[mat-dialog-title] {
+  font-size: $font-size-xl;          // 20px i.p.v. globale 30px
+  font-weight: $font-weight-medium;
+  line-height: $line-height-tight;
+  margin: 0 0 8px;
+}
+
 .tab-content {
   display: flex;
   flex-direction: column;
-  padding-top: 12px;
+  padding-top: 16px;
+}
+
+// Material's tab-body voegt eigen horizontale padding toe bovenop
+// mat-dialog-content; op smalle schermen duwt dat velden buiten de modal.
+:host ::ng-deep .mat-mdc-tab-body-content {
+  padding-left: 0;
+  padding-right: 0;
+  box-sizing: border-box;
 }
 
 .full-width {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   margin-bottom: 16px;
 }
 
@@ -35,10 +54,10 @@
 }
 
 // ─── Lidmaatschap-tab ───────────────────────────────────────────────
-.tab-content h3 {
-  margin: 4px 0 8px;
-  font-size: $font-size-lg;
-  font-weight: $font-weight-medium;
+.mutaties-panel {
+  box-shadow: none;
+  border: 1px solid $border-color;
+  border-radius: 4px;
 }
 
 .saldo-bewerk {
@@ -98,4 +117,20 @@ mat-dialog-content {
 
 mat-dialog-actions {
   padding: 12px 16px;
+}
+
+@media (max-width: $bp-mobile) {
+  .full-width {
+    margin-bottom: 12px;
+  }
+
+  .toggle-field {
+    margin-bottom: 12px;
+  }
+
+  .saldo-bewerk mat-form-field {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 120px;
+  }
 }
