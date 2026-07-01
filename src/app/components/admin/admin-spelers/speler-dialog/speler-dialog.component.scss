@@ -1,32 +1,101 @@
 @import '../../../../../styles_variables.scss';
 
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  padding-top: 12px;
+}
+
 .full-width {
   width: 100%;
   margin-bottom: 16px;
-  
-  &:first-of-type {
-    margin-top: 8px;
-  }
 }
 
 .toggle-field {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   margin-bottom: 16px;
-  padding: 12px 0;
 
+  // Overschrijf de globale label-regel (uppercase/bold/block) uit styles.scss.
   label {
-    font-size: 16px;
-    color: $secondary-color;
+    margin: 0;
+    font-size: $font-size-base;
+    font-weight: $font-weight-normal;
+    text-transform: none;
+    color: $text-color;
+  }
+}
+
+.hint {
+  margin: -8px 0 16px;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+// ─── Lidmaatschap-tab ───────────────────────────────────────────────
+.tab-content h3 {
+  margin: 4px 0 8px;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-medium;
+}
+
+.saldo-bewerk {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+
+  mat-form-field {
+    width: 150px;
+  }
+
+  .op {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+  }
+}
+
+.acties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.ledger {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid $border-color;
+    font-size: $font-size-sm;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .datum {
+    flex-shrink: 0;
+    font-size: $font-size-xs;
+    color: $text-secondary;
+    white-space: nowrap;
   }
 }
 
 mat-dialog-content {
-  min-width: 400px;
-  padding: 20px;
+  padding: 8px 20px 12px;
 }
 
 mat-dialog-actions {
-  padding: 16px;
+  padding: 12px 16px;
 }

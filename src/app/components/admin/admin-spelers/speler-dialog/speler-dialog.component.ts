@@ -161,6 +161,6 @@ export class SpelerDialogComponent implements OnInit {
   }
 
   getDialogTitle(): string {
-    return this.isEditMode ? 'Speler Wijzigen' : 'Speler Toevoegen';
+    return this.isEditMode ? 'Speler wijzigen' : 'Speler toevoegen';
   }
 }

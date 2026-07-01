@@ -65,6 +65,8 @@ export class AdminSpelersComponent implements OnInit {
   addPlayer(): void {
     const dialogRef = this.dialog.open(SpelerDialogComponent, {
       width: '500px',
+      maxWidth: '95vw',
+      panelClass: 'speler-dialog-panel',
       data: { player: null, mode: 'add' }
     });
 
@@ -89,6 +91,8 @@ export class AdminSpelersComponent implements OnInit {
   editPlayer(player: PlayerSheetData): void {
     const dialogRef = this.dialog.open(SpelerDialogComponent, {
       width: '500px',
+      maxWidth: '95vw',
+      panelClass: 'speler-dialog-panel',
       data: { player: { ...player }, mode: 'edit', originalName: player.name }
     });
 

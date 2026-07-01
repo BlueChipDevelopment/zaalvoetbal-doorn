@@ -127,6 +127,19 @@ app-top-bar {
   white-space: pre-line;
 }
 
+// Speler-beheer dialog: op mobiel randloos over de volle breedte i.p.v.
+// een afgeknepen kaartje (voorkomt horizontale scroll in de tabs).
+@media (max-width: $bp-mobile) {
+  .speler-dialog-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+
+    .mat-mdc-dialog-surface {
+      border-radius: 0;
+    }
+  }
+}
+
 .mat-snack-bar-container {
   color: $light-bg !important;
   font-family: $font-main;
