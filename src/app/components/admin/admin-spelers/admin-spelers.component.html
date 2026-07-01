@@ -33,9 +33,16 @@
       <ng-container matColumnDef="lidmaatschap">
         <th mat-header-cell *matHeaderCellDef>Lidmaatschap</th>
         <td mat-cell *matCellDef="let player">
-          <span class="badge-abo" *ngIf="player.id != null && subscribedPlayerIds.has(player.id)">Abo</span>
-          <span *ngIf="player.usesStrippenkaart">Strippen: {{ balances[player.id] ?? '…' }}</span>
-          <span *ngIf="!player.usesStrippenkaart && !(player.id != null && subscribedPlayerIds.has(player.id))">—</span>
+          <ng-container *ngIf="player.id != null && subscribedPlayerIds.has(player.id); else stripOrNone">
+            <span class="badge-abo">Abonnement</span>
+          </ng-container>
+          <ng-template #stripOrNone>
+            <span *ngIf="player.usesStrippenkaart; else geen"
+                  class="badge-strip" [class.badge-strip--leeg]="(balances[player.id] ?? 1) <= 0">
+              {{ balances[player.id] ?? '…' }} strippen
+            </span>
+            <ng-template #geen><span>—</span></ng-template>
+          </ng-template>
         </td>
       </ng-container>
 
