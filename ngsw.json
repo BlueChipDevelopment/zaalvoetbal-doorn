@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1782930157491,
+  "timestamp": 1782930872641,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -23,7 +23,7 @@
         "/72.7f7bdfdc175f771c.js",
         "/87.5b8e6b25bba0587a.js",
         "/901.aa05eae2493521cb.js",
-        "/927.8967996c318de3dd.js",
+        "/927.713e8cdab21981af.js",
         "/991.ddcb4fbe2bb80b6e.js",
         "/common.39963db4dfa6cd3a.js",
         "/favicon.ico",
@@ -31,7 +31,7 @@
         "/main.a168d6e8abee008c.js",
         "/manifest.webmanifest",
         "/polyfills.99185e01a8611993.js",
-        "/runtime.715eb5f999804134.js",
+        "/runtime.54318df677978357.js",
         "/styles.2d9e11e81fbd75e5.css"
       ],
       "patterns": []
@@ -75,7 +75,7 @@
     "/72.7f7bdfdc175f771c.js": "9d62719e0630d48c632c666164c5d50effd8d2af",
     "/87.5b8e6b25bba0587a.js": "776a1fa1566166cba53da11dc5b6e1dfb8333dbe",
     "/901.aa05eae2493521cb.js": "779793741f96f1d4d4296d56b62d1edb8c54c44f",
-    "/927.8967996c318de3dd.js": "cb7f9f680ed46d1778ffb9483f427d9cd524ce0f",
+    "/927.713e8cdab21981af.js": "1cb15d1768b2369386fc8649ce977ac0c669adf9",
     "/991.ddcb4fbe2bb80b6e.js": "9cf00378bc68b715a0c16e455073ed84ee84a730",
     "/assets/icons/icon-128x128.png": "9229dd4ba94aada5d4f6b3c548172ea95369f499",
     "/assets/icons/icon-144x144.png": "b825660f4844720c113f3fb2822b3fbdcdb752b5",
@@ -92,11 +92,11 @@
     "/favicon.ico": "43528d083572386b5f788141a0a2d6619d1409cd",
     "/football-shirt-red.2fabd340d484d4cb.png": "0df1723bfe98a67e423479be18fee4e7cde55834",
     "/football-shirt-white.dfa9a8ea30f39956.png": "b18ac6d8f00e6f5e00cb440b80a2a72b0e1658f3",
-    "/index.html": "98e58e2ec4304fed89a2686a6e1d8051529cfe41",
+    "/index.html": "fee4c11194134f5c27882a5b1ef41d09eb0e1445",
     "/main.a168d6e8abee008c.js": "76486d46b81753da2d3dd754baebc85acd891403",
     "/manifest.webmanifest": "f55078249defc81f0f13e2d5bb6e9e899577ec1c",
     "/polyfills.99185e01a8611993.js": "f11a301410e8f7479935b4934ce08e4623529fd4",
-    "/runtime.715eb5f999804134.js": "ba84fb18e2255dc434cdc9ab306bfbfcce59d102",
+    "/runtime.54318df677978357.js": "5a396cc818dc9b31b4e31e6ee7f90b59db5d3f87",
     "/styles.2d9e11e81fbd75e5.css": "2b714b200c769f84edf884ab361f82973de38ea0"
   },
   "navigationUrls": [
