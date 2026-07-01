@@ -55,10 +55,10 @@
         </div>
 
         <div class="toggle-field">
-          <label>Abonnement dit seizoen{{ season ? ' (' + season + ')' : '' }}</label>
+          <label>Lidmaatschap{{ season ? ' ' + season : '' }}</label>
           <mat-slide-toggle [checked]="hasSubscription" [disabled]="!season" (change)="toggleSubscription()"></mat-slide-toggle>
         </div>
-        <p class="hint" *ngIf="!season">Nog geen seizoen bekend (geen wedstrijden) — abonnement is nu niet instelbaar.</p>
+        <p class="hint" *ngIf="!season">Nog geen seizoen bekend (geen wedstrijden) — lidmaatschap is nu niet instelbaar.</p>
 
         <div class="saldo-bewerk">
           <mat-form-field appearance="outline">
