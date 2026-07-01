@@ -76,8 +76,10 @@
           <button mat-stroked-button (click)="addStrips(10)">+10 strippen</button>
         </div>
 
-        <h3>Recente mutaties</h3>
-        <div *ngIf="!ledgerLoading">
+        <mat-expansion-panel class="mutaties-panel" *ngIf="!ledgerLoading">
+          <mat-expansion-panel-header>
+            <mat-panel-title>Recente mutaties ({{ ledger.length }})</mat-panel-title>
+          </mat-expansion-panel-header>
           <p *ngIf="ledger.length === 0">Nog geen mutaties.</p>
           <ul class="ledger">
             <li *ngFor="let t of ledger">
@@ -85,7 +87,7 @@
               <span class="datum" *ngIf="t.createdAt">({{ t.createdAt | date:'dd-MM-yyyy' }})</span>
             </li>
           </ul>
-        </div>
+        </mat-expansion-panel>
       </div>
     </mat-tab>
   </mat-tab-group>

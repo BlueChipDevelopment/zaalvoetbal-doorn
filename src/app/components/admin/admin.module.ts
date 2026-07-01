@@ -14,6 +14,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { PlayerNamePipe } from '../../pipes/player-name.pipe';
 import { LoadingStateComponent } from '../loading-state/loading-state.component';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
@@ -54,6 +55,7 @@ import { TestBroadcastDialogComponent } from './admin-notificaties/test-broadcas
     MatNativeDateModule,
     MatCheckboxModule,
     MatSnackBarModule,
+    MatExpansionModule,
     PlayerNamePipe,
     LoadingStateComponent,
     ConfirmDialogComponent
