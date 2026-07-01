@@ -50,44 +50,46 @@
     <mat-tab label="Lidmaatschap" *ngIf="isEditMode">
       <div class="tab-content">
         <div class="toggle-field">
-          <label>Op de strippenkaart</label>
+          <label>Abonnement{{ season ? ' ' + season : '' }}</label>
+          <mat-slide-toggle [checked]="hasSubscription" [disabled]="!season" (change)="toggleSubscription()"></mat-slide-toggle>
+        </div>
+        <p class="hint" *ngIf="!season">Nog geen seizoen bekend (geen wedstrijden) — abonnement is nu niet instelbaar.</p>
+
+        <div class="toggle-field">
+          <label>Strippenkaart</label>
           <mat-slide-toggle [checked]="usesStrippenkaart" (change)="toggleStrippenkaart()"></mat-slide-toggle>
         </div>
 
-        <div class="toggle-field">
-          <label>Lidmaatschap{{ season ? ' ' + season : '' }}</label>
-          <mat-slide-toggle [checked]="hasSubscription" [disabled]="!season" (change)="toggleSubscription()"></mat-slide-toggle>
-        </div>
-        <p class="hint" *ngIf="!season">Nog geen seizoen bekend (geen wedstrijden) — lidmaatschap is nu niet instelbaar.</p>
+        <div class="strippenkaart-details" *ngIf="usesStrippenkaart">
+          <div class="saldo-bewerk">
+            <mat-form-field appearance="outline">
+              <mat-label>Strippen-saldo</mat-label>
+              <input matInput type="number" [(ngModel)]="newTotal" [ngModelOptions]="{standalone: true}">
+            </mat-form-field>
+            <button mat-stroked-button (click)="applyTotal()" [disabled]="newTotal === null || newTotal === balance">
+              Saldo bijwerken
+            </button>
+            <span class="op" *ngIf="balance <= 0">strippen op</span>
+          </div>
 
-        <div class="saldo-bewerk">
-          <mat-form-field appearance="outline">
-            <mat-label>Strippen-saldo</mat-label>
-            <input matInput type="number" [(ngModel)]="newTotal" [ngModelOptions]="{standalone: true}">
-          </mat-form-field>
-          <button mat-stroked-button (click)="applyTotal()" [disabled]="newTotal === null || newTotal === balance">
-            Saldo bijwerken
-          </button>
-          <span class="op" *ngIf="balance <= 0">strippen op</span>
-        </div>
+          <div class="acties">
+            <button mat-stroked-button (click)="addStrips(5)">+5 strippen</button>
+            <button mat-stroked-button (click)="addStrips(10)">+10 strippen</button>
+          </div>
 
-        <div class="acties">
-          <button mat-stroked-button (click)="addStrips(5)">+5 strippen</button>
-          <button mat-stroked-button (click)="addStrips(10)">+10 strippen</button>
+          <mat-expansion-panel class="mutaties-panel" *ngIf="!ledgerLoading">
+            <mat-expansion-panel-header>
+              <mat-panel-title>Strippenkaart mutaties ({{ ledger.length }})</mat-panel-title>
+            </mat-expansion-panel-header>
+            <p *ngIf="ledger.length === 0">Nog geen mutaties.</p>
+            <ul class="ledger">
+              <li *ngFor="let t of ledger">
+                {{ t.amount > 0 ? '+' : '' }}{{ t.amount }} — {{ t.reason }}
+                <span class="datum" *ngIf="t.createdAt">({{ t.createdAt | date:'dd-MM-yyyy' }})</span>
+              </li>
+            </ul>
+          </mat-expansion-panel>
         </div>
-
-        <mat-expansion-panel class="mutaties-panel" *ngIf="!ledgerLoading">
-          <mat-expansion-panel-header>
-            <mat-panel-title>Recente mutaties ({{ ledger.length }})</mat-panel-title>
-          </mat-expansion-panel-header>
-          <p *ngIf="ledger.length === 0">Nog geen mutaties.</p>
-          <ul class="ledger">
-            <li *ngFor="let t of ledger">
-              {{ t.amount > 0 ? '+' : '' }}{{ t.amount }} — {{ t.reason }}
-              <span class="datum" *ngIf="t.createdAt">({{ t.createdAt | date:'dd-MM-yyyy' }})</span>
-            </li>
-          </ul>
-        </mat-expansion-panel>
       </div>
     </mat-tab>
   </mat-tab-group>
