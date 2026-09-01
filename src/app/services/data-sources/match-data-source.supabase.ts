@@ -157,10 +157,10 @@ export class SupabaseMatchDataSource extends MatchDataSource {
     teamWit: number[],
     teamRood: number[],
     teamGeneration: string,
-    voorbeschouwing?: string,
+    voorbeschouwing?: string | null,
   ): Observable<void> {
     const update: MatchUpdate = { team_generation: teamGeneration };
-    if (voorbeschouwing) {
+    if (voorbeschouwing !== undefined) {
       update.voorbeschouwing = voorbeschouwing;
     }
     return from(

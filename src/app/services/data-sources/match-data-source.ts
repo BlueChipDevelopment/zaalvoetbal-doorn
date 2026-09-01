@@ -17,13 +17,12 @@ export abstract class MatchDataSource {
     zlatanPlayerId: number | null,
   ): Observable<void>;
   /** Schrijft team-rosters + generation type, en optioneel voorbeschouwing.
-   *  `voorbeschouwing` wordt alleen geschreven wanneer truthy; om een bestaande
-   *  voorbeschouwing te wissen gebruik `update(match)` met `voorbeschouwing: undefined`. */
+   *  `undefined` laat een bestaande voorbeschouwing ongemoeid; `null` wist hem. */
   abstract updateTeams(
     matchId: number,
     teamWit: number[],
     teamRood: number[],
     teamGeneration: string,
-    voorbeschouwing?: string,
+    voorbeschouwing?: string | null,
   ): Observable<void>;
 }

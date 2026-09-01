@@ -144,6 +144,7 @@ export class WedstrijdenService {
 
   /**
    * Update team-rosters (id-arrays) + generatietype + optionele voorbeschouwing.
+   * `undefined` laat een bestaande voorbeschouwing staan; `null` wist hem.
    * Vervangt de directe `batchUpdateSheet`-aanroep in team-generator.component.
    */
   updateTeams(
@@ -151,7 +152,7 @@ export class WedstrijdenService {
     teamWit: number[],
     teamRood: number[],
     teamGeneration: string,
-    voorbeschouwing?: string,
+    voorbeschouwing?: string | null,
   ): Observable<void> {
     return this.dataSource.updateTeams(matchId, teamWit, teamRood, teamGeneration, voorbeschouwing).pipe(
       tap(() => {

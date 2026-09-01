@@ -14,6 +14,7 @@ import { NextMatchService, NextMatchInfo } from '../../services/next-match.servi
 import { WedstrijdenService } from '../../services/wedstrijden.service';
 import { WedstrijdData } from '../../interfaces/IWedstrijd';
 import { resolveSquadIds } from '../../utils/resolve-squad-ids';
+import { lineupChanged } from '../../utils/lineup-changed';
 import { NextMatchInfoComponent } from '../next-match-info/next-match-info.component';
 import { AsyncPipe, CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -161,28 +162,14 @@ export class TeamGeneratorComponent implements OnInit {
 
       this.isGenerated = true;
 
-      // Generate explanation for the team balancing algorithm
-      this.createAlgorithmExplanation();
+      // Bewust geen voorbeschouwing hier: die kost een AI-call en je schuift
+      // meestal nog een paar keer. Hij wordt gemaakt bij het opslaan.
+      this.algorithmExplanation = '';
 
       this.isGenerating = false;
     }, 100);
   }
   
-  private createAlgorithmExplanation() {
-    const teams = this.teamGenerateService.getGeneratedTeams();
-    if (!teams || teams.length < 2) return;
-
-    const teamWhite = teams[0];
-    const teamRed = teams[1];
-
-    // Analyze team characteristics
-    const whiteAnalysis = this.analyzeTeam(teamWhite);
-    const redAnalysis = this.analyzeTeam(teamRed);
-
-    // Start AI-versie (bij falen valt terug op template)
-    this.generateAICommentary(teamWhite, teamRed, whiteAnalysis, redAnalysis);
-  }
-
   private enrichSquad(squad: Player[]): Player[] {
     return squad.map(player => {
       const full = this.fullPlayerStats.find(p => p.name === player.name);
@@ -323,169 +310,16 @@ export class TeamGeneratorComponent implements OnInit {
     return bestDuo;
   }
 
-  private generatePersonalizedExplanation(
-    teamWhite: Team,
-    teamRed: Team,
-    whiteAnalysis: any,
-    redAnalysis: any,
-    _factors: string[]
-  ): string {
-    const parts: string[] = [];
-    const scoreDiff = Math.abs(whiteAnalysis.totalScore - redAnalysis.totalScore);
-    const genResult = this.lastGenerationResult;
-
-    // --- A. Opening — Balansoordeel ---
-    if (scoreDiff < 0.5) {
-      parts.push('<p><strong>Dit wordt een absolute thriller!</strong> Het algoritme kon nauwelijks verschil vinden tussen deze teams — op papier zijn ze vrijwel identiek.</p>');
-    } else if (scoreDiff < 2) {
-      parts.push('<p><strong>Op papier zijn deze teams uitzonderlijk goed gebalanceerd.</strong> Het verschil is minimaal, dus dit belooft een spannende pot te worden.</p>');
-    } else {
-      const favoriet = whiteAnalysis.totalScore > redAnalysis.totalScore ? teamWhite.name : teamRed.name;
-      parts.push(`<p><strong>${favoriet} start met een klein voordeel</strong>, maar juist dat maakt het spannend — de underdog heeft alles te winnen.</p>`);
-    }
-
-    // --- B. Vorm-verhaal ---
-    const formParts: string[] = [];
-    const allInForm = [
-      ...whiteAnalysis.playersInForm.map((p: Player) => ({ player: p, team: teamWhite.name })),
-      ...redAnalysis.playersInForm.map((p: Player) => ({ player: p, team: teamRed.name }))
-    ];
-    for (const { player, team } of allInForm) {
-      const recentGames = player.gameHistory.slice(-5);
-      const wins = recentGames.filter((g: any) => g.result === 3).length;
-      if (genResult) {
-        const adj = genResult.formAdjustments.find((a: any) => a.playerName === player.name);
-        if (adj) {
-          formParts.push(`<p>Let op <strong>${player.name}</strong> (${team}) — met ${wins} overwinningen in de laatste ${recentGames.length} wedstrijden is hij in topvorm. Zijn effectieve rating steeg van ${adj.originalRating} naar ${adj.adjustedRating}.</p>`);
-        } else {
-          formParts.push(`<p>Let op <strong>${player.name}</strong> (${team}) — met ${wins} overwinningen in de laatste ${recentGames.length} wedstrijden is hij momenteel niet te stoppen.</p>`);
-        }
-      } else {
-        formParts.push(`<p>Let op <strong>${player.name}</strong> (${team}) — met ${wins} overwinningen in de laatste ${recentGames.length} wedstrijden is hij momenteel niet te stoppen.</p>`);
-      }
-    }
-
-    const allPoorForm = [
-      ...whiteAnalysis.playersInPoorForm.map((p: Player) => ({ player: p, team: teamWhite.name })),
-      ...redAnalysis.playersInPoorForm.map((p: Player) => ({ player: p, team: teamRed.name }))
-    ];
-    for (const { player } of allPoorForm) {
-      if (genResult) {
-        const adj = genResult.formAdjustments.find((a: any) => a.playerName === player.name);
-        if (adj) {
-          formParts.push(`<p><strong>${player.name}</strong> zoekt naar zijn beste niveau na een lastige reeks (rating aangepast van ${adj.originalRating} naar ${adj.adjustedRating}). Een comeback zou het verschil kunnen maken.</p>`);
-        } else {
-          formParts.push(`<p><strong>${player.name}</strong> zoekt naar zijn beste niveau na een lastige reeks. Een comeback zou het verschil kunnen maken.</p>`);
-        }
-      } else {
-        formParts.push(`<p><strong>${player.name}</strong> zoekt naar zijn beste niveau na een lastige reeks. Een comeback zou het verschil kunnen maken.</p>`);
-      }
-    }
-
-    if (formParts.length > 0) {
-      parts.push(...formParts);
-    }
-
-    // --- C. Fun facts pool ---
-    const funFacts: string[] = [];
-
-    // Duo-chemistry
-    const whiteDuo = this.findBestDuo(this.enrichSquad(teamWhite.squad));
-    const redDuo = this.findBestDuo(this.enrichSquad(teamRed.squad));
-    if (whiteDuo) {
-      const pct = Math.round(whiteDuo.winRate * 100);
-      funFacts.push(`<p>Wist je dat <strong>${whiteDuo.playerA}</strong> en <strong>${whiteDuo.playerB}</strong> samen een winrate van ${pct}% hebben in ${whiteDuo.games} gezamenlijke wedstrijden? ${teamWhite.name} kan daarvan profiteren!</p>`);
-    }
-    if (redDuo) {
-      const pct = Math.round(redDuo.winRate * 100);
-      funFacts.push(`<p>Wist je dat <strong>${redDuo.playerA}</strong> en <strong>${redDuo.playerB}</strong> samen een winrate van ${pct}% hebben in ${redDuo.games} gezamenlijke wedstrijden? ${teamRed.name} kan daarvan profiteren!</p>`);
-    }
-
-    // Experience comparison
-    const whiteExp = whiteAnalysis.totalExperience;
-    const redExp = redAnalysis.totalExperience;
-    if (whiteExp > 0 || redExp > 0) {
-      funFacts.push(`<p>${teamWhite.name} brengt samen <strong>${whiteExp} wedstrijden</strong> ervaring mee dit seizoen, ${teamRed.name} <strong>${redExp}</strong>. ${whiteExp > redExp ? 'Het ervaringsvoordeel ligt bij Wit.' : redExp > whiteExp ? 'Het ervaringsvoordeel ligt bij Rood.' : 'Ervaring is precies gelijk verdeeld!'}</p>`);
-    }
-
-    // Newcomer spotlight
-    const allNewPlayers = [...whiteAnalysis.newPlayers, ...redAnalysis.newPlayers];
-    for (const player of allNewPlayers) {
-      const n = player.gamesPlayed || 0;
-      funFacts.push(`<p>Voor <strong>${player.name}</strong> wordt dit pas wedstrijd nummer ${n + 1} — spannend debuut tussen ervaren spelers!</p>`);
-    }
-
-    // Win streaks
-    const allStreaks = [...whiteAnalysis.playersOnWinStreak, ...redAnalysis.playersOnWinStreak];
-    for (const { player, streak } of allStreaks) {
-      funFacts.push(`<p>Let op: <strong>${player.name}</strong> is al ${streak} wedstrijden ongeslagen! Wie stopt deze reeks?</p>`);
-    }
-
-    // Zlatan highlights
-    const allZlatan = [...whiteAnalysis.zlatanStars, ...redAnalysis.zlatanStars];
-    for (const player of allZlatan) {
-      funFacts.push(`<p><strong>${player.name}</strong> staat bekend om zijn zlatanpunten (${player.zlatanPoints}) — verwacht spectaculaire acties!</p>`);
-    }
-
-    // Ventiel highlights
-    const allVentiel = [...whiteAnalysis.ventielStars, ...redAnalysis.ventielStars];
-    for (const player of allVentiel) {
-      funFacts.push(`<p><strong>${player.name}</strong> heeft ${player.ventielPoints} ventielpoints — de onbetwiste ventielheld van de groep.</p>`);
-    }
-
-    // Select random 2-3 fun facts from pool
-    if (funFacts.length > 0) {
-      const shuffled = funFacts.sort(() => Math.random() - 0.5);
-      const selected = shuffled.slice(0, Math.min(3, Math.max(2, shuffled.length)));
-      parts.push(...selected);
-    }
-
-    // Historical team compositions — altijd tonen als gevonden
-    const vergelijkbaar = this.findSimilarTeamCompositions();
-    const maandNamen = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
-    for (const { wedstrijd: w, score, isFlipped } of vergelijkbaar) {
-      const dag   = w.datum!.getDate();
-      const maand = maandNamen[w.datum!.getMonth()];
-      const jaar  = w.datum!.getFullYear();
-      const pct   = Math.round(score * 100);
-      const uitslag = (w.scoreWit !== null && w.scoreRood !== null)
-        ? `Wit ${w.scoreWit} – ${w.scoreRood} Rood`
-        : null;
-
-      let tekst: string;
-      if (pct === 100 && !isFlipped) {
-        tekst = `Exact dezelfde teams als op <strong>${dag} ${maand} ${jaar}</strong>!${uitslag ? ` Toen werd het <strong>${uitslag}</strong>.` : ''} Wordt de geschiedenis herhaald?`;
-      } else if (pct === 100 && isFlipped) {
-        tekst = `Op <strong>${dag} ${maand} ${jaar}</strong> stonden dezelfde spelers tegenover elkaar, maar dan omgekeerd.${uitslag ? ` Uitslag: <strong>${uitslag}</strong>.` : ''} Revanche time?`;
-      } else if (isFlipped) {
-        tekst = `<strong>${pct}%</strong> overlap met de wedstrijd van <strong>${dag} ${maand} ${jaar}</strong> — maar Wit en Rood waren toen omgedraaid.${uitslag ? ` Uitslag: <strong>${uitslag}</strong>.` : ''}`;
-      } else {
-        tekst = `<strong>${pct}%</strong> van de huidige opstelling speelde ook op <strong>${dag} ${maand} ${jaar}</strong>.${uitslag ? ` Toen eindigde het <strong>${uitslag}</strong>.` : ''}`;
-      }
-      parts.push(`<p>${tekst}</p>`);
-    }
-
-    // --- E. Afsluiter — Voorspelling ---
-    if (scoreDiff < 1) {
-      parts.push('<p><strong>Verdict:</strong> dit wordt een wedstrijd die tot de laatste seconde spannend blijft. Zet je schrap!</p>');
-    } else if (scoreDiff < 2) {
-      const favoriet = whiteAnalysis.totalScore > redAnalysis.totalScore ? teamWhite.name : teamRed.name;
-      parts.push(`<p><strong>Verdict:</strong> ${favoriet} begint als lichte favoriet, maar de marges zijn flinterdun. Alles is mogelijk!</p>`);
-    } else {
-      const favoriet = whiteAnalysis.totalScore > redAnalysis.totalScore ? teamWhite.name : teamRed.name;
-      const underdog = whiteAnalysis.totalScore > redAnalysis.totalScore ? teamRed.name : teamWhite.name;
-      parts.push(`<p><strong>Verdict:</strong> ${favoriet} start als favoriet, maar onderschat nooit de underdog. ${underdog} heeft niets te verliezen!</p>`);
-    }
-
-    return parts.join('');
-  }
-
-  private async generateAICommentary(
-    teamWhite: Team, teamRed: Team,
-    whiteAnalysis: any, redAnalysis: any
-  ): Promise<void> {
+  /**
+   * Maakt de voorbeschouwing voor de op te slaan opstelling. Geeft null terug
+   * als de AI niet bereikbaar is; de opstelling wordt dan zonder verhaal
+   * opgeslagen in plaats van met een verouderd verhaal.
+   */
+  private async generateAICommentary(teamWhite: Team, teamRed: Team): Promise<string | null> {
     this.isLoadingCommentary = true;
     try {
+      const whiteAnalysis = this.analyzeTeam(teamWhite);
+      const redAnalysis = this.analyzeTeam(teamRed);
       const payload = this.buildCommentaryPayload(teamWhite, teamRed, whiteAnalysis, redAnalysis);
       const response = await fetch(`${environment.firebaseBaseUrl}/generateTeamCommentary`, {
         method: 'POST',
@@ -494,15 +328,10 @@ export class TeamGeneratorComponent implements OnInit {
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const { commentary } = await response.json();
-      if (commentary) {
-        this.algorithmExplanation = commentary;
-      }
+      return commentary || null;
     } catch (err) {
-      // Fallback naar template-versie
-      console.warn('AI commentary niet beschikbaar, template wordt gebruikt:', err);
-      this.algorithmExplanation = this.generatePersonalizedExplanation(
-        teamWhite, teamRed, whiteAnalysis, redAnalysis, []
-      );
+      console.warn('AI-voorbeschouwing niet beschikbaar:', err);
+      return null;
     } finally {
       this.isLoadingCommentary = false;
     }
@@ -734,6 +563,10 @@ export class TeamGeneratorComponent implements OnInit {
   }
 
   saveTeamsToSheet(): void {
+    void this.saveTeams();
+  }
+
+  private async saveTeams(): Promise<void> {
     if (!this.nextMatchInfo || !this.teams.teamWhite || !this.teams.teamRed) {
       this.snackbar.error('Kan teams niet opslaan: ontbrekende gegevens.');
       return;
@@ -791,6 +624,23 @@ export class TeamGeneratorComponent implements OnInit {
       return;
     }
 
+    // Voorbeschouwing: alleen een AI-call als de opstelling daadwerkelijk
+    // afwijkt van wat er al opgeslagen staat. Slaan we dezelfde opstelling nog
+    // eens op, dan blijft het bestaande verhaal staan (undefined = niet aanraken).
+    const teamsChanged = lineupChanged(
+      this.nextMatchInfo.wedstrijd?.teamWit,
+      this.nextMatchInfo.wedstrijd?.teamRood,
+      teamWhitePlayerIds,
+      teamRedPlayerIds,
+    );
+    let voorbeschouwing: string | null | undefined = undefined;
+    if (teamsChanged) {
+      // null bij een mislukte AI-call: liever geen verhaal dan een verhaal over
+      // een opstelling die niet meer klopt.
+      voorbeschouwing = await this.generateAICommentary(this.teams.teamWhite, this.teams.teamRed);
+      this.algorithmExplanation = voorbeschouwing ?? '';
+    }
+
     // Mutation: bewust GEEN takeUntilDestroyed zodat de save doorgaat ook als de
     // gebruiker wegnavigeert voor de response binnen is.
     this.wedstrijdenService.updateTeams(
@@ -798,7 +648,7 @@ export class TeamGeneratorComponent implements OnInit {
       teamWhitePlayerIds,
       teamRedPlayerIds,
       'Handmatig',
-      this.algorithmExplanation || undefined,
+      voorbeschouwing,
     ).subscribe({
       next: () => {
         console.log(`✅ Teams succesvol opgeslagen voor ${seizoen || 'onbekend'} wedstrijd ${matchNumber}`);

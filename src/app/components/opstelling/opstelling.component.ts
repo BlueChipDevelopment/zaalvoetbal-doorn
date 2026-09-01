@@ -2,7 +2,6 @@ import { Component, DestroyRef, OnDestroy, OnInit, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NextMatchService, NextMatchInfo } from '../../services/next-match.service';
 import { GameStatisticsService } from '../../services/game.statistics.service';
-import { TeamGenerateService } from '../../services/team-generate.service';
 import { parseDate } from '../../utils/date-utils';
 import { PlayerCardComponent } from '../player-card/player-card.component';
 import { CommonModule } from '@angular/common';
@@ -14,7 +13,6 @@ import { MatCardModule } from '@angular/material/card';
 import { SnackbarService } from '../../services/snackbar.service';
 import { switchMap } from 'rxjs/operators';
 import { Player } from '../../interfaces/IPlayer';
-import { Team } from '../../interfaces/ITeam';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -51,7 +49,6 @@ export class OpstellingComponent implements OnInit, OnDestroy {
   constructor(
     private nextMatchService: NextMatchService,
     private gameStatisticsService: GameStatisticsService,
-    private teamGenerateService: TeamGenerateService,
     private snackbar: SnackbarService
   ) {}
 
@@ -176,11 +173,12 @@ export class OpstellingComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * De knop 'Bekijk de opstelling' mag pas activeren als er een complete
-   * voorbeschouwing staat — de AI-tekst of, bij API-fout, de template-fallback.
+   * De knop 'Bekijk de opstelling' wacht alleen tot de voorbeschouwing klaar is
+   * met laden. Blijft die leeg — bijvoorbeeld door een AI-storing — dan is de
+   * opstelling gewoon zichtbaar; een storing mag niemand buitensluiten.
    */
   get canRevealOpstelling(): boolean {
-    return !this.isLoadingCommentary && !!this.algorithmExplanation;
+    return !this.isLoadingCommentary;
   }
 
   revealOpstelling(): void {
@@ -199,7 +197,13 @@ export class OpstellingComponent implements OnInit, OnDestroy {
   private async generateAICommentary(teamWhite: Player[], teamRed: Player[]): Promise<void> {
     this.isLoadingCommentary = true;
     try {
-      const payload = this.buildCommentaryPayload(teamWhite, teamRed);
+      // matchId meesturen: de functie hergebruikt een al opgeslagen
+      // voorbeschouwing en bewaart een nieuwe, zodat er per wedstrijd één
+      // AI-call nodig is in plaats van één per bezoeker.
+      const payload = {
+        ...this.buildCommentaryPayload(teamWhite, teamRed),
+        matchId: this.nextMatchInfo?.wedstrijd?.id,
+      };
       const response = await fetch(`${environment.firebaseBaseUrl}/generateTeamCommentary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -211,26 +215,8 @@ export class OpstellingComponent implements OnInit, OnDestroy {
         this.algorithmExplanation = commentary;
       }
     } catch (err) {
-      // Fallback naar template-versie
-      console.warn('AI commentary niet beschikbaar, template wordt gebruikt:', err);
-      const mockTeamWhite: Team = {
-        name: 'Team Wit', squad: teamWhite,
-        sumOfRatings: this.getTeamRating(teamWhite),
-        totalScore: this.getTeamRating(teamWhite),
-        shirtcolor: 'white', attack: 0, defense: 0, condition: 0, chemistryScore: 0
-      };
-      const mockTeamRed: Team = {
-        name: 'Team Rood', squad: teamRed,
-        sumOfRatings: this.getTeamRating(teamRed),
-        totalScore: this.getTeamRating(teamRed),
-        shirtcolor: 'red', attack: 0, defense: 0, condition: 0, chemistryScore: 0
-      };
-      const whiteAnalysis = this.analyzeTeam(mockTeamWhite);
-      const redAnalysis = this.analyzeTeam(mockTeamRed);
-      this.algorithmExplanation = this.generatePersonalizedExplanation(
-        mockTeamWhite, mockTeamRed, whiteAnalysis, redAnalysis,
-        this.determineMainFactors(whiteAnalysis, redAnalysis)
-      );
+      // Geen voorbeschouwing is niet erg: de opstelling blijft gewoon zichtbaar.
+      console.warn('AI-voorbeschouwing niet beschikbaar:', err);
     } finally {
       this.isLoadingCommentary = false;
     }
@@ -332,199 +318,4 @@ export class OpstellingComponent implements OnInit, OnDestroy {
     }).filter((x): x is { player: Player; streak: number } => x !== null);
   }
 
-  private analyzeTeam(team: Team) {
-    const squad = team.squad;
-    
-    // Find players with exceptional form (last 5 games > 70% win rate)
-    const playersInForm = squad.filter(player => {
-      if (!player.gameHistory || player.gameHistory.length < 3) return false;
-      const recentGames = player.gameHistory.slice(-5);
-      const wins = recentGames.filter(game => game.result === 3).length;
-      return (wins / recentGames.length) > 0.7;
-    });
-    
-    // Find players with poor form (last 5 games < 30% win rate)
-    const playersInPoorForm = squad.filter(player => {
-      if (!player.gameHistory || player.gameHistory.length < 3) return false;
-      const recentGames = player.gameHistory.slice(-5);
-      const wins = recentGames.filter(game => game.result === 3).length;
-      return (wins / recentGames.length) < 0.3;
-    });
-    
-    // Find experienced players (>10 games played)
-    const experiencedPlayers = squad.filter(player => 
-      player.gamesPlayed && player.gamesPlayed > 10
-    );
-    
-    // Find new players (<=3 games played)
-    const newPlayers = squad.filter(player => 
-      !player.gamesPlayed || player.gamesPlayed <= 3
-    );
-    
-    // Find keepers
-    const keepers = squad.filter(player => 
-      player.position === 'Keeper' || player.position === 'GOAL_KEEPER'
-    );
-    
-    // Find top rated player
-    const topPlayer = squad.reduce((top, player) => 
-      (player.rating || 0) > (top.rating || 0) ? player : top
-    );
-    
-    // Calculate average rating
-    const avgRating = squad.length > 0 
-      ? squad.reduce((sum, p) => sum + (p.rating || 0), 0) / squad.length 
-      : 0;
-    
-    return {
-      playersInForm,
-      playersInPoorForm,
-      experiencedPlayers,
-      newPlayers,
-      keepers,
-      topPlayer,
-      avgRating,
-      totalScore: team.totalScore || 0
-    };
-  }
-
-  private determineMainFactors(whiteAnalysis: any, redAnalysis: any) {
-    const factors = [];
-    
-    // Check if form is a major factor
-    if (whiteAnalysis.playersInForm.length > 0 || redAnalysis.playersInForm.length > 0) {
-      factors.push('form');
-    }
-    
-    // Check if experience balancing is important
-    const expDiff = Math.abs(whiteAnalysis.experiencedPlayers.length - redAnalysis.experiencedPlayers.length);
-    if (expDiff <= 1 && (whiteAnalysis.experiencedPlayers.length > 0 || redAnalysis.experiencedPlayers.length > 0)) {
-      factors.push('experience');
-    }
-    
-    // Check if new player integration is happening
-    if (whiteAnalysis.newPlayers.length > 0 || redAnalysis.newPlayers.length > 0) {
-      factors.push('development');
-    }
-    
-    // Check keeper situation
-    if (whiteAnalysis.keepers.length > 0 && redAnalysis.keepers.length > 0) {
-      factors.push('keepers');
-    }
-    
-    // Always include balance as base factor
-    factors.push('balance');
-    
-    return factors;
-  }
-
-  private generatePersonalizedExplanation(
-    teamWhite: Team, 
-    teamRed: Team, 
-    whiteAnalysis: any, 
-    redAnalysis: any, 
-    factors: string[]
-  ): string {
-    let explanation = '';
-    const scoreDiff = Math.abs(whiteAnalysis.totalScore - redAnalysis.totalScore).toFixed(1);
-    
-    // Form analysis
-    if (factors.includes('form')) {
-      if (whiteAnalysis.playersInForm.length > 0) {
-        const formPlayers = whiteAnalysis.playersInForm.map((p: Player) => p.name).join(' en ');
-        explanation += `<p>🔥 <strong>Team Wit</strong> heeft een voordeel door de uitstekende vorm van ${formPlayers}.</p>`;
-      }
-      if (redAnalysis.playersInForm.length > 0) {
-        const formPlayers = redAnalysis.playersInForm.map((p: Player) => p.name).join(' en ');
-        explanation += `<p>🔥 <strong>Team Rood</strong> heeft een voordeel door de uitstekende vorm van ${formPlayers}.</p>`;
-      }
-      
-      // Mention players in poor form
-      const allPoorForm = [...whiteAnalysis.playersInPoorForm, ...redAnalysis.playersInPoorForm];
-      if (allPoorForm.length > 0) {
-        const poorFormNames = allPoorForm.map((p: Player) => p.name).join(', ');
-        explanation += `<p>⚠️ ${poorFormNames} ${allPoorForm.length === 1 ? 'heeft' : 'hebben'} recent mindere vorm - kans op comeback!</p>`;
-      }
-    }
-    
-    // Keeper analysis
-    if (factors.includes('keepers')) {
-      const whiteKeeper = whiteAnalysis.keepers[0];
-      const redKeeper = redAnalysis.keepers[0];
-      
-      if (whiteKeeper && redKeeper) {
-        explanation += `<p>🥅 Keeper-duel: <strong>${whiteKeeper.name}</strong> vs <strong>${redKeeper.name}</strong> - beide teams hebben sterke laatste verdediging.</p>`;
-      } else if (whiteKeeper) {
-        explanation += `<p>🥅 <strong>Team Wit</strong> heeft voordeel met keeper ${whiteKeeper.name}, Team Rood moet creatief verdedigen.</p>`;
-      } else if (redKeeper) {
-        explanation += `<p>🥅 <strong>Team Rood</strong> heeft voordeel met keeper ${redKeeper.name}, Team Wit moet creatief verdedigen.</p>`;
-      }
-    }
-    
-    // Experience vs Development
-    if (factors.includes('development')) {
-      const allNewPlayers = [...whiteAnalysis.newPlayers, ...redAnalysis.newPlayers];
-      if (allNewPlayers.length > 0) {
-        const newNames = allNewPlayers.map((p: Player) => p.name).join(', ');
-        explanation += `<p>🌟 <strong>Ontwikkeling</strong>: ${newNames} ${allNewPlayers.length === 1 ? 'speelt' : 'spelen'} tussen ervaren spelers voor optimale groei.</p>`;
-      }
-    }
-    
-    if (factors.includes('experience')) {
-      const whiteExp = whiteAnalysis.experiencedPlayers;
-      const redExp = redAnalysis.experiencedPlayers;
-      
-      if (whiteExp.length > redExp.length) {
-        explanation += `<p>🏆 <strong>Team Wit</strong> heeft meer ervaring met ${whiteExp.map((p: Player) => p.name).join(', ')}.</p>`;
-      } else if (redExp.length > whiteExp.length) {
-        explanation += `<p>🏆 <strong>Team Rood</strong> heeft meer ervaring met ${redExp.map((p: Player) => p.name).join(', ')}.</p>`;
-      } else if (whiteExp.length > 0 && redExp.length > 0) {
-        explanation += `<p>🏆 Ervaring is gelijk verdeeld: ${whiteExp.map((p: Player) => p.name).join(', ')} vs ${redExp.map((p: Player) => p.name).join(', ')}.</p>`;
-      }
-    }
-    
-    // Key player matchups
-    if (whiteAnalysis.topPlayer && redAnalysis.topPlayer) {
-      explanation += `<p>⭐ <strong>Sleutel-duel</strong>: ${whiteAnalysis.topPlayer.name} (${whiteAnalysis.topPlayer.rating}) vs ${redAnalysis.topPlayer.name} (${redAnalysis.topPlayer.rating}) - deze strijd kan de wedstrijd bepalen!</p>`;
-    }
-    
-    // Final balance assessment
-    explanation += `<p><strong>⚖️ Score-verschil</strong>: ${scoreDiff} punten - `;
-    if (parseFloat(scoreDiff) < 1.0) {
-      explanation += 'extreem spannende wedstrijd verwacht!';
-    } else if (parseFloat(scoreDiff) < 2.0) {
-      explanation += 'evenwichtige wedstrijd met kleine voordelen.';
-    } else {
-      explanation += 'één team heeft voordeel, maar vorm kan alles veranderen!';
-    }
-    explanation += '</p>';
-    
-    return explanation;
-  }
-
-  // Helper methods for Team object properties
-  private calculateTeamAttack(players: Player[]): number {
-    if (!players.length) return 0;
-    // Simple calculation: average rating of attackers or all players if no specific attackers
-    const attackers = players.filter(p => p.position && p.position.toLowerCase().includes('aanval'));
-    const relevantPlayers = attackers.length > 0 ? attackers : players;
-    return relevantPlayers.reduce((sum, p) => sum + (p.rating || 0), 0) / relevantPlayers.length;
-  }
-
-  private calculateTeamDefense(players: Player[]): number {
-    if (!players.length) return 0;
-    // Simple calculation: average rating of defenders/keepers or all players if no specific defenders
-    const defenders = players.filter(p => p.position && 
-      (p.position.toLowerCase().includes('verdedig') || 
-       p.position.toLowerCase().includes('keeper') ||
-       p.position.toLowerCase().includes('goal')));
-    const relevantPlayers = defenders.length > 0 ? defenders : players;
-    return relevantPlayers.reduce((sum, p) => sum + (p.rating || 0), 0) / relevantPlayers.length;
-  }
-
-  private calculateTeamCondition(players: Player[]): number {
-    if (!players.length) return 0;
-    // Simple calculation: average rating (could be more sophisticated with fitness data)
-    return players.reduce((sum, p) => sum + (p.rating || 0), 0) / players.length;
-  }
 }

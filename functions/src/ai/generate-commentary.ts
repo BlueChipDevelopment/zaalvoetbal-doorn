@@ -4,11 +4,12 @@ import * as logger from "firebase-functions/logger";
 import Anthropic from "@anthropic-ai/sdk";
 import {setCorsHeaders} from "../shared/cors";
 import {FIREBASE_CONFIG} from "../config/constants";
+import {createSupabaseClient, SUPABASE_SERVICE_ROLE_KEY} from "../shared/supabase-client";
 
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 
 export const generateTeamCommentary = onRequest(
-  {region: FIREBASE_CONFIG.region, secrets: [anthropicApiKey]},
+  {region: FIREBASE_CONFIG.region, secrets: [anthropicApiKey, SUPABASE_SERVICE_ROLE_KEY]},
   async (req, res) => {
     setCorsHeaders(res, req);
     if (req.method === "OPTIONS") {
@@ -17,7 +18,18 @@ export const generateTeamCommentary = onRequest(
     }
 
     try {
-      const {teamWhite, teamRed, stats} = req.body;
+      const {teamWhite, teamRed, stats, matchId} = req.body;
+
+      // Met matchId: bestaande voorbeschouwing wint, zodat een tweede bezoeker
+      // die net iets te laat is geen nieuwe generatie uitlokt.
+      if (matchId) {
+        const existing = await readStoredCommentary(matchId);
+        if (existing) {
+          logger.info(`Bestaande voorbeschouwing hergebruikt voor match ${matchId}`);
+          res.json({commentary: existing, reused: true});
+          return;
+        }
+      }
 
       const client = new Anthropic({apiKey: anthropicApiKey.value()});
 
@@ -50,13 +62,70 @@ export const generateTeamCommentary = onRequest(
         .replace(/```\s*$/, "")
         .trim();
 
-      res.json({commentary});
+      // Opslaan zodat elke volgende bezoeker dezelfde tekst leest i.p.v. een
+      // nieuwe generatie te triggeren. De write is voorwaardelijk: staat er al
+      // een voorbeschouwing, dan wint die.
+      let stored = false;
+      if (matchId && commentary) {
+        stored = await storeCommentary(matchId, commentary);
+      }
+
+      res.json({commentary, stored});
     } catch (error) {
       logger.error("Error generating AI commentary:", error);
       res.status(500).json({error: "Failed to generate commentary"});
     }
   }
 );
+
+/** Leest een al opgeslagen voorbeschouwing; null als die er niet is. */
+async function readStoredCommentary(matchId: number): Promise<string | null> {
+  try {
+    const supabase = createSupabaseClient();
+    const {data, error} = await supabase
+      .from("matches")
+      .select("voorbeschouwing")
+      .eq("id", matchId)
+      .maybeSingle();
+    if (error) {
+      logger.error(`Kon voorbeschouwing van match ${matchId} niet lezen:`, error);
+      return null;
+    }
+    return data?.voorbeschouwing ?? null;
+  } catch (error) {
+    logger.error(`Kon voorbeschouwing van match ${matchId} niet lezen:`, error);
+    return null;
+  }
+}
+
+/**
+ * Schrijft de voorbeschouwing alleen weg als er nog geen staat. Zo levert een
+ * race tussen twee gelijktijdige bezoekers één opgeslagen tekst op.
+ * Een mislukte write is niet fataal — de aanvrager krijgt zijn tekst gewoon.
+ */
+async function storeCommentary(matchId: number, commentary: string): Promise<boolean> {
+  try {
+    const supabase = createSupabaseClient();
+    const {data, error} = await supabase
+      .from("matches")
+      .update({voorbeschouwing: commentary})
+      .eq("id", matchId)
+      .is("voorbeschouwing", null)
+      .select("id");
+    if (error) {
+      logger.error(`Kon voorbeschouwing van match ${matchId} niet opslaan:`, error);
+      return false;
+    }
+    const written = (data ?? []).length > 0;
+    logger.info(written ?
+      `Voorbeschouwing opgeslagen voor match ${matchId}` :
+      `Voorbeschouwing voor match ${matchId} was al gevuld; niet overschreven`);
+    return written;
+  } catch (error) {
+    logger.error(`Kon voorbeschouwing van match ${matchId} niet opslaan:`, error);
+    return false;
+  }
+}
 
 function buildPrompt(teamWhite: any, teamRed: any, stats: any): string {
   const whitePlayers = (teamWhite.players || [])
