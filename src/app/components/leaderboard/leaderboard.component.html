@@ -33,8 +33,11 @@
             Seizoen {{ selectedSeason }}
           </ng-template>
         </h2>
+        <p class="points-legend">
+          Winst {{ pointsSystem.win }} · Gelijk {{ pointsSystem.draw }} · Verlies {{ pointsSystem.loss }} · Zlatan +{{ pointsSystem.zlatan }} · Afwezig 0
+        </p>
       </div>
-      
+
       <mat-table [dataSource]="leaderboard" class="mat-elevation-z8 mobile-friendly-table leaderboard-table">
         <!-- Position Column -->
         <ng-container matColumnDef="position" class="position-column">

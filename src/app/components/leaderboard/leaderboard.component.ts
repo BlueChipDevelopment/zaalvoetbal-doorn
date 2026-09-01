@@ -16,6 +16,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { PointsSystem, pointsSystemForSeason } from '../../utils/points-system';
 
 @Component({
   selector: 'app-leaderboard',
@@ -44,8 +45,13 @@ export class LeaderboardComponent implements OnInit {
   availableSeasons: string[] = [];
   selectedSeason: string | null = null;
   isMobile = false;
-  isLoading = true; 
+  isLoading = true;
   public errorMessage: string | null = null;
+
+  /** Puntentelling van het getoonde seizoen — oude seizoenen behouden hun eigen telling. */
+  get pointsSystem(): PointsSystem {
+    return pointsSystemForSeason(this.selectedSeason);
+  }
 
   private destroyRef = inject(DestroyRef);
 

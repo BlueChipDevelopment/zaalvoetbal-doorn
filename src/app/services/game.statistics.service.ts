@@ -5,6 +5,7 @@ import { map, tap } from 'rxjs/operators';
 import { PlayerService } from './player.service';
 import { PlayerSheetData } from '../interfaces/IPlayerSheet';
 import { WedstrijdenService } from './wedstrijden.service';
+import { MatchOutcome, pointsSystemForSeason } from '../utils/points-system';
 
 @Injectable({
   providedIn: 'root'
@@ -93,13 +94,19 @@ export class GameStatisticsService {
           const teamWhiteGoals = match.scoreWit || 0;
           const teamRedGoals = match.scoreRood || 0;
 
+          // Puntentelling hangt af van het seizoen van deze wedstrijd (zie points-system)
+          const points = pointsSystemForSeason(match.seizoen);
+          const whiteOutcome: MatchOutcome = teamWhiteGoals > teamRedGoals ? 'win' : teamWhiteGoals < teamRedGoals ? 'loss' : 'draw';
+          const redOutcome: MatchOutcome = teamRedGoals > teamWhiteGoals ? 'win' : teamRedGoals < teamWhiteGoals ? 'loss' : 'draw';
+
           // White team players
           teamWhiteIds.forEach((pid: number) => {
             if (!playerStats[pid]) playerStats[pid] = { gamesPlayed: 0, totalPoints: 0, wins: 0, losses: 0, ties: 0, gameHistory: [], zlatanPoints: 0, ventielPoints: 0 };
             playerStats[pid].gamesPlayed++;
-            if (teamWhiteGoals > teamRedGoals) playerStats[pid].wins++;
-            else if (teamWhiteGoals < teamRedGoals) playerStats[pid].losses++;
+            if (whiteOutcome === 'win') playerStats[pid].wins++;
+            else if (whiteOutcome === 'loss') playerStats[pid].losses++;
             else playerStats[pid].ties++;
+            playerStats[pid].totalPoints += points[whiteOutcome];
             playerStats[pid].gameHistory.push({
               result: teamWhiteGoals > teamRedGoals ? 3 : teamWhiteGoals === teamRedGoals ? 2 : 1,
               date: match.datum,
@@ -109,6 +116,7 @@ export class GameStatisticsService {
             });
             if (match.zlatanPlayerId === pid) {
               playerStats[pid].zlatanPoints = (playerStats[pid].zlatanPoints || 0) + 1;
+              playerStats[pid].totalPoints += points.zlatan;
             }
             if (match.ventielPlayerId === pid) {
               playerStats[pid].ventielPoints = (playerStats[pid].ventielPoints || 0) + 1;
@@ -119,9 +127,10 @@ export class GameStatisticsService {
           teamRedIds.forEach((pid: number) => {
             if (!playerStats[pid]) playerStats[pid] = { gamesPlayed: 0, totalPoints: 0, wins: 0, losses: 0, ties: 0, gameHistory: [], zlatanPoints: 0, ventielPoints: 0 };
             playerStats[pid].gamesPlayed++;
-            if (teamRedGoals > teamWhiteGoals) playerStats[pid].wins++;
-            else if (teamRedGoals < teamWhiteGoals) playerStats[pid].losses++;
+            if (redOutcome === 'win') playerStats[pid].wins++;
+            else if (redOutcome === 'loss') playerStats[pid].losses++;
             else playerStats[pid].ties++;
+            playerStats[pid].totalPoints += points[redOutcome];
             playerStats[pid].gameHistory.push({
               result: teamRedGoals > teamWhiteGoals ? 3 : teamRedGoals === teamWhiteGoals ? 2 : 1,
               date: match.datum,
@@ -131,6 +140,7 @@ export class GameStatisticsService {
             });
             if (match.zlatanPlayerId === pid) {
               playerStats[pid].zlatanPoints = (playerStats[pid].zlatanPoints || 0) + 1;
+              playerStats[pid].totalPoints += points.zlatan;
             }
             if (match.ventielPlayerId === pid) {
               playerStats[pid].ventielPoints = (playerStats[pid].ventielPoints || 0) + 1;
@@ -152,10 +162,7 @@ export class GameStatisticsService {
             };
           }
         });
-        // Total points en max
-        Object.values(playerStats).forEach(stats => {
-          stats.totalPoints = (stats.wins * 3) + (stats.ties * 2) + (stats.losses * 1) + (stats.zlatanPoints || 0);
-        });
+        // totalPoints is per wedstrijd al opgeteld met de telling van dat seizoen
         const maxTotalPoints = Math.max(...Object.values(playerStats).map(stats => stats.totalPoints || 0), 1);
         // Maak array met alle info
         return Object.entries(playerStats)

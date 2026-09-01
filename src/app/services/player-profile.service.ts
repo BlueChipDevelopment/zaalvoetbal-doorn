@@ -7,6 +7,7 @@ import { GameStatisticsService } from './game.statistics.service';
 import { PlayerSheetData } from '../interfaces/IPlayerSheet';
 import { WedstrijdData } from '../interfaces/IWedstrijd';
 import { Player } from '../interfaces/IPlayer';
+import { MatchOutcome, pointsSystemForSeason } from '../utils/points-system';
 
 export interface PlayerProfileStats {
   rating: number;
@@ -69,26 +70,34 @@ function computeRatingsFromMatches(
     const scoreWit = match.scoreWit ?? 0;
     const scoreRood = match.scoreRood ?? 0;
 
+    // Puntentelling hangt af van het seizoen van deze wedstrijd (zie points-system)
+    const points = pointsSystemForSeason(match.seizoen);
+    const witOutcome: MatchOutcome = scoreWit > scoreRood ? 'win' : scoreWit < scoreRood ? 'loss' : 'draw';
+    const roodOutcome: MatchOutcome = scoreRood > scoreWit ? 'win' : scoreRood < scoreWit ? 'loss' : 'draw';
+
     teamWit.forEach((pid: number) => {
       if (!playerStats[pid]) playerStats[pid] = { totalPoints: 0, wins: 0, losses: 0, ties: 0, zlatanPoints: 0 };
-      if (scoreWit > scoreRood) playerStats[pid].wins++;
-      else if (scoreWit < scoreRood) playerStats[pid].losses++;
+      if (witOutcome === 'win') playerStats[pid].wins++;
+      else if (witOutcome === 'loss') playerStats[pid].losses++;
       else playerStats[pid].ties++;
-      if (match.zlatanPlayerId === pid) playerStats[pid].zlatanPoints++;
+      playerStats[pid].totalPoints += points[witOutcome];
+      if (match.zlatanPlayerId === pid) {
+        playerStats[pid].zlatanPoints++;
+        playerStats[pid].totalPoints += points.zlatan;
+      }
     });
 
     teamRood.forEach((pid: number) => {
       if (!playerStats[pid]) playerStats[pid] = { totalPoints: 0, wins: 0, losses: 0, ties: 0, zlatanPoints: 0 };
-      if (scoreRood > scoreWit) playerStats[pid].wins++;
-      else if (scoreRood < scoreWit) playerStats[pid].losses++;
+      if (roodOutcome === 'win') playerStats[pid].wins++;
+      else if (roodOutcome === 'loss') playerStats[pid].losses++;
       else playerStats[pid].ties++;
-      if (match.zlatanPlayerId === pid) playerStats[pid].zlatanPoints++;
+      playerStats[pid].totalPoints += points[roodOutcome];
+      if (match.zlatanPlayerId === pid) {
+        playerStats[pid].zlatanPoints++;
+        playerStats[pid].totalPoints += points.zlatan;
+      }
     });
-  });
-
-  // Stel totalPoints in
-  Object.entries(playerStats).forEach(([idStr, stats]) => {
-    stats.totalPoints = (stats.wins * 3) + (stats.ties * 2) + (stats.losses * 1) + (stats.zlatanPoints);
   });
 
   const maxTotalPoints = Math.max(...Object.values(playerStats).map(s => s.totalPoints), 1);
