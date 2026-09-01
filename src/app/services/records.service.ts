@@ -7,6 +7,9 @@ import { GameStatisticsService } from './game.statistics.service';
 import { PlayerSheetData } from '../interfaces/IPlayerSheet';
 import { WedstrijdData } from '../interfaces/IWedstrijd';
 import { Player } from '../interfaces/IPlayer';
+import { SeasonDecider } from '../interfaces/ISeasonDecider';
+import { SeasonDecidersService } from './season-deciders.service';
+import { applySeasonDecider } from '../utils/season-decider';
 
 export interface RecordHolder {
   playerId: number;
@@ -21,6 +24,8 @@ export interface RecordCategory {
   unit: string;
   higherIsBetter: boolean;
   holders: RecordHolder[];
+  /** Toelichting, bijvoorbeeld hoe een gelijkstand is beslecht. */
+  note?: string;
 }
 
 const MIN_MATCHES_FOR_WINRATE = 10;
@@ -31,6 +36,7 @@ export class RecordsService {
     private playerService: PlayerService,
     private wedstrijdenService: WedstrijdenService,
     private statsService: GameStatisticsService,
+    private seasonDeciders: SeasonDecidersService,
   ) {}
 
   /**
@@ -55,14 +61,15 @@ export class RecordsService {
     return forkJoin({
       seasons: this.statsService.getAvailableSeasons(),
       current: this.statsService.getCurrentSeason(),
+      deciders: this.seasonDeciders.getBySeason(),
     }).pipe(
-      switchMap(({ seasons, current }) => {
+      switchMap(({ seasons, current, deciders }) => {
         const completed = (seasons ?? []).filter(s => s !== current);
         if (completed.length === 0) return of([] as RecordCategory[]);
         return forkJoin(
           completed.map(season =>
             this.statsService.getFullPlayerStats(season).pipe(
-              map(stats => this.buildSeasonMvp(season, stats)),
+              map(stats => this.buildSeasonMvp(season, stats, deciders.get(season) ?? null)),
             ),
           ),
         );
@@ -89,8 +96,12 @@ export class RecordsService {
     );
   }
 
-  private buildSeasonMvp(season: string, stats: Player[]): RecordCategory {
-    return this.buildTopRecord({
+  private buildSeasonMvp(
+    season: string,
+    stats: Player[],
+    decider: SeasonDecider | null,
+  ): RecordCategory {
+    const record = this.buildTopRecord({
       key: `mvp-${season}`,
       title: `MVP seizoen ${season}`,
       icon: 'workspace_premium',
@@ -99,6 +110,10 @@ export class RecordsService {
       stats,
       valueFn: p => p.totalPoints,
     });
+    // Een gelijkstand aan kop kan buiten het veld beslecht zijn; dan is er één
+    // kampioen in plaats van een gedeelde titel.
+    const { holders, note } = applySeasonDecider(record.holders, decider);
+    return { ...record, holders, note };
   }
 
   private computeRecords(

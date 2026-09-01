@@ -4,6 +4,7 @@ import { RecordsService } from './records.service';
 import { PlayerService } from './player.service';
 import { WedstrijdenService } from './wedstrijden.service';
 import { GameStatisticsService } from './game.statistics.service';
+import { SeasonDecidersService } from './season-deciders.service';
 import { PlayerSheetData } from '../interfaces/IPlayerSheet';
 import { WedstrijdData } from '../interfaces/IWedstrijd';
 import { Player } from '../interfaces/IPlayer';
@@ -32,6 +33,7 @@ describe('RecordsService', () => {
     TestBed.configureTestingModule({
       providers: [
         RecordsService,
+        { provide: SeasonDecidersService, useValue: { getBySeason: () => of(new Map()) } },
         { provide: PlayerService, useValue: { getPlayers: () => of(players) } },
         { provide: WedstrijdenService, useValue: { getGespeeldeWedstrijden: () => of(matches) } },
         { provide: GameStatisticsService, useValue: {
@@ -147,6 +149,65 @@ describe('RecordsService', () => {
       expect(keys).toContain('highest-rating');
       expect(keys).not.toContain('most-matches');
       done();
+    });
+  });
+describe('seizoen-MVP met een beslissing', () => {
+    const tiedStats: Player[] = [
+      makePlayer(1, 'Alpha', { totalPoints: 66 }),
+      makePlayer(2, 'Bravo', { totalPoints: 66 }),
+      makePlayer(3, 'Charlie', { totalPoints: 40 }),
+    ];
+
+    function configureSeason(deciders: Map<string, any>): void {
+      TestBed.configureTestingModule({
+        providers: [
+          RecordsService,
+          { provide: SeasonDecidersService, useValue: { getBySeason: () => of(deciders) } },
+          { provide: PlayerService, useValue: { getPlayers: () => of(mockPlayers) } },
+          { provide: WedstrijdenService, useValue: { getGespeeldeWedstrijden: () => of([]) } },
+          { provide: GameStatisticsService, useValue: {
+            getFullPlayerStats: () => of(tiedStats),
+            getCurrentSeason: () => of('2026-2027'),
+            getAvailableSeasons: () => of(['2026-2027', '2025-2026']),
+          } },
+        ],
+      });
+      service = TestBed.inject(RecordsService);
+    }
+
+    it('toont beide spelers als er geen beslissing is vastgelegd', (done: DoneFn) => {
+      configureSeason(new Map());
+      service.getSeasonMVPs().subscribe(mvps => {
+        const mvp = mvps.find(m => m.key === 'mvp-2025-2026')!;
+        expect(mvp.holders.map(h => h.playerId).sort()).toEqual([1, 2]);
+        expect(mvp.note).toBeUndefined();
+        done();
+      });
+    });
+
+    it('wijst alleen de winnaar aan zodra de beslissing bekend is', (done: DoneFn) => {
+      configureSeason(new Map([['2025-2026', {
+        season: '2025-2026', winnerPlayerId: 2, note: 'Beslist na strafschoppen',
+      }]]));
+      service.getSeasonMVPs().subscribe(mvps => {
+        const mvp = mvps.find(m => m.key === 'mvp-2025-2026')!;
+        expect(mvp.holders.map(h => h.playerId)).toEqual([2]);
+        expect(mvp.holders[0].value).toBe(66);
+        expect(mvp.note).toBe('Beslist na strafschoppen');
+        done();
+      });
+    });
+
+    it('negeert een beslissing waarvan de winnaar niet meer bovenaan staat', (done: DoneFn) => {
+      configureSeason(new Map([['2025-2026', {
+        season: '2025-2026', winnerPlayerId: 3, note: 'Beslist na strafschoppen',
+      }]]));
+      service.getSeasonMVPs().subscribe(mvps => {
+        const mvp = mvps.find(m => m.key === 'mvp-2025-2026')!;
+        expect(mvp.holders.map(h => h.playerId).sort()).toEqual([1, 2]);
+        expect(mvp.note).toBeUndefined();
+        done();
+      });
     });
   });
 });

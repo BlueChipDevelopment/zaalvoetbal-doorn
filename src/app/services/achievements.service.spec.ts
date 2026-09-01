@@ -4,6 +4,7 @@ import { AchievementsService } from './achievements.service';
 import { PlayerService } from './player.service';
 import { WedstrijdenService } from './wedstrijden.service';
 import { GameStatisticsService } from './game.statistics.service';
+import { SeasonDecidersService } from './season-deciders.service';
 import { Player } from '../interfaces/IPlayer';
 import { PlayerSheetData } from '../interfaces/IPlayerSheet';
 import { WedstrijdData } from '../interfaces/IWedstrijd';
@@ -50,6 +51,7 @@ describe('AchievementsService — milestones', () => {
     TestBed.configureTestingModule({
       providers: [
         AchievementsService,
+        { provide: SeasonDecidersService, useValue: { getBySeason: () => of(new Map()) } },
         { provide: PlayerService, useValue: { getPlayers: () => of(players) } },
         { provide: WedstrijdenService, useValue: { getGespeeldeWedstrijden: () => of(matches) } },
         {
@@ -131,6 +133,7 @@ describe('AchievementsService — streaks', () => {
     TestBed.configureTestingModule({
       providers: [
         AchievementsService,
+        { provide: SeasonDecidersService, useValue: { getBySeason: () => of(new Map()) } },
         { provide: PlayerService, useValue: { getPlayers: () => of(players) } },
         { provide: WedstrijdenService, useValue: { getGespeeldeWedstrijden: () => of(matches) } },
         {
@@ -199,6 +202,7 @@ describe('AchievementsService — season', () => {
     TestBed.configureTestingModule({
       providers: [
         AchievementsService,
+        { provide: SeasonDecidersService, useValue: { getBySeason: () => of(new Map()) } },
         { provide: PlayerService, useValue: { getPlayers: () => of(players) } },
         { provide: WedstrijdenService, useValue: { getGespeeldeWedstrijden: () => of(matches) } },
         {
@@ -295,6 +299,7 @@ describe('AchievementsService — rarity & chips', () => {
     TestBed.configureTestingModule({
       providers: [
         AchievementsService,
+        { provide: SeasonDecidersService, useValue: { getBySeason: () => of(new Map()) } },
         { provide: PlayerService, useValue: { getPlayers: () => of(players) } },
         { provide: WedstrijdenService, useValue: { getGespeeldeWedstrijden: () => of(matches) } },
         {

@@ -1,0 +1,51 @@
+<div class="beslissingen">
+  <app-loading-state *ngIf="loading" message="Seizoenen laden..."></app-loading-state>
+
+  <ng-container *ngIf="!loading">
+    <p class="intro">
+      Eindigen twee spelers op precies hetzelfde aantal punten, dan kun je hier
+      vastleggen wie de titel won. Die speler wordt MVP van dat seizoen en staat
+      bovenaan in het klassement.
+    </p>
+
+    <p class="empty" *ngIf="rows.length === 0">Er zijn nog geen afgeronde seizoenen.</p>
+
+    <mat-card *ngFor="let row of rows" class="season-card">
+      <mat-card-content>
+        <h3>Seizoen {{ row.season }}</h3>
+
+        <p class="no-tie" *ngIf="row.tied.length < 2">
+          Geen gelijkstand aan kop — {{ row.tied.length ? row.tied[0].name : 'onbekend' }} won met
+          {{ row.topPoints }} punten.
+        </p>
+
+        <ng-container *ngIf="row.tied.length > 1">
+          <p class="tie">
+            Gelijkstand op {{ row.topPoints }} punten tussen
+            {{ row.tied.length }} spelers. Wie won de beslissing?
+          </p>
+
+          <mat-form-field appearance="fill" class="winner-select">
+            <mat-label>Winnaar</mat-label>
+            <mat-select [(ngModel)]="row.winnerPlayerId" [disabled]="row.saving">
+              <mat-option *ngFor="let p of row.tied" [value]="p.id">{{ p.name }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="fill" class="note-field">
+            <mat-label>Toelichting</mat-label>
+            <input matInput [(ngModel)]="row.note" [disabled]="row.saving"
+                   placeholder="Beslist na strafschoppen" />
+          </mat-form-field>
+
+          <div class="actions">
+            <button mat-flat-button color="primary"
+                    [disabled]="row.winnerPlayerId === null || row.saving"
+                    (click)="save(row)">Opslaan</button>
+            <button mat-button [disabled]="row.saving" (click)="clear(row)">Wissen</button>
+          </div>
+        </ng-container>
+      </mat-card-content>
+    </mat-card>
+  </ng-container>
+</div>

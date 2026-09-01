@@ -1,0 +1,45 @@
+@import '../../../../styles_variables';
+
+.beslissingen {
+  padding: 1rem 0;
+
+  .intro {
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    margin: 0 0 1rem;
+  }
+
+  .empty {
+    font-style: italic;
+    color: $text-secondary;
+  }
+
+  .season-card {
+    margin-bottom: 1rem;
+
+    h3 {
+      margin: 0 0 0.5rem;
+      font-size: $font-size-lg;
+    }
+
+    .no-tie,
+    .tie {
+      margin: 0 0 0.75rem;
+      color: $text-secondary;
+      font-size: $font-size-sm;
+    }
+
+    .winner-select,
+    .note-field {
+      width: 100%;
+      max-width: 320px;
+      display: block;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+  }
+}

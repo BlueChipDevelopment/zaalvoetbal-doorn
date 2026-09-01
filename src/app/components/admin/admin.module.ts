@@ -9,6 +9,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatCardModule } from '@angular/material/card';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -27,6 +28,7 @@ import { SpelerDialogComponent } from './admin-spelers/speler-dialog/speler-dial
 import { WedstrijdDialogComponent } from './admin-wedstrijden/wedstrijd-dialog/wedstrijd-dialog.component';
 import { AdminNotificatiesComponent } from './admin-notificaties/admin-notificaties.component';
 import { TestBroadcastDialogComponent } from './admin-notificaties/test-broadcast-dialog.component';
+import { AdminSeizoensbeslissingenComponent } from './admin-seizoensbeslissingen/admin-seizoensbeslissingen.component';
 @NgModule({
   declarations: [
     AdminComponent,
@@ -36,6 +38,7 @@ import { TestBroadcastDialogComponent } from './admin-notificaties/test-broadcas
     WedstrijdDialogComponent,
     AdminNotificatiesComponent,
     TestBroadcastDialogComponent,
+    AdminSeizoensbeslissingenComponent,
   ],
   imports: [
     CommonModule,
@@ -50,6 +53,7 @@ import { TestBroadcastDialogComponent } from './admin-notificaties/test-broadcas
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatCardModule,
     MatSlideToggleModule,
     MatDatepickerModule,
     MatNativeDateModule,

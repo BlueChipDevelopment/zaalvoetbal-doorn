@@ -4,6 +4,8 @@ import { map, switchMap } from 'rxjs/operators';
 import { PlayerService } from './player.service';
 import { WedstrijdenService } from './wedstrijden.service';
 import { GameStatisticsService } from './game.statistics.service';
+import { SeasonDecidersService } from './season-deciders.service';
+import { SeasonDecider } from '../interfaces/ISeasonDecider';
 import { ACHIEVEMENT_DEFINITIONS } from './achievement-definitions';
 import {
   AchievementCategory,
@@ -29,6 +31,7 @@ export class AchievementsService {
     private playerService: PlayerService,
     private wedstrijdenService: WedstrijdenService,
     private statsService: GameStatisticsService,
+    private seasonDeciders: SeasonDecidersService,
   ) {}
 
   getPlayerAchievements(playerId: number): Observable<PlayerAchievement[]> {
@@ -37,8 +40,9 @@ export class AchievementsService {
       stats: this.statsService.getFullPlayerStats(null),
       seasons: this.statsService.getAvailableSeasons(),
       current: this.statsService.getCurrentSeason(),
+      deciders: this.seasonDeciders.getBySeason(),
     }).pipe(
-      switchMap(({ matches, stats, seasons, current }) => {
+      switchMap(({ matches, stats, seasons, current, deciders }) => {
         const completed = (seasons ?? []).filter(s => s !== current);
         const seasonStats$ = completed.length === 0
           ? of([] as { season: string; stats: Player[] }[])
@@ -50,7 +54,7 @@ export class AchievementsService {
               ),
             );
         return seasonStats$.pipe(
-          map(perSeason => this.buildForPlayer(playerId, matches, stats, perSeason)),
+          map(perSeason => this.buildForPlayer(playerId, matches, stats, perSeason, deciders)),
         );
       }),
     );
@@ -66,8 +70,9 @@ export class AchievementsService {
       stats: this.statsService.getFullPlayerStats(null),
       seasons: this.statsService.getAvailableSeasons(),
       current: this.statsService.getCurrentSeason(),
+      deciders: this.seasonDeciders.getBySeason(),
     }).pipe(
-      switchMap(({ players, matches, stats, seasons, current }) => {
+      switchMap(({ players, matches, stats, seasons, current, deciders }) => {
         const completed = (seasons ?? []).filter(s => s !== current);
         const seasonStats$ = completed.length === 0
           ? of([] as { season: string; stats: Player[] }[])
@@ -83,7 +88,7 @@ export class AchievementsService {
             const perPlayer: Record<number, PlayerAchievement[]> = {};
             const ids = players.map(p => p.id).filter((id): id is number => typeof id === 'number');
             for (const id of ids) {
-              perPlayer[id] = this.buildForPlayer(id, matches, stats, perSeason);
+              perPlayer[id] = this.buildForPlayer(id, matches, stats, perSeason, deciders);
             }
             const summaries = this.summarize(perPlayer, ids.length);
             return { perPlayer, summaries };
@@ -206,6 +211,7 @@ export class AchievementsService {
     matches: WedstrijdData[],
     stats: Player[],
     perSeason: { season: string; stats: Player[] }[],
+    deciders: Map<string, SeasonDecider>,
   ): PlayerAchievement[] {
     const playerStats = stats.find(s => s.id === playerId);
     if (!playerStats) return [];
@@ -223,7 +229,7 @@ export class AchievementsService {
         result.push(this.buildStreak(def, streakInfo));
       }
     }
-    const seasonResults = this.computeSeasonOccurrences(playerId, matches, perSeason);
+    const seasonResults = this.computeSeasonOccurrences(playerId, matches, perSeason, deciders);
     for (const def of ACHIEVEMENT_DEFINITIONS) {
       if (def.category === 'season') {
         result.push(this.buildSeasonBadge(def, seasonResults));
@@ -321,6 +327,7 @@ export class AchievementsService {
     playerId: number,
     matches: WedstrijdData[],
     perSeason: { season: string; stats: Player[] }[],
+    deciders: Map<string, SeasonDecider>,
   ): Record<string, AchievementOccurrence[]> {
     const out: Record<string, AchievementOccurrence[]> = {
       season_champion: [], season_podium: [], season_full_attend: [],
@@ -337,7 +344,18 @@ export class AchievementsService {
       const top3Threshold = ranking[2]?.totalPoints ?? -Infinity;
       const me = stats.find(s => s.id === playerId);
 
-      if (me && me.totalPoints === top1 && me.totalPoints > 0) {
+      // Bij een gelijkstand aan kop die buiten het veld is beslecht, is alleen
+      // de winnaar kampioen. De podiumplek houden de anderen wel.
+      const decider = deciders.get(season) ?? null;
+      const tiedAtTop = ranking.filter(s => s.totalPoints === top1);
+      const decidedElsewhere = decider !== null
+        && tiedAtTop.length > 1
+        && tiedAtTop.some(s => s.id === decider.winnerPlayerId);
+      const isChampion = decidedElsewhere
+        ? decider!.winnerPlayerId === playerId
+        : me?.totalPoints === top1;
+
+      if (me && isChampion && me.totalPoints > 0) {
         out['season_champion'].push({ season, date: lastDate });
       }
       if (me && me.totalPoints >= top3Threshold && me.totalPoints > 0) {

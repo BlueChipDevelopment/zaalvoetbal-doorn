@@ -17,6 +17,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { PointsSystem, pointsSystemForSeason } from '../../utils/points-system';
+import { compareByDecider } from '../../utils/season-decider';
+import { SeasonDecidersService } from '../../services/season-deciders.service';
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-leaderboard',
@@ -58,6 +61,7 @@ export class LeaderboardComponent implements OnInit {
   constructor(
     private titleCasePipe: TitleCasePipe,
     private gameStatisticsService: GameStatisticsService,
+    private seasonDecidersService: SeasonDecidersService,
     private dialog: MatDialog
   ) {}
 
@@ -103,11 +107,19 @@ export class LeaderboardComponent implements OnInit {
 
   private loadLeaderboard(): void {
     this.isLoading = true;
-    this.gameStatisticsService.getFullPlayerStats(this.selectedSeason)
+    forkJoin({
+      stats: this.gameStatisticsService.getFullPlayerStats(this.selectedSeason),
+      deciders: this.seasonDecidersService.getBySeason(),
+    })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-      next: (leaderboard: any[]) => {
-        this.leaderboard = leaderboard;
+      next: ({ stats, deciders }) => {
+        // Bij exact gelijke punten aan kop bepaalt een beslissing buiten het
+        // veld wie er bovenaan staat; anders blijft de volgorde zoals hij is.
+        const decider = this.selectedSeason ? deciders.get(this.selectedSeason) ?? null : null;
+        this.leaderboard = [...stats].sort((a, b) =>
+          b.totalPoints - a.totalPoints || compareByDecider(a.id, b.id, decider),
+        );
         this.isLoading = false;
       },
       error: (error: any) => {

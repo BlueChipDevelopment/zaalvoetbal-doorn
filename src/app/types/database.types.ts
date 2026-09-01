@@ -304,6 +304,35 @@ export type Database = {
         }
         Relationships: []
       }
+      season_deciders: {
+        Row: {
+          created_at: string
+          note: string | null
+          season: string
+          winner_player_id: number
+        }
+        Insert: {
+          created_at?: string
+          note?: string | null
+          season: string
+          winner_player_id: number
+        }
+        Update: {
+          created_at?: string
+          note?: string | null
+          season?: string
+          winner_player_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_deciders_winner_player_id_fkey"
+            columns: ["winner_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       season_subscriptions: {
         Row: {
           created_at: string

@@ -59,6 +59,7 @@
               {{ h.name }}<span *ngIf="!last">, </span>
             </a>
             <span class="value">— {{ mvp.holders[0].value | number:'1.0-0' }} {{ mvp.unit }}</span>
+            <span class="mvp-note" *ngIf="mvp.note">{{ mvp.note }}</span>
           </ng-container>
           <ng-template #noMvp><span class="empty">geen data</span></ng-template>
         </span>
