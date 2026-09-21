@@ -61,10 +61,6 @@ export class SpelerDialogComponent implements OnInit {
       email: [data.player?.email || '', Validators.email],
       isAdmin: [{ value: data.player?.isAdmin || false, disabled: this.isVasteBeheerder }]
     });
-
-    if (this.isEditMode) {
-      this.spelerForm.get('name')?.disable();
-    }
   }
 
   ngOnInit(): void {
@@ -141,7 +137,7 @@ export class SpelerDialogComponent implements OnInit {
       const formValue = this.spelerForm.getRawValue(); // includes disabled fields
 
       const player: PlayerSheetData = {
-        name: formValue.name,
+        name: formValue.name.trim(),
         position: formValue.position,
         actief: formValue.actief,
         email: formValue.email?.trim().toLowerCase() || undefined,

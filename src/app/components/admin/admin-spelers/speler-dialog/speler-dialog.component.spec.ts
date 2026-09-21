@@ -51,6 +51,16 @@ describe('SpelerDialogComponent', () => {
     expect(arg.originalName).toBe('Bob');
   });
 
+  it('naam is bewerkbaar in edit-modus en een nieuwe naam gaat mee met de oorspronkelijke naam', () => {
+    const c = setup({ mode: 'edit', originalName: 'Bob', player: { id: 1, name: 'Bob', position: 'Speler', actief: true } });
+    expect(c.spelerForm.get('name')?.enabled).toBeTrue();
+    c.spelerForm.get('name')?.setValue('  Robert ');
+    c.onSave();
+    const arg = dialogRef.close.calls.mostRecent().args[0];
+    expect(arg.player.name).toBe('Robert');
+    expect(arg.originalName).toBe('Bob');
+  });
+
   it('applyTotal boekt het verschil als correctie', () => {
     const c = setup({ mode: 'edit', originalName: 'Bob', player: { id: 5, name: 'Bob', position: 'Speler', actief: true } });
     c.balance = 3;
