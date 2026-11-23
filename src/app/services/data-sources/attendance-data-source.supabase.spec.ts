@@ -14,6 +14,8 @@ describe('SupabaseAttendanceDataSource', () => {
       upsert: jasmine.createSpy('upsert').and.callFake(() => qb),
       eq: jasmine.createSpy('eq').and.callFake(() => qb),
       limit: jasmine.createSpy('limit').and.callFake(() => qb),
+      order: jasmine.createSpy('order').and.callFake(() => qb),
+      range: jasmine.createSpy('range').and.callFake(() => qb),
       then: (resolve: any) => Promise.resolve({ data: null, error: null }).then(resolve),
     };
     mockClient = { from: jasmine.createSpy('from').and.returnValue(qb) };
@@ -42,6 +44,22 @@ describe('SupabaseAttendanceDataSource', () => {
     expect(records[0].date).toBe('2025-09-15');
     expect(records[0].playerName).toBe('Bob');
     expect(records[0].status).toBe('Ja');
+  });
+
+  it('getAll pagineert voorbij de 1000-rijen limiet van Supabase', async () => {
+    const row = (i: number) => ({ match_id: i, player_id: 1, status: 'Ja', match: { date: '2025-09-15' }, player: { name: 'P' + i } });
+    let call = 0;
+    qb.then = (resolve: any) => {
+      call++;
+      const data = call === 1 ? Array.from({ length: 1000 }, (_, i) => row(i)) : [row(1000), row(1001)];
+      return Promise.resolve({ data, error: null }).then(resolve);
+    };
+
+    const records = await lastValueFrom(dataSource.getAll());
+
+    expect(records.length).toBe(1002);
+    expect(qb.range.calls.argsFor(0)).toEqual([0, 999]);
+    expect(qb.range.calls.argsFor(1)).toEqual([1000, 1999]);
   });
 
   it('upsert vertaalt date+playerName naar match_id+player_id en upsert', async () => {
