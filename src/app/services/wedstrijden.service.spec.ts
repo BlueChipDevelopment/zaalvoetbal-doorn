@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { WedstrijdenService } from './wedstrijden.service';
 import { MatchDataSource } from './data-sources/match-data-source';
 import { StrippenkaartDataSource } from './data-sources/strippenkaart-data-source';
@@ -125,6 +125,96 @@ describe('WedstrijdenService', () => {
     service.addWedstrijd(input).subscribe(result => {
       expect(result.id).toBe(42);
       done();
+    });
+  });
+
+  describe('strippenkaart-aftrek via wedstrijdbeheer', () => {
+    const gespeeld: WedstrijdData = {
+      id: 106,
+      seizoen: '2026-2027',
+      datum: new Date(2026, 10, 23),
+      teamWit: [4],
+      teamRood: [8],
+      teamGeneratie: 'Handmatig',
+      scoreWit: 13,
+      scoreRood: 10,
+      zlatanPlayerId: null,
+      ventielPlayerId: null,
+    };
+
+    beforeEach(() => {
+      jasmine.clock().install();
+      jasmine.clock().mockDate(new Date(2026, 10, 24));
+      mockDataSource.update.and.returnValue(of(undefined));
+    });
+
+    afterEach(() => jasmine.clock().uninstall());
+
+    it('updateWedstrijd schrijft strippen af ná de write als de uitslag is ingevuld', (done) => {
+      service.updateWedstrijd(gespeeld).subscribe(() => {
+        expect(strippenkaartDsSpy.applyMatchDeductions).toHaveBeenCalledOnceWith(106);
+        expect(mockDataSource.update).toHaveBeenCalledBefore(strippenkaartDsSpy.applyMatchDeductions);
+        done();
+      });
+    });
+
+    it('updateWedstrijd schrijft ook af bij een 0-0', (done) => {
+      service.updateWedstrijd({ ...gespeeld, scoreWit: 0, scoreRood: 0 }).subscribe(() => {
+        expect(strippenkaartDsSpy.applyMatchDeductions).toHaveBeenCalledOnceWith(106);
+        done();
+      });
+    });
+
+    it('updateWedstrijd schrijft niets af zolang de uitslag niet compleet is', (done) => {
+      service.updateWedstrijd({ ...gespeeld, scoreRood: null }).subscribe(() => {
+        expect(strippenkaartDsSpy.applyMatchDeductions).not.toHaveBeenCalled();
+        done();
+      });
+    });
+
+    it('updateWedstrijd laat strippen van een afgesloten seizoen ongemoeid', (done) => {
+      service.updateWedstrijd({ ...gespeeld, datum: new Date(2026, 6, 31) }).subscribe(() => {
+        expect(strippenkaartDsSpy.applyMatchDeductions).not.toHaveBeenCalled();
+        done();
+      });
+    });
+
+    it('updateWedstrijd rekent augustus t/m juli als één seizoen', (done) => {
+      jasmine.clock().mockDate(new Date(2027, 6, 31));
+      service.updateWedstrijd({ ...gespeeld, datum: new Date(2026, 7, 1) }).subscribe(() => {
+        expect(strippenkaartDsSpy.applyMatchDeductions).toHaveBeenCalledOnceWith(106);
+        done();
+      });
+    });
+
+    it('updateWedstrijd geeft een mislukte aftrek door als fout', (done) => {
+      strippenkaartDsSpy.applyMatchDeductions.and.returnValue(throwError(() => new Error('aftrek mislukt')));
+      service.updateWedstrijd(gespeeld).subscribe({
+        next: () => done.fail('had een fout moeten geven'),
+        error: (e: Error) => {
+          expect(e.message).toBe('aftrek mislukt');
+          done();
+        },
+      });
+    });
+
+    it('addWedstrijd schrijft strippen af met het nieuwe id als de uitslag al is ingevuld', (done) => {
+      const nieuw: WedstrijdData = { ...gespeeld, id: undefined };
+      mockDataSource.add.and.returnValue(of({ ...nieuw, id: 200 }));
+      service.addWedstrijd(nieuw).subscribe(result => {
+        expect(result.id).toBe(200);
+        expect(strippenkaartDsSpy.applyMatchDeductions).toHaveBeenCalledOnceWith(200);
+        done();
+      });
+    });
+
+    it('addWedstrijd schrijft niets af voor een nog te spelen wedstrijd', (done) => {
+      const nieuw: WedstrijdData = { ...gespeeld, scoreWit: null, scoreRood: null };
+      mockDataSource.add.and.returnValue(of(nieuw));
+      service.addWedstrijd(nieuw).subscribe(() => {
+        expect(strippenkaartDsSpy.applyMatchDeductions).not.toHaveBeenCalled();
+        done();
+      });
     });
   });
 });

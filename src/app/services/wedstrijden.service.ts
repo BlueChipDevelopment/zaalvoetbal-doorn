@@ -86,6 +86,7 @@ export class WedstrijdenService {
         this.wedstrijdenCache$.next(null);
         this.cacheTimestamp = 0;
       }),
+      switchMap(nieuw => this.applyDeductionsIfPlayed(nieuw).pipe(map(() => nieuw))),
       catchError(error => {
         console.error('Error adding wedstrijd:', error);
         throw error;
@@ -99,11 +100,30 @@ export class WedstrijdenService {
         this.wedstrijdenCache$.next(null);
         this.cacheTimestamp = 0;
       }),
+      switchMap(() => this.applyDeductionsIfPlayed(wedstrijd)),
       catchError(error => {
         console.error('Error updating wedstrijd:', error);
         throw error;
       })
     );
+  }
+
+  /**
+   * Strippen afschrijven voor een wedstrijd die via beheer is opgeslagen.
+   * Alleen als de uitslag compleet is, en alleen binnen het lopende seizoen:
+   * de aftrek rekent met de huidige strippenkaart-status van spelers, dus het
+   * corrigeren van een oude wedstrijd mag de historie niet herschrijven.
+   */
+  private applyDeductionsIfPlayed(wedstrijd: WedstrijdData): Observable<void> {
+    const { id, datum, scoreWit, scoreRood } = wedstrijd;
+    if (!id || !datum || scoreWit === null || scoreRood === null) return of(undefined);
+    if (this.seasonStartYear(datum) !== this.seasonStartYear(new Date())) return of(undefined);
+    return this.strippenkaart.applyMatchDeductions(id);
+  }
+
+  /** Seizoen loopt van augustus t/m juli (zelfde regel als matches.season). */
+  private seasonStartYear(date: Date): number {
+    return date.getMonth() >= 7 ? date.getFullYear() : date.getFullYear() - 1;
   }
 
   deleteWedstrijd(matchId: number): Observable<void> {
